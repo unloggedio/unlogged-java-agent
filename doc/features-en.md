@@ -26,7 +26,7 @@ You must have a target Java application and a test case to execute the program.
     * -Dselogger.output=profile option outputs a frequency table of events instead of writing an execution trace.   This option enables to estimate an execution trace size.
 
 3. Analyze an execution trace.
-    * selogger.reader.LogPrinter is a basic program that simply print out the contents of an execution trace.  The printer class takes `-dir=path/to/trace` option to specify an execution trace directory (that is specified as `-Dselogger.dir` directory).
+    * LogPrinter is a basic program that simply print out the contents of an execution trace.  The printer class takes `-dir=path/to/trace` option to specify an execution trace directory (that is specified as `-Dselogger.dir` directory).
     * Create your own analysis program with selogger.reader.LogDirectory and EventReader classes. 
 
 testdata.bat.txt is an example batch file for Windows to execute the three steps described above for testdata package in selogger.

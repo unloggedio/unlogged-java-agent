@@ -27,7 +27,7 @@ selogger は，Java プログラムの実行履歴を *それなりに* 詳し�
     * -Dselogger.output=出力形式．固定長・圧縮あり(fixed-compress)が標準．variable とすると可変長無圧縮で，10倍以上のディスク容量を消費するかわりRAMディスク上では非常に高速になります．profile と指定すると，ログを書き出すかわりにイベントの出現頻度表をテキスト形式で出力します．
 
 3. 出力されたログを解析します．
-    * selogger.reader.LogPrinter クラスを main として，-dir=ディレクトリ名 という形式で -Dselogger.dir のディレクトリを指定すると，そのログの内容を単純に標準出力に書き出します．
+    * LogPrinter クラスを main として，-dir=ディレクトリ名 という形式で -Dselogger.dir のディレクトリを指定すると，そのログの内容を単純に標準出力に書き出します．
     * selogger.reader.LogDirectory, EventReader クラスを使って，自分で解析のためのプログラムを作成してください．   
 
 以上の3ステップを selogger の testdata パッケージに対して実行する例を Windwos 用バッチファイルとして testdata.bat.txt に記述してあります．
@@ -72,7 +72,7 @@ FullTraceValidation に，ログの内容をチェックする仕組みを試作
 ### その他の構成要素
 
 * tests ディレクトリ以下には，実験用に作られたいくつかのテストコードが格納されています．
-  * selogger.testdata は，バイトコードWeavingの実験対象であり，意図的にJavaの特定の命令を使ったり例外を起こしたりする命令が埋め込んであります．
+  * com.insidious.agent.testdata は，バイトコードWeavingの実験対象であり，意図的にJavaの特定の命令を使ったり例外を起こしたりする命令が埋め込んであります．
 * old ディレクトリに過去の試作品が格納されているが，これらは古いログ形式に対応したもので，現在のバージョンには適用できません．
 
 

@@ -140,7 +140,7 @@ The `dump=true` option stores class files including logging code into the output
 
 
 The following table is a list of events that can be recorded by SELogger.
-The event name is defined in the class `selogger.EventType`.  
+The event name is defined in the class `EventType`.  
 
 
 |Event Category         |Event Name                |Timing       |Recorded Data|

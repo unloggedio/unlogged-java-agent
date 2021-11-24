@@ -20,9 +20,10 @@ public class RuntimeWeaverParameters {
 	private static final String ARG_SEPARATOR = ",";
 	private static final String SELOGGER_DEFAULT_OUTPUT_DIR = "selogger-output";
 
-	private static Pattern timePattern = Pattern.compile(".*(\\{time:([^}]+)\\}).*"); 
+	private static Pattern timePattern = Pattern.compile(".*(\\{time:([^}]+)\\}).*");
 
 	private String output_dirname = SELOGGER_DEFAULT_OUTPUT_DIR;
+	private String serverAddress;
 
 	private String weaveOption = WeaveConfig.KEY_RECORD_ALL;
 
@@ -89,6 +90,8 @@ public class RuntimeWeaverParameters {
 				}
 			} else if (arg.startsWith("weave=")) {
 				weaveOption = arg.substring("weave=".length());
+			} else if (arg.startsWith("server=")) {
+				serverAddress = arg.substring("server=".length());
 			} else if (arg.startsWith("dump=")) {
 				String classDumpOption = arg.substring("dump=".length());
 				dumpClass = classDumpOption.equalsIgnoreCase("true");
@@ -134,6 +137,8 @@ public class RuntimeWeaverParameters {
 					mode = Mode.Discard;
 				} else if (opt.startsWith("omni")||opt.startsWith("stream")) {
 					mode = Mode.Stream;
+				} else if (opt.startsWith("network")) {
+					mode = Mode.Network;
 				} else if (opt.startsWith("latest")||opt.startsWith("nearomni")||opt.startsWith("near-omni")) {
 					mode = Mode.FixedSize;
 				}
@@ -179,6 +184,11 @@ public class RuntimeWeaverParameters {
 
 	public ArrayList<String> getIncludedNames() {
 		return includedNames;
+	}
+
+
+	public String getServerAddress() {
+		return serverAddress;
 	}
 
 	public ArrayList<String> getExcludedLocations() {

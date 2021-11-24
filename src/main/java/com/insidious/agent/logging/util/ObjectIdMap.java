@@ -51,7 +51,7 @@ public class ObjectIdMap {
 		} 
 
 		int hash = System.identityHashCode(o);
-		
+
 		// Search the object.  If found, return the registered ID.
         int index = hash & andKey;
         Entry e = entries[index];

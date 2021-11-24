@@ -18,9 +18,10 @@ import java.util.Collections;
 /**
  * This class added type ID management and file save features to ObjectIdMap class.
  */
-public class ObjectIdFile extends ObjectIdMap {
+public class ObjectIdStream extends ObjectIdMap {
 
     private final String lineSeparator = "\n";
+    private final RSocket rSocket;
 
     private StringFileListStream objectIdList;
     private TypeIdMap typeToId;
@@ -41,11 +42,14 @@ public class ObjectIdFile extends ObjectIdMap {
      * @param recordString is a flag to recording string contents.
      *                     If the flag is true, this object records the contents of String objects in files.
      * @param typeToId     is an object to translate a type into an integer representing a type.
+     * @param rSocket
+     * @param processId
      * @throws IOException
      */
-    public ObjectIdFile(File outputDir, boolean recordString, TypeIdMap typeToId) throws IOException {
+    public ObjectIdStream(File outputDir, boolean recordString, TypeIdMap typeToId, RSocket rSocket, Integer processId) throws IOException {
         super(16 * 1024 * 1024);
         this.typeToId = typeToId;
+        this.rSocket = rSocket;
 
         filenames = new FileNameGenerator(outputDir, "LOG$ObjectTypes", ".txt");
         objectIdList = new StringFileListStream(filenames, 10000000, false);
@@ -83,6 +87,24 @@ public class ObjectIdFile extends ObjectIdMap {
             if (stringContentList != null) {
                 String stringObject = (String) o;
                 stringContentList.write(id, stringObject);
+                ByteBuf data = ByteBufAllocator.DEFAULT.buffer();
+                data.writeLong(id);
+                data.writeInt(stringObject.length());
+                data.writeBytes(stringObject.getBytes());
+
+                CompositeByteBuf messageMetadata = ByteBufAllocator.DEFAULT.compositeBuffer();
+                RoutingMetadata routingMetadata = TaggingMetadataCodec.createRoutingMetadata(
+                        ByteBufAllocator.DEFAULT, Collections.singletonList("string-mapping")
+                );
+
+
+                CompositeMetadataCodec.encodeAndAddMetadata(messageMetadata,
+                        ByteBufAllocator.DEFAULT,
+                        WellKnownMimeType.MESSAGE_RSOCKET_ROUTING,
+                        routingMetadata.getContent()
+                );
+
+                rSocket.fireAndForget(DefaultPayload.create(data, messageMetadata)).subscribe();
             }
         } else if (o instanceof Throwable) {
             try {

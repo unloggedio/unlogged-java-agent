@@ -32,7 +32,7 @@ public class WeaverTest {
 	@Before
 	public void setup() throws IOException {
 		// Execute a weaving 
-		WeaveConfig config = new WeaveConfig(WeaveConfig.KEY_RECORD_DEFAULT); 
+		WeaveConfig config = new WeaveConfig(WeaveConfig.KEY_RECORD_DEFAULT, "localhost:9921");
 		WeaveClassLoader loader = new WeaveClassLoader(config);
 		wovenClass = loader.loadAndWeaveClass("com.insidious.agent.testdata.SimpleTarget");
 		innerClass = loader.loadClassFromResource("com.insidious.agent.testdata.SimpleTarget$StringComparator", "com/insidious/agent/testdata/SimpleTarget$StringComparator.class");

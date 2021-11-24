@@ -54,7 +54,7 @@ public class RuntimeWeaver implements ClassFileTransformer {
 
 
 
-	public enum Mode { Stream, Frequency, FixedSize, Discard };
+	public enum Mode { Stream, Frequency, FixedSize, Discard, Network };
 
 
 	private RuntimeWeaverParameters params;
@@ -73,7 +73,7 @@ public class RuntimeWeaver implements ClassFileTransformer {
 		}
 
 		if (outputDir.isDirectory() && outputDir.canWrite()) {
-			WeaveConfig config = new WeaveConfig(params.getWeaveOption());
+			WeaveConfig config = new WeaveConfig(params.getWeaveOption(), params.getServerAddress());
 			if (config.isValid()) {
 				weaver = new Weaver(outputDir, config);
 				weaver.setDumpEnabled(params.isDumpClassEnabled());
@@ -89,6 +89,10 @@ public class RuntimeWeaver implements ClassFileTransformer {
 
 				case Stream:
 					logger = Logging.initializeStreamLogger(outputDir, true, weaver);
+					break;
+
+				case Network:
+					logger = Logging.initializeStreamNetworkLogger(outputDir, true, config.getRsocket(), weaver);
 					break;
 
 				case Discard:
@@ -166,6 +170,7 @@ public class RuntimeWeaver implements ClassFileTransformer {
 	public synchronized byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined,
 			ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
 
+//		System.out.printf("Load class: [%s]\n", className);
 	    if (isExcludedFromLogging(className)) {
 		    weaver.log("Excluded by name filter: " + className);
 			return null;

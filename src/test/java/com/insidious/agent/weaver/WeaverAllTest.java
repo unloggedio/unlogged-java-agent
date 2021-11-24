@@ -157,7 +157,7 @@ public class WeaverAllTest {
 	 */
 	@Test
 	public void testMethodImplementation() throws IOException {
-		Counters all = getEventFrequency(new WeaveConfig(WeaveConfig.KEY_RECORD_ALL));
+		Counters all = getEventFrequency(new WeaveConfig(WeaveConfig.KEY_RECORD_ALL, "localhost:9921"));
 		for (EventType t: EventType.values()) {
 			if (t != EventType.RESERVED && 
 				t != EventType.DIVIDE && 
@@ -173,8 +173,8 @@ public class WeaverAllTest {
 	 */
 	@Test
 	public void testDefaultMode() throws IOException {
-		Counters all = getEventFrequency(new WeaveConfig(WeaveConfig.KEY_RECORD_ALL));
-		Counters defaultEvents = getEventFrequency(new WeaveConfig(WeaveConfig.KEY_RECORD_DEFAULT));
+		Counters all = getEventFrequency(new WeaveConfig(WeaveConfig.KEY_RECORD_ALL, "localhost:9921"));
+		Counters defaultEvents = getEventFrequency(new WeaveConfig(WeaveConfig.KEY_RECORD_DEFAULT, "localhost:9921"));
 		HashSet<EventType> events = new HashSet<>();
 		for (EventType t: EventType.values()) {
 			if (t != EventType.RESERVED && 
@@ -192,8 +192,8 @@ public class WeaverAllTest {
 
 	@Test
 	public void testDefaultPlusLocal() throws IOException {
-		Counters all = getEventFrequency(new WeaveConfig(WeaveConfig.KEY_RECORD_ALL));
-		Counters defaultEvents = getEventFrequency(new WeaveConfig(WeaveConfig.KEY_RECORD_DEFAULT_PLUS_LOCAL));
+		Counters all = getEventFrequency(new WeaveConfig(WeaveConfig.KEY_RECORD_ALL, "localhost:9921"));
+		Counters defaultEvents = getEventFrequency(new WeaveConfig(WeaveConfig.KEY_RECORD_DEFAULT_PLUS_LOCAL, "localhost:9921"));
 		HashSet<EventType> events = new HashSet<>();
 		for (EventType t: EventType.values()) {
 			if (t != EventType.RESERVED && 
@@ -211,27 +211,27 @@ public class WeaverAllTest {
 	@Test
 	public void testConfigurations() throws IOException {
 		
-		Counters all = getEventFrequency(new WeaveConfig(WeaveConfig.KEY_RECORD_ALL));
+		Counters all = getEventFrequency(new WeaveConfig(WeaveConfig.KEY_RECORD_ALL, "localhost:9921"));
 
-		Counters exec = getEventFrequency(new WeaveConfig(WeaveConfig.KEY_RECORD_EXEC));
+		Counters exec = getEventFrequency(new WeaveConfig(WeaveConfig.KEY_RECORD_EXEC, "localhost:9921"));
 		assertSameCount(all, exec, execEvents);
 
-		Counters call = getEventFrequency(new WeaveConfig(WeaveConfig.KEY_RECORD_CALL));
+		Counters call = getEventFrequency(new WeaveConfig(WeaveConfig.KEY_RECORD_CALL, "localhost:9921"));
 		assertSameCount(all, call, callEvents);
 
 		HashSet<EventType> execCallEvents = new HashSet<>();
 		execCallEvents.addAll(execEvents);
 		execCallEvents.addAll(callEvents);
-		Counters execcall = getEventFrequency(new WeaveConfig(WeaveConfig.KEY_RECORD_EXEC + WeaveConfig.KEY_RECORD_CALL));
+		Counters execcall = getEventFrequency(new WeaveConfig(WeaveConfig.KEY_RECORD_EXEC + WeaveConfig.KEY_RECORD_CALL, "localhost:9921"));
 		assertSameCount(all, execcall, execCallEvents);
 
-		Counters execParam = getEventFrequency(new WeaveConfig(WeaveConfig.KEY_RECORD_EXEC + WeaveConfig.KEY_RECORD_PARAMETERS));
+		Counters execParam = getEventFrequency(new WeaveConfig(WeaveConfig.KEY_RECORD_EXEC + WeaveConfig.KEY_RECORD_PARAMETERS, "localhost:9921"));
 		assertSameCount(all, execParam, execParamEvents);
 
-		Counters callParam = getEventFrequency(new WeaveConfig(WeaveConfig.KEY_RECORD_CALL + WeaveConfig.KEY_RECORD_PARAMETERS));
+		Counters callParam = getEventFrequency(new WeaveConfig(WeaveConfig.KEY_RECORD_CALL + WeaveConfig.KEY_RECORD_PARAMETERS, "localhost:9921"));
 		assertSameCount(all, callParam, callParamEvents);
 
-		Counters execCallParam = getEventFrequency(new WeaveConfig(WeaveConfig.KEY_RECORD_EXEC + WeaveConfig.KEY_RECORD_CALL + WeaveConfig.KEY_RECORD_PARAMETERS));
+		Counters execCallParam = getEventFrequency(new WeaveConfig(WeaveConfig.KEY_RECORD_EXEC + WeaveConfig.KEY_RECORD_CALL + WeaveConfig.KEY_RECORD_PARAMETERS, "localhost:9921"));
 		execCallEvents.addAll(execParamEvents);
 		execCallEvents.addAll(callParamEvents);
 		assertSameCount(all, execCallParam, execCallEvents);
@@ -240,63 +240,63 @@ public class WeaverAllTest {
 
 	@Test
 	public void testFieldArrayConfigurations() throws IOException {
-		Counters all = getEventFrequency(new WeaveConfig(WeaveConfig.KEY_RECORD_ALL));
+		Counters all = getEventFrequency(new WeaveConfig(WeaveConfig.KEY_RECORD_ALL, "localhost:9921"));
 
-		Counters field = getEventFrequency(new WeaveConfig(WeaveConfig.KEY_RECORD_FIELD));
+		Counters field = getEventFrequency(new WeaveConfig(WeaveConfig.KEY_RECORD_FIELD, "localhost:9921"));
 		assertSameCount(all, field, fieldEvents);
 
-		Counters array = getEventFrequency(new WeaveConfig(WeaveConfig.KEY_RECORD_ARRAY));
+		Counters array = getEventFrequency(new WeaveConfig(WeaveConfig.KEY_RECORD_ARRAY, "localhost:9921"));
 		assertSameCount(all, array, arrayEvents);
 	}
 	
 	@Test
 	public void testLocalConfigurations() throws IOException {
-		Counters all = getEventFrequency(new WeaveConfig(WeaveConfig.KEY_RECORD_ALL));
-		Counters local = getEventFrequency(new WeaveConfig(WeaveConfig.KEY_RECORD_LOCAL));
+		Counters all = getEventFrequency(new WeaveConfig(WeaveConfig.KEY_RECORD_ALL, "localhost:9921"));
+		Counters local = getEventFrequency(new WeaveConfig(WeaveConfig.KEY_RECORD_LOCAL, "localhost:9921"));
 		assertSameCount(all, local, localEvents);
 	}
 
 	@Test
 	public void testLabelConfigurations() throws IOException {
-		Counters all = getEventFrequency(new WeaveConfig(WeaveConfig.KEY_RECORD_ALL));
-		Counters label = getEventFrequency(new WeaveConfig(WeaveConfig.KEY_RECORD_LABEL));
+		Counters all = getEventFrequency(new WeaveConfig(WeaveConfig.KEY_RECORD_ALL, "localhost:9921"));
+		Counters label = getEventFrequency(new WeaveConfig(WeaveConfig.KEY_RECORD_LABEL, "localhost:9921"));
 		assertSameCount(all, label, labelEvents);
 	}
 
 	@Test
 	public void testObjectConfigurations() throws IOException {
-		Counters all = getEventFrequency(new WeaveConfig(WeaveConfig.KEY_RECORD_ALL));
-		Counters object = getEventFrequency(new WeaveConfig(WeaveConfig.KEY_RECORD_OBJECT));
+		Counters all = getEventFrequency(new WeaveConfig(WeaveConfig.KEY_RECORD_ALL, "localhost:9921"));
+		Counters object = getEventFrequency(new WeaveConfig(WeaveConfig.KEY_RECORD_OBJECT, "localhost:9921"));
 		assertSameCount(all, object, objectEvents);
 	}
 
 	@Test
 	public void testSyncConfigurations() throws IOException {
-		Counters all = getEventFrequency(new WeaveConfig(WeaveConfig.KEY_RECORD_ALL));
-		Counters sync = getEventFrequency(new WeaveConfig(WeaveConfig.KEY_RECORD_SYNC));
+		Counters all = getEventFrequency(new WeaveConfig(WeaveConfig.KEY_RECORD_ALL, "localhost:9921"));
+		Counters sync = getEventFrequency(new WeaveConfig(WeaveConfig.KEY_RECORD_SYNC, "localhost:9921"));
 		assertSameCount(all, sync, syncEvents);
 	}
 
 	@Test
 	public void testLineConfigurations() throws IOException {
-		Counters all = getEventFrequency(new WeaveConfig(WeaveConfig.KEY_RECORD_ALL));
-		Counters line = getEventFrequency(new WeaveConfig(WeaveConfig.KEY_RECORD_LINE));
+		Counters all = getEventFrequency(new WeaveConfig(WeaveConfig.KEY_RECORD_ALL, "localhost:9921"));
+		Counters line = getEventFrequency(new WeaveConfig(WeaveConfig.KEY_RECORD_LINE, "localhost:9921"));
 		Assert.assertTrue(line.count(EventType.LINE_NUMBER) > 0);
 		assertSameCount(all, line, lineEvents);
 	}
 
 	@Test
 	public void testNoneEvents() throws IOException {
-		WeaveConfig w = new WeaveConfig(WeaveConfig.KEY_RECORD_ALL);
+		WeaveConfig w = new WeaveConfig(WeaveConfig.KEY_RECORD_ALL, "localhost:9921");
 		Counters all = getEventFrequency(w);
 		Counters exec = getEventFrequency(new WeaveConfig(w, LogLevel.OnlyEntryExit));
 		assertSameCount(all, exec, execEvents);
 
-		WeaveConfig w2 = new WeaveConfig(WeaveConfig.KEY_RECORD_CALL + WeaveConfig.KEY_RECORD_PARAMETERS);
+		WeaveConfig w2 = new WeaveConfig(WeaveConfig.KEY_RECORD_CALL + WeaveConfig.KEY_RECORD_PARAMETERS, "localhost:9921");
 		Counters none = getEventFrequency(new WeaveConfig(w2, LogLevel.OnlyEntryExit));
 		assertSameCount(all, none, new HashSet<>());
 		
-		WeaveConfig noneConfig = new WeaveConfig(WeaveConfig.KEY_RECORD_NONE);
+		WeaveConfig noneConfig = new WeaveConfig(WeaveConfig.KEY_RECORD_NONE, "localhost:9921");
 		none = getEventFrequency(noneConfig);
 		Assert.assertTrue(noneConfig.isValid());
 		assertSameCount(all, none, new HashSet<>());

@@ -12,8 +12,19 @@ import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.Collections;
 
 import com.insidious.agent.logging.IErrorLogger;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
+import io.netty.buffer.CompositeByteBuf;
+import io.rsocket.RSocket;
+import io.rsocket.metadata.CompositeMetadataCodec;
+import io.rsocket.metadata.RoutingMetadata;
+import io.rsocket.metadata.TaggingMetadataCodec;
+import io.rsocket.metadata.WellKnownMimeType;
+import io.rsocket.util.DefaultPayload;
 
 /**
  * This class manages bytecode injection process and weaving logs.
@@ -46,7 +57,6 @@ public class Weaver implements IErrorLogger {
 	
 	private MessageDigest digest;
 	private WeaveConfig config;
-
 
 	/**
 	 * Set up the object to manage a weaving process. 
@@ -205,10 +215,28 @@ public class Weaver implements IErrorLogger {
 	 * @param result records the state after weaving.
 	 */
 	private void finishClassProcess(ClassInfo c, WeaveLog result) {
+
+		ByteBuf out = ByteBufAllocator.DEFAULT.buffer();
+
+		CompositeByteBuf metadata = ByteBufAllocator.DEFAULT.compositeBuffer();
+		RoutingMetadata routingMetadata = TaggingMetadataCodec.createRoutingMetadata(
+				ByteBufAllocator.DEFAULT, Collections.singletonList("class-write-event")
+		);
+		CompositeMetadataCodec.encodeAndAddMetadata(metadata,
+				ByteBufAllocator.DEFAULT,
+				WellKnownMimeType.MESSAGE_RSOCKET_ROUTING,
+				routingMetadata.getContent()
+		);
+
 		if (classIdWriter != null) {
 			try {
-				classIdWriter.write(c.toString());
+				String str = c.toString();
+				classIdWriter.write(str);
 				classIdWriter.write(lineSeparator);
+
+				out.writeInt(str.length());
+				out.writeBytes(str.getBytes());
+
 				classIdWriter.flush();
 			} catch (IOException e) {
 				e.printStackTrace(logger);
@@ -221,9 +249,16 @@ public class Weaver implements IErrorLogger {
 		confirmedDataId = result.getNextDataId();
 		try {
 			if (dataIdWriter != null) {
-				for (DataInfo loc: result.getDataEntries()) {
-					dataIdWriter.write(loc.toString());
+				ArrayList<DataInfo> dataEntries = result.getDataEntries();
+				out.writeInt(dataEntries.size());
+				for (DataInfo loc: dataEntries) {
+					String locString = loc.toString();
+					dataIdWriter.write(locString);
 					dataIdWriter.write(lineSeparator);
+
+					out.writeInt(locString.length());
+					out.writeBytes(locString.getBytes());
+
 				}
 				dataIdWriter.flush();
 			}
@@ -236,9 +271,16 @@ public class Weaver implements IErrorLogger {
 		confirmedMethodId = result.getNextMethodId();
 		if (methodIdWriter != null) {
 			try {
-				for (MethodInfo method: result.getMethods()) {
-					methodIdWriter.write(method.toString());
+				ArrayList<MethodInfo> methods = result.getMethods();
+				out.writeInt(methods.size());
+				for (MethodInfo method: methods) {
+					String methodString = method.toString();
+					methodIdWriter.write(methodString);
 					methodIdWriter.write(lineSeparator);
+
+					out.writeInt(methodString.length());
+					out.writeBytes(methodString.getBytes());
+
 				}
 				methodIdWriter.flush();
 			} catch (IOException e) {
@@ -246,6 +288,9 @@ public class Weaver implements IErrorLogger {
 				methodIdWriter = null;
 			}
 		}
+
+//		System.out.printf("Send information for [%s]\n", c.getClassName());
+//		this.config.getRsocket().fireAndForget(DefaultPayload.create(out, metadata)).subscribe();
 		
 	}
 	

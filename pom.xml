@@ -45,6 +45,10 @@
                             <pattern>com.fasterxml.jackson.core</pattern>
                             <shadedPattern>selogger.com.fasterxml.jackson.core</shadedPattern>
                         </relocation>
+                        <relocation>
+                            <pattern>org.slf4j</pattern>
+                            <shadedPattern>selogger.org.slf4j</shadedPattern>
+                        </relocation>
                     </relocations>
                 </configuration>
                 <executions>
@@ -84,6 +88,16 @@
             <artifactId>jackson-core</artifactId>
             <version>2.13.0</version>
         </dependency>
+<!--        <dependency>-->
+<!--            <groupId>org.springframework.boot</groupId>-->
+<!--            <artifactId>spring-boot-starter-rsocket</artifactId>-->
+<!--            <version>2.3.0.RELEASE</version>-->
+<!--        </dependency>-->
+<!--        <dependency>-->
+<!--            <groupId>org.springframework.security</groupId>-->
+<!--            <artifactId>spring-security-rsocket</artifactId>-->
+<!--            <version>5.3.2.RELEASE</version>-->
+<!--        </dependency>-->
 
         <dependency>
             <groupId>junit</groupId>
@@ -92,9 +106,19 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>1.2.3</version>
+        </dependency>
+        <dependency>
             <groupId>io.rsocket</groupId>
             <artifactId>rsocket-core</artifactId>
-            <version>1.0.5</version>
+            <version>1.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>io.rsocket</groupId>
+            <artifactId>rsocket-transport-netty</artifactId>
+            <version>1.0.0</version>
         </dependency>
     </dependencies>
 </project>

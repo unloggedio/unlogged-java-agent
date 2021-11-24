@@ -220,7 +220,7 @@ public class Weaver implements IErrorLogger {
 
 		CompositeByteBuf metadata = ByteBufAllocator.DEFAULT.compositeBuffer();
 		RoutingMetadata routingMetadata = TaggingMetadataCodec.createRoutingMetadata(
-				ByteBufAllocator.DEFAULT, Collections.singletonList("class-write-event")
+				ByteBufAllocator.DEFAULT, Collections.singletonList("class-mapping")
 		);
 		CompositeMetadataCodec.encodeAndAddMetadata(metadata,
 				ByteBufAllocator.DEFAULT,
@@ -290,7 +290,7 @@ public class Weaver implements IErrorLogger {
 		}
 
 //		System.out.printf("Send information for [%s]\n", c.getClassName());
-//		this.config.getRsocket().fireAndForget(DefaultPayload.create(out, metadata)).subscribe();
+		this.config.getRsocket().fireAndForget(DefaultPayload.create(out, metadata)).subscribe();
 		
 	}
 	

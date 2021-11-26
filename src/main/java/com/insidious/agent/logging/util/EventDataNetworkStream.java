@@ -31,6 +31,7 @@ public class EventDataNetworkStream {
      * The number of events stored in a single file.
      */
     public static final int MAX_EVENTS_PER_FILE = 10000000;
+    CompositeByteBuf metadata = ByteBufAllocator.DEFAULT.compositeBuffer();
 
     /**
      * The data size of an event.
@@ -71,7 +72,14 @@ public class EventDataNetworkStream {
         this.processId = processId;
         err = logger;
         count = 0;
-
+        RoutingMetadata routingMetadata = TaggingMetadataCodec.createRoutingMetadata(
+                ByteBufAllocator.DEFAULT, Collections.singletonList("data-event")
+        );
+        CompositeMetadataCodec.encodeAndAddMetadata(metadata,
+                ByteBufAllocator.DEFAULT,
+                WellKnownMimeType.MESSAGE_RSOCKET_ROUTING,
+                routingMetadata.getContent()
+        );
 
     }
 
@@ -83,15 +91,7 @@ public class EventDataNetworkStream {
      */
     public synchronized void write(int dataId, long value) {
 
-        CompositeByteBuf metadata = ByteBufAllocator.DEFAULT.compositeBuffer();
-        RoutingMetadata routingMetadata = TaggingMetadataCodec.createRoutingMetadata(
-                ByteBufAllocator.DEFAULT, Collections.singletonList("data-event")
-        );
-        CompositeMetadataCodec.encodeAndAddMetadata(metadata,
-                ByteBufAllocator.DEFAULT,
-                WellKnownMimeType.MESSAGE_RSOCKET_ROUTING,
-                routingMetadata.getContent()
-        );
+
 
         ByteBuf out = ByteBufAllocator.DEFAULT.buffer();
 

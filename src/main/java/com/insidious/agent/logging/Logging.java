@@ -73,6 +73,7 @@ public class Logging {
     public static IEventLogger initializeStreamNetworkLogger(File outputDir, boolean recordString, RSocket rSocket, IErrorLogger errorLogger) {
         try {
 
+
             INSTANCE = new EventStreamNetworkLogger(errorLogger, outputDir, rSocket, recordString, getProcessId(new Random().nextInt()));
             return INSTANCE;
         } catch (Throwable e) {

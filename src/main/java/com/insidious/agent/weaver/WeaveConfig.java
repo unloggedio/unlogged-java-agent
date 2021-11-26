@@ -6,18 +6,16 @@ import io.netty.buffer.CompositeByteBuf;
 import io.rsocket.RSocket;
 import io.rsocket.core.RSocketConnector;
 import io.rsocket.frame.decoder.PayloadDecoder;
-import io.rsocket.metadata.AuthMetadataCodec;
-import io.rsocket.metadata.CompositeMetadataCodec;
-import io.rsocket.metadata.WellKnownMimeType;
+import io.rsocket.metadata.*;
 import io.rsocket.transport.netty.client.TcpClientTransport;
 import io.rsocket.util.DefaultPayload;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.Properties;
+import java.lang.management.ManagementFactory;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
 
 /**
  * This object manages options passed to the weaver.
@@ -25,6 +23,8 @@ import java.util.Properties;
  */
 public class WeaveConfig {
 
+    private Integer processId;
+    private String sessionId;
     private RSocket rSocket;
     private boolean weaveExec = true;
     private boolean weaveMethodCall = true;
@@ -58,6 +58,28 @@ public class WeaveConfig {
     public static final String KEY_RECORD_LOCAL = "LOCAL";
     public static final String KEY_RECORD_LINE = "LINE";
 
+    private static Integer getProcessId(final Integer fallback) {
+        // Note: may fail in some JVM implementations
+        // therefore fallback has to be provided
+
+        // something like '<pid>@<hostname>', at least in SUN / Oracle JVMs
+        final String jvmName = ManagementFactory.getRuntimeMXBean().getName();
+        final int index = jvmName.indexOf('@');
+
+        if (index < 1) {
+            // part before '@' empty (index = 0) / '@' not found (index = -1)
+            return fallback;
+        }
+
+        try {
+            return Integer.parseInt(jvmName.substring(0, index));
+        } catch (NumberFormatException e) {
+            // ignore
+        }
+        return fallback;
+    }
+
+
     /**
      * Construct a configuration from string
      *
@@ -87,6 +109,9 @@ public class WeaveConfig {
         weaveObject = opt.contains(KEY_RECORD_OBJECT);
         weaveLineNumber = opt.contains(KEY_RECORD_LINE);
         ignoreArrayInitializer = false;
+
+        this.sessionId = UUID.randomUUID().toString();
+        this.processId = getProcessId(new Random().nextInt());
 
         if (serverAddress != null && serverAddress.length() > 0) {
             String[] addressParts = serverAddress.split(":");
@@ -118,7 +143,28 @@ public class WeaveConfig {
             connector.setupPayload(DefaultPayload.create(DefaultPayload.EMPTY_BUFFER, metadata.nioBuffer()));
 
             rSocket = connector.connect(TcpClientTransport.create(addressParts[0], addressPort)).block();
-            System.out.printf("Connected to: [%s]\n", serverAddress);
+
+            RoutingMetadata routingMetadata = TaggingMetadataCodec.createRoutingMetadata(
+                    ByteBufAllocator.DEFAULT, Collections.singletonList("session-mapping")
+            );
+
+
+            CompositeByteBuf sessionInfoMetadata = ByteBufAllocator.DEFAULT.compositeBuffer();
+            CompositeMetadataCodec.encodeAndAddMetadata(sessionInfoMetadata,
+                    ByteBufAllocator.DEFAULT,
+                    WellKnownMimeType.MESSAGE_RSOCKET_ROUTING,
+                    routingMetadata.getContent());
+
+
+            ByteBuf sessionData = ByteBufAllocator.DEFAULT.buffer();
+
+            sessionData.writeInt(this.sessionId.length());
+            sessionData.writeBytes(this.sessionId.getBytes(StandardCharsets.UTF_8));
+            sessionData.writeInt(this.processId);
+
+            rSocket.fireAndForget(DefaultPayload.create(sessionData, sessionInfoMetadata)).block();
+
+            System.out.printf("Connected to: [%s] Session Id [%s] Process Id [%s]\n", serverAddress, this.sessionId, this.processId);
 
 
         }
@@ -295,7 +341,6 @@ public class WeaveConfig {
     public RSocket getRsocket() {
         return rSocket;
     }
-
 
 
 }

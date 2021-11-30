@@ -70,7 +70,7 @@ public class EventDataStream {
 	 * @param value specifies a data value observed in the event.
 	 */
 	public synchronized void write(int dataId, long value) {
-		System.out.printf("Record write [%s] - [%s]\n", dataId, value);
+//		System.out.printf("Record write [%s] - [%s]\n", dataId, value);
 		if (out != null) {
 			try {
 				if (count >= MAX_EVENTS_PER_FILE) {

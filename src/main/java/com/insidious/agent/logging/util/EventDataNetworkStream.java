@@ -5,16 +5,14 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.CompositeByteBuf;
 import io.rsocket.RSocket;
-import io.rsocket.metadata.*;
+import io.rsocket.metadata.CompositeMetadataCodec;
+import io.rsocket.metadata.RoutingMetadata;
+import io.rsocket.metadata.TaggingMetadataCodec;
+import io.rsocket.metadata.WellKnownMimeType;
 import io.rsocket.util.DefaultPayload;
 
-import java.io.BufferedOutputStream;
 import java.io.DataOutputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -36,28 +34,25 @@ public class EventDataNetworkStream {
      * The data size of an event.
      */
     public static final int BYTES_PER_EVENT = 16;
-    private final RSocket rSocket;
-    private final Integer processId;
-
-    private FileNameGenerator files;
-    private DataOutputStream out;
-    private IErrorLogger err;
-    private int count;
-
     /**
      * This object records the number of threads observed by SELogger.
      */
     private static final AtomicInteger nextThreadId = new AtomicInteger(0);
-
     /**
      * Assign an integer to this thread.
      */
-    private static ThreadLocal<Integer> threadId = new ThreadLocal<Integer>() {
+    private static final ThreadLocal<Integer> threadId = new ThreadLocal<Integer>() {
         @Override
         protected Integer initialValue() {
             return nextThreadId.getAndIncrement();
         }
     };
+    private final RSocket rSocket;
+    private final Integer processId;
+    private FileNameGenerator files;
+    private DataOutputStream out;
+    private final IErrorLogger err;
+    private int count;
 
     /**
      * Create an instance of stream.
@@ -80,9 +75,7 @@ public class EventDataNetworkStream {
      * @param dataId specifies an event and its bytecode location.
      * @param value  specifies a data value observed in the event.
      */
-    public synchronized void write(int dataId, long value) {
-
-
+    public void write(int dataId, long value) {
 
         ByteBuf out = ByteBufAllocator.DEFAULT.buffer();
 

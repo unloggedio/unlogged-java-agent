@@ -130,7 +130,15 @@ public class WeaveConfig {
             connector.payloadDecoder(PayloadDecoder.DEFAULT);
 
 
-            ByteBuf byteBuf = AuthMetadataCodec.encodeSimpleMetadata(ByteBufAllocator.DEFAULT, "user".toCharArray(), "pass".toCharArray());
+            String username = "user";
+
+            username = username + ":" + this.sessionId;
+
+            ByteBuf byteBuf = AuthMetadataCodec.encodeSimpleMetadata(ByteBufAllocator.DEFAULT, username.toCharArray(), "pass".toCharArray());
+
+//            ByteBuf tagging = ByteBufAllocator.DEFAULT.buffer();
+//            tagging.writeBytes(this.sessionId.getBytes(StandardCharsets.UTF_8));
+//            TaggingMetadata sessionTag = TaggingMetadataCodec.createTaggingMetadata(new CompositeMetadata.ExplicitMimeTimeEntry(tagging, "x-session-id"));
 
             CompositeByteBuf metadata = ByteBufAllocator.DEFAULT.compositeBuffer();
 
@@ -140,29 +148,35 @@ public class WeaveConfig {
                     byteBuf
             );
 
+//            CompositeMetadataCodec.encodeAndAddMetadata(metadata,
+//                    ByteBufAllocator.DEFAULT,
+//                    WellKnownMimeType.TEXT_PLAIN,
+//                    tagging
+//            );
+
             connector.setupPayload(DefaultPayload.create(DefaultPayload.EMPTY_BUFFER, metadata.nioBuffer()));
 
             rSocket = connector.connect(TcpClientTransport.create(addressParts[0], addressPort)).block();
 
-            RoutingMetadata routingMetadata = TaggingMetadataCodec.createRoutingMetadata(
-                    ByteBufAllocator.DEFAULT, Collections.singletonList("session-mapping")
-            );
-
-
-            CompositeByteBuf sessionInfoMetadata = ByteBufAllocator.DEFAULT.compositeBuffer();
-            CompositeMetadataCodec.encodeAndAddMetadata(sessionInfoMetadata,
-                    ByteBufAllocator.DEFAULT,
-                    WellKnownMimeType.MESSAGE_RSOCKET_ROUTING,
-                    routingMetadata.getContent());
-
-
-            ByteBuf sessionData = ByteBufAllocator.DEFAULT.buffer();
-
-            sessionData.writeInt(this.sessionId.length());
-            sessionData.writeBytes(this.sessionId.getBytes(StandardCharsets.UTF_8));
-            sessionData.writeInt(this.processId);
-
-            rSocket.fireAndForget(DefaultPayload.create(sessionData, sessionInfoMetadata)).block();
+//            RoutingMetadata routingMetadata = TaggingMetadataCodec.createRoutingMetadata(
+//                    ByteBufAllocator.DEFAULT, Collections.singletonList("session-mapping")
+//            );
+//
+//
+//            CompositeByteBuf sessionInfoMetadata = ByteBufAllocator.DEFAULT.compositeBuffer();
+//            CompositeMetadataCodec.encodeAndAddMetadata(sessionInfoMetadata,
+//                    ByteBufAllocator.DEFAULT,
+//                    WellKnownMimeType.MESSAGE_RSOCKET_ROUTING,
+//                    routingMetadata.getContent());
+//
+//
+//            ByteBuf sessionData = ByteBufAllocator.DEFAULT.buffer();
+//
+//            sessionData.writeInt(this.sessionId.length());
+//            sessionData.writeBytes(this.sessionId.getBytes(StandardCharsets.UTF_8));
+//            sessionData.writeInt(this.processId);
+//
+//            rSocket.fireAndForget(DefaultPayload.create(sessionData, sessionInfoMetadata)).block();
 
             System.out.printf("Connected to: [%s] Session Id [%s] Process Id [%s]\n", serverAddress, this.sessionId, this.processId);
 

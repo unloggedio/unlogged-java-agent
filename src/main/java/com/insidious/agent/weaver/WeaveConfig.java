@@ -14,7 +14,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /**
@@ -23,6 +22,22 @@ import java.util.*;
  */
 public class WeaveConfig {
 
+    public static final String KEY_RECORD_DEFAULT = "";
+    public static final String KEY_RECORD_ALL = "ALL";
+    public static final String KEY_RECORD_DEFAULT_PLUS_LOCAL = "EXEC+CALL+FIELD+ARRAY+SYNC+OBJECT+PARAM+LOCAL";
+    public static final String KEY_RECORD_NONE = "NONE";
+    public static final String KEY_RECORD_EXEC = "EXEC";
+    public static final String KEY_RECORD_CALL = "CALL";
+    public static final String KEY_RECORD_FIELD = "FIELD";
+    public static final String KEY_RECORD_ARRAY = "ARRAY";
+    public static final String KEY_RECORD_SYNC = "SYNC";
+    public static final String KEY_RECORD_OBJECT = "OBJECT";
+    public static final String KEY_RECORD_LABEL = "LABEL";
+    public static final String KEY_RECORD_PARAMETERS = "PARAM";
+    public static final String KEY_RECORD_LOCAL = "LOCAL";
+    public static final String KEY_RECORD_LINE = "LINE";
+    private static final String KEY_RECORD = "Events";
+    private static final String KEY_RECORD_SEPARATOR = ",";
     private Integer processId;
     private String sessionId;
     private RSocket rSocket;
@@ -34,62 +49,25 @@ public class WeaveConfig {
     private boolean weaveSynchronization = true;
     private boolean weaveParameters = true;
     private boolean weaveLocalAccess = true;
+    private String username;
+    private String password;
     private boolean weaveObject = true;
     private boolean weaveLineNumber = true;
     private boolean ignoreArrayInitializer = false;
-
     private boolean weaveNone = false;
-
-    public static final String KEY_RECORD_DEFAULT = "";
-    public static final String KEY_RECORD_ALL = "ALL";
-    public static final String KEY_RECORD_DEFAULT_PLUS_LOCAL = "EXEC+CALL+FIELD+ARRAY+SYNC+OBJECT+PARAM+LOCAL";
-    private static final String KEY_RECORD = "Events";
-    private static final String KEY_RECORD_SEPARATOR = ",";
-    public static final String KEY_RECORD_NONE = "NONE";
-
-    public static final String KEY_RECORD_EXEC = "EXEC";
-    public static final String KEY_RECORD_CALL = "CALL";
-    public static final String KEY_RECORD_FIELD = "FIELD";
-    public static final String KEY_RECORD_ARRAY = "ARRAY";
-    public static final String KEY_RECORD_SYNC = "SYNC";
-    public static final String KEY_RECORD_OBJECT = "OBJECT";
-    public static final String KEY_RECORD_LABEL = "LABEL";
-    public static final String KEY_RECORD_PARAMETERS = "PARAM";
-    public static final String KEY_RECORD_LOCAL = "LOCAL";
-    public static final String KEY_RECORD_LINE = "LINE";
-
-    private static Integer getProcessId(final Integer fallback) {
-        // Note: may fail in some JVM implementations
-        // therefore fallback has to be provided
-
-        // something like '<pid>@<hostname>', at least in SUN / Oracle JVMs
-        final String jvmName = ManagementFactory.getRuntimeMXBean().getName();
-        final int index = jvmName.indexOf('@');
-
-        if (index < 1) {
-            // part before '@' empty (index = 0) / '@' not found (index = -1)
-            return fallback;
-        }
-
-        try {
-            return Integer.parseInt(jvmName.substring(0, index));
-        } catch (NumberFormatException e) {
-            // ignore
-        }
-        return fallback;
-    }
-
 
     /**
      * Construct a configuration from string
      *
      * @param options       specify a string including: EXEC, CALL, FIELD, ARRAY, SYNC, OBJECT, LABEL, PARAM, LOCAL, and NONE.
      * @param serverAddress
+     * @param username
+     * @param password
      * @return true if at least one weaving option is enabled (except for parameter recording).
      */
-    public WeaveConfig(String options, String serverAddress) {
+    public WeaveConfig(String options, String serverAddress, String username, String password) {
         String opt = options.toUpperCase();
-        System.out.printf("Recording option: [%s] Server Address [%s]\n", opt, serverAddress);
+        System.out.printf("Recording option: [%s] Server Address [%s] Username [%s] Password [%s]\n", opt, serverAddress, username, password);
         if (opt.equals(KEY_RECORD_ALL)) {
             opt = KEY_RECORD_EXEC + KEY_RECORD_CALL + KEY_RECORD_FIELD + KEY_RECORD_ARRAY + KEY_RECORD_SYNC + KEY_RECORD_OBJECT + KEY_RECORD_PARAMETERS + KEY_RECORD_LABEL + KEY_RECORD_LOCAL + KEY_RECORD_LINE;
         } else if (opt.equals(KEY_RECORD_DEFAULT)) {
@@ -109,6 +87,8 @@ public class WeaveConfig {
         weaveObject = opt.contains(KEY_RECORD_OBJECT);
         weaveLineNumber = opt.contains(KEY_RECORD_LINE);
         ignoreArrayInitializer = false;
+        this.username = username;
+        this.password = password;
 
         this.sessionId = UUID.randomUUID().toString();
         this.processId = getProcessId(new Random().nextInt());
@@ -130,11 +110,9 @@ public class WeaveConfig {
             connector.payloadDecoder(PayloadDecoder.DEFAULT);
 
 
-            String username = "user";
+            String user = this.username + ":" + this.sessionId;
 
-            username = username + ":" + this.sessionId;
-
-            ByteBuf byteBuf = AuthMetadataCodec.encodeSimpleMetadata(ByteBufAllocator.DEFAULT, username.toCharArray(), "pass".toCharArray());
+            ByteBuf byteBuf = AuthMetadataCodec.encodeSimpleMetadata(ByteBufAllocator.DEFAULT, user.toCharArray(), this.password.toCharArray());
 
 //            ByteBuf tagging = ByteBufAllocator.DEFAULT.buffer();
 //            tagging.writeBytes(this.sessionId.getBytes(StandardCharsets.UTF_8));
@@ -184,6 +162,7 @@ public class WeaveConfig {
         }
     }
 
+
     /**
      * A copy constructor with a constraint.
      *
@@ -214,6 +193,27 @@ public class WeaveConfig {
             this.weaveObject = false;
             this.weaveLineNumber = false;
         }
+    }
+
+    private static Integer getProcessId(final Integer fallback) {
+        // Note: may fail in some JVM implementations
+        // therefore fallback has to be provided
+
+        // something like '<pid>@<hostname>', at least in SUN / Oracle JVMs
+        final String jvmName = ManagementFactory.getRuntimeMXBean().getName();
+        final int index = jvmName.indexOf('@');
+
+        if (index < 1) {
+            // part before '@' empty (index = 0) / '@' not found (index = -1)
+            return fallback;
+        }
+
+        try {
+            return Integer.parseInt(jvmName.substring(0, index));
+        } catch (NumberFormatException e) {
+            // ignore
+        }
+        return fallback;
     }
 
     /**

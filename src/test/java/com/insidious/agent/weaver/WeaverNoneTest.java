@@ -13,7 +13,7 @@ public class WeaverNoneTest {
 	@Test
 	public void testLine() throws IOException {
 		// Execute a weaving 
-		WeaveConfig config = new WeaveConfig(WeaveConfig.KEY_RECORD_NONE, "localhost:9921");
+		WeaveConfig config = new WeaveConfig(WeaveConfig.KEY_RECORD_NONE, "localhost:9921", "username", "password");
 		WeaveClassLoader loader = new WeaveClassLoader(config);
 		Class<?> wovenClass = loader.loadAndWeaveClass("com.insidious.agent.testdata.DivideClass");
 		try {

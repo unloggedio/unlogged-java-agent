@@ -73,7 +73,7 @@ public class RuntimeWeaver implements ClassFileTransformer {
 		}
 
 		if (outputDir.isDirectory() && outputDir.canWrite()) {
-			WeaveConfig config = new WeaveConfig(params.getWeaveOption(), params.getServerAddress());
+			WeaveConfig config = new WeaveConfig(params.getWeaveOption(), params.getServerAddress(), params.getUsername(), params.getPassword());
 			if (config.isValid()) {
 				weaver = new Weaver(outputDir, config);
 				weaver.setDumpEnabled(params.isDumpClassEnabled());

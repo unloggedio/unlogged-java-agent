@@ -30,7 +30,7 @@ public class InnerClassTest {
 	@Before
 	public void setup() throws IOException, ClassNotFoundException {
 		// Load the woven class
-		WeaveConfig config = new WeaveConfig(WeaveConfig.KEY_RECORD_DEFAULT, "localhost:9921");
+		WeaveConfig config = new WeaveConfig(WeaveConfig.KEY_RECORD_DEFAULT, "localhost:9921", "username", "password");
 		WeaveClassLoader loader = new WeaveClassLoader(config);
 		wovenClass = loader.loadAndWeaveClass("com.insidious.agent.testdata.SimpleTarget$StringComparator");
 		ownerClass = loader.loadClassFromResource("com.insidious.agent.testdata.SimpleTarget", "com/insidious/agent/testdata/SimpleTarget.class");

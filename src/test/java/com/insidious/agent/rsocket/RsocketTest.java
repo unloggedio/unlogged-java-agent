@@ -31,7 +31,7 @@ public class RsocketTest {
         connector.payloadDecoder(PayloadDecoder.DEFAULT);
 
 
-        ByteBuf byteBuf = AuthMetadataCodec.encodeSimpleMetadata(ByteBufAllocator.DEFAULT, "user".toCharArray(), "pass".toCharArray());
+        ByteBuf byteBuf = AuthMetadataCodec.encodeSimpleMetadata(ByteBufAllocator.DEFAULT, "user:sessionId".toCharArray(), "password".toCharArray());
 
         CompositeByteBuf metadata = ByteBufAllocator.DEFAULT.compositeBuffer();
 

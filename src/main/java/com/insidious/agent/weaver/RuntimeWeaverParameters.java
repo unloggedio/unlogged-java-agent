@@ -24,6 +24,8 @@ public class RuntimeWeaverParameters {
 
 	private String output_dirname = SELOGGER_DEFAULT_OUTPUT_DIR;
 	private String serverAddress;
+	private String username;
+	private String password;
 
 	private String weaveOption = WeaveConfig.KEY_RECORD_ALL;
 
@@ -92,6 +94,10 @@ public class RuntimeWeaverParameters {
 				weaveOption = arg.substring("weave=".length());
 			} else if (arg.startsWith("server=")) {
 				serverAddress = arg.substring("server=".length());
+			} else if (arg.startsWith("username=")) {
+				username = arg.substring("username=".length());
+			} else if (arg.startsWith("password=")) {
+				password = arg.substring("password=".length());
 			} else if (arg.startsWith("dump=")) {
 				String classDumpOption = arg.substring("dump=".length());
 				dumpClass = classDumpOption.equalsIgnoreCase("true");
@@ -188,7 +194,15 @@ public class RuntimeWeaverParameters {
 
 
 	public String getServerAddress() {
+
 		return serverAddress;
+	}
+	public String getUsername() {
+		return username;
+	}
+
+	public String getPassword() {
+		return password;
 	}
 
 	public ArrayList<String> getExcludedLocations() {

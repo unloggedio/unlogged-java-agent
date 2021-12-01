@@ -18,7 +18,7 @@ import java.util.Collections;
 
 public class RsocketTest {
 
-    private Logger log = LoggerFactory.getLogger(RsocketTest.class);
+    private final Logger log = LoggerFactory.getLogger(RsocketTest.class);
 
 
     @Test
@@ -72,8 +72,15 @@ public class RsocketTest {
         out.writeLong(System.nanoTime());
         out.writeLong(4);
 
+        assert rSocket != null;
+//        rSocket.fireAndForget(DefaultPayload.create(out, messageMetadata)).subscribe();
+
+//        if (1 > 2) {
         Payload response = rSocket.requestResponse(DefaultPayload.create(out, messageMetadata)).block();
-        System.out.printf("Response: %s", response.getData().toString());
+        System.out.printf("Response: %s", response.getData());
+//        }
+
+//        rSocket.dispose();
 
 
     }

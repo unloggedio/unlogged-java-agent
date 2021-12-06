@@ -105,6 +105,7 @@ public class WeaveConfig {
 
 
             RSocketConnector connector = RSocketConnector.create();
+
             connector.metadataMimeType(WellKnownMimeType.MESSAGE_RSOCKET_COMPOSITE_METADATA.getString());
             connector.dataMimeType(WellKnownMimeType.MESSAGE_RSOCKET_COMPOSITE_METADATA.getString());
             connector.payloadDecoder(PayloadDecoder.DEFAULT);
@@ -135,6 +136,7 @@ public class WeaveConfig {
             connector.setupPayload(DefaultPayload.create(DefaultPayload.EMPTY_BUFFER, metadata.nioBuffer()));
 
             rSocket = connector.connect(TcpClientTransport.create(addressParts[0], addressPort)).block();
+            metadata.release();
 
 //            RoutingMetadata routingMetadata = TaggingMetadataCodec.createRoutingMetadata(
 //                    ByteBufAllocator.DEFAULT, Collections.singletonList("session-mapping")

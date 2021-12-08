@@ -50,7 +50,7 @@ public class StringFileListStream {
 				GZIPOutputStream w = new GZIPOutputStream(new FileOutputStream(f));
 				writer = new PrintWriter(new OutputStreamWriter(w));
 			} else {
-				BufferedOutputStream w = new BufferedOutputStream(new FileOutputStream(f));
+				BufferedOutputStream w = new BufferedOutputStream(new FileOutputStream(f), 32 * 1024);
 				writer = new PrintWriter(new OutputStreamWriter(w));
 			}
 		} catch (IOException e) {

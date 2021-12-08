@@ -57,7 +57,7 @@ public class EventDataStream {
 		try {
 			files = target;
 			err = logger;
-			out = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(target.getNextFile())));
+			out = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(target.getNextFile()), 32 * 1024));
 			count = 0;
 		} catch (IOException e) {
 			err.log(e);
@@ -75,7 +75,7 @@ public class EventDataStream {
 			try {
 				if (count >= MAX_EVENTS_PER_FILE) {
 					out.close();
-					out = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(files.getNextFile())));
+					out = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(files.getNextFile()), 32 * 1024));
 					count = 0;
 				}
 				out.writeInt(dataId);

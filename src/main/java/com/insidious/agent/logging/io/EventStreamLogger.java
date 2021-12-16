@@ -132,5 +132,25 @@ public class EventStreamLogger implements IEventLogger {
 		stream.write(dataId, Float.floatToRawIntBits(value));
 	}
 
+	@Override
+	public void recordClassInfo(String str) {
+
+	}
+
+	@Override
+	public void recordMethodInfo(String str) {
+
+	}
+
+	@Override
+	public void recordDataInfo(String str) {
+
+	}
+
+	@Override
+	public void recordWeaveInfo(String toByteArray) {
+
+	}
+
 
 }

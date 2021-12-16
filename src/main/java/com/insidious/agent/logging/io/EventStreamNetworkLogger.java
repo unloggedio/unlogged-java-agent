@@ -149,5 +149,25 @@ public class EventStreamNetworkLogger implements IEventLogger {
         networkStream.write(dataId, longValue);
     }
 
+    @Override
+    public void recordClassInfo(String str) {
+
+    }
+
+    @Override
+    public void recordMethodInfo(String str) {
+
+    }
+
+    @Override
+    public void recordDataInfo(String str) {
+
+    }
+
+    @Override
+    public void recordWeaveInfo(String toByteArray) {
+
+    }
+
 
 }

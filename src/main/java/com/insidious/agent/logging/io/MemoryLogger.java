@@ -195,7 +195,27 @@ public class MemoryLogger implements IEventLogger {
 	public void recordEvent(int dataId, float value) {
 		events.add(new Event(dataId, float.class, Float.floatToIntBits(value)));
 	}
-	
+
+	@Override
+	public void recordClassInfo(String str) {
+
+	}
+
+	@Override
+	public void recordMethodInfo(String str) {
+
+	}
+
+	@Override
+	public void recordDataInfo(String str) {
+
+	}
+
+	@Override
+	public void recordWeaveInfo(String toByteArray) {
+
+	}
+
 	/**
 	 * Record an event on memory. 
 	 */

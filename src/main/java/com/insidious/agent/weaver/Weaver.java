@@ -2,6 +2,7 @@ package com.insidious.agent.weaver;
 
 
 import com.insidious.agent.logging.IErrorLogger;
+import com.insidious.agent.logging.Logging;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.CompositeByteBuf;
@@ -36,20 +37,17 @@ public class Weaver implements IErrorLogger {
     public static final String CATEGORY_ERROR_CLASSES = "error-classes";
 
     private final File outputDir;
-
-    private Writer dataIdWriter;
     private final String lineSeparator = "\n";
+    private final WeaveConfig config;
+    private Writer dataIdWriter;
     private PrintStream logger;
     private int classId;
     private int confirmedDataId;
     private int confirmedMethodId;
     private Writer methodIdWriter;
-
     private Writer classIdWriter;
     private boolean dumpOption;
-
     private MessageDigest digest;
-    private final WeaveConfig config;
 
     /**
      * Set up the object to manage a weaving process.
@@ -218,16 +216,16 @@ public class Weaver implements IErrorLogger {
             out = ByteBufAllocator.DEFAULT.buffer();
         }
 
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
         if (classIdWriter != null) {
             try {
                 String str = c.toString();
                 classIdWriter.write(str);
                 classIdWriter.write(lineSeparator);
 
-                if (out != null) {
-                    out.writeInt(str.length());
-                    out.writeBytes(str.getBytes());
-                }
+                baos.write(str.length());
+                baos.write(str.getBytes());
 
                 classIdWriter.flush();
             } catch (IOException e) {
@@ -249,11 +247,8 @@ public class Weaver implements IErrorLogger {
                     String locString = loc.toString();
                     dataIdWriter.write(locString);
                     dataIdWriter.write(lineSeparator);
-
-                    if (out != null) {
-                        out.writeInt(locString.length());
-                        out.writeBytes(locString.getBytes());
-                    }
+                    baos.write(locString.length());
+                    baos.write(locString.getBytes());
 
                 }
                 dataIdWriter.flush();
@@ -276,10 +271,8 @@ public class Weaver implements IErrorLogger {
                     methodIdWriter.write(methodString);
                     methodIdWriter.write(lineSeparator);
 
-                    if (out != null) {
-                        out.writeInt(methodString.length());
-                        out.writeBytes(methodString.getBytes());
-                    }
+                    baos.write(methodString.length());
+                    baos.write(methodString.getBytes());
 
                 }
                 methodIdWriter.flush();
@@ -289,8 +282,11 @@ public class Weaver implements IErrorLogger {
             }
         }
 
+        Logging.recordWeaveInfo(baos.toString());
+
 //		System.out.printf("Send information for [%s]\n", c.getClassName());
         if (out != null) {
+            out.writeBytes(baos.toByteArray());
             CompositeByteBuf metadata = ByteBufAllocator.DEFAULT.compositeBuffer();
             RoutingMetadata routingMetadata = TaggingMetadataCodec.createRoutingMetadata(
                     ByteBufAllocator.DEFAULT, Collections.singletonList("class-mapping")

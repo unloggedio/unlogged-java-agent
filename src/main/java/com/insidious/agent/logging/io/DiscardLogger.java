@@ -57,7 +57,27 @@ public class DiscardLogger implements IEventLogger {
 	@Override
 	public void recordEvent(int dataId, float value) {
 	}
-	
+
+	@Override
+	public void recordClassInfo(String str) {
+
+	}
+
+	@Override
+	public void recordMethodInfo(String str) {
+
+	}
+
+	@Override
+	public void recordDataInfo(String str) {
+
+	}
+
+	@Override
+	public void recordWeaveInfo(String toByteArray) {
+
+	}
+
 	/**
 	 * This logger does not record the given value.
 	 */

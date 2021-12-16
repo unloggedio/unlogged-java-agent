@@ -1,8 +1,6 @@
 package com.insidious.agent.logging;
 
 
-import java.io.IOException;
-
 /**
  * This interface defines a set of methods for recording runtime events. 
  * Classes implementing this interface should provide an actual logging strategy. 
@@ -79,4 +77,11 @@ public interface IEventLogger {
 	 */
 	public void recordEvent(int dataId, float value);
 
+    void recordClassInfo(String str);
+
+	void recordMethodInfo(String str);
+
+	void recordDataInfo(String str);
+
+	void recordWeaveInfo(String toByteArray);
 }

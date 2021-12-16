@@ -508,7 +508,27 @@ public class LatestEventLogger implements IEventLogger {
 		Buffer b = prepareBuffer(float.class, "float", dataId);
 		b.addFloat(value);
 	}
-	
+
+	@Override
+	public void recordClassInfo(String str) {
+
+	}
+
+	@Override
+	public void recordMethodInfo(String str) {
+
+	}
+
+	@Override
+	public void recordDataInfo(String str) {
+
+	}
+
+	@Override
+	public void recordWeaveInfo(String toByteArray) {
+
+	}
+
 	/**
 	 * Record the event and the observed value.
 	 */

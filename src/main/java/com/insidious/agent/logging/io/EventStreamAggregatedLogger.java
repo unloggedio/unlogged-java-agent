@@ -6,8 +6,6 @@ import com.insidious.agent.logging.util.AggregatedLogger;
 import com.insidious.agent.logging.util.ObjectIdAggregatedStream;
 import com.insidious.agent.logging.util.TypeIdAggregatedStreamMap;
 
-import java.io.IOException;
-
 /**
  * This class is an implementation of IEventLogger that records
  * a sequence of runtime events in files.
@@ -126,6 +124,28 @@ public class EventStreamAggregatedLogger implements IEventLogger {
         int longValue = Float.floatToRawIntBits(value);
 //        System.out.printf("Record event in event stream aggregated logger %s -> %s\n", dataId, longValue);
         aggregatedLogger.writeEvent(dataId, longValue);
+    }
+
+    @Override
+    public void recordClassInfo(String str) {
+        aggregatedLogger.writeClassInfo(str);
+    }
+
+    @Override
+    public void recordMethodInfo(String str) {
+        aggregatedLogger.writeMethodInfo(str);
+
+    }
+
+    @Override
+    public void recordDataInfo(String str) {
+        aggregatedLogger.writeDataInfo(str);
+
+    }
+
+    @Override
+    public void recordWeaveInfo(String toByteArray) {
+        aggregatedLogger.writeWeaveInfo(toByteArray);
     }
 
 

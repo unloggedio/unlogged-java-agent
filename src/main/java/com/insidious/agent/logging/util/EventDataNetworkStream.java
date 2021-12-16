@@ -11,8 +11,10 @@ import io.rsocket.metadata.TaggingMetadataCodec;
 import io.rsocket.metadata.WellKnownMimeType;
 import io.rsocket.util.DefaultPayload;
 
-import java.io.DataOutputStream;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -23,7 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * this stream creates a number of files whose size is limited by the number of events
  * (MAX_EVENTS_PER_FILE field).
  */
-public class EventDataNetworkStream {
+public class EventDataNetworkStream implements Runnable {
 
     /**
      * The number of events stored in a single file.
@@ -49,10 +51,11 @@ public class EventDataNetworkStream {
     };
     private final RSocket rSocket;
     private final Integer processId;
-    private FileNameGenerator files;
-    private DataOutputStream out;
+    private final CompositeByteBuf metadata;
     private final IErrorLogger err;
-    private int count;
+    private final int count;
+    private final BlockingQueue<ByteBuf> bufferList = new LinkedBlockingQueue<>(1024 * 1024 * 1024);
+    private FileNameGenerator files;
 
     /**
      * Create an instance of stream.
@@ -66,6 +69,25 @@ public class EventDataNetworkStream {
         this.processId = processId;
         err = logger;
         count = 0;
+        metadata = ByteBufAllocator.DEFAULT.compositeBuffer();
+
+        RoutingMetadata routingMetadata = TaggingMetadataCodec.createRoutingMetadata(
+                ByteBufAllocator.DEFAULT, Collections.singletonList("data-event")
+        );
+        CompositeMetadataCodec.encodeAndAddMetadata(metadata,
+                ByteBufAllocator.DEFAULT,
+                WellKnownMimeType.MESSAGE_RSOCKET_ROUTING,
+                routingMetadata.getContent()
+        );
+        new Thread(this).start();
+//        new Thread(this).start();
+//        new Thread(this).start();
+//        new Thread(this).start();
+//        new Thread(this).start();
+//        new Thread(this).start();
+//        new Thread(this).start();
+//        new Thread(this).start();
+
 
     }
 
@@ -84,20 +106,7 @@ public class EventDataNetworkStream {
         out.writeLong(System.nanoTime());
         out.writeInt(dataId);
         out.writeLong(value);
-        count++;
-
-        CompositeByteBuf metadata = ByteBufAllocator.DEFAULT.compositeBuffer();
-
-        RoutingMetadata routingMetadata = TaggingMetadataCodec.createRoutingMetadata(
-                ByteBufAllocator.DEFAULT, Collections.singletonList("data-event")
-        );
-        CompositeMetadataCodec.encodeAndAddMetadata(metadata,
-                ByteBufAllocator.DEFAULT,
-                WellKnownMimeType.MESSAGE_RSOCKET_ROUTING,
-                routingMetadata.getContent()
-        );
-
-        rSocket.fireAndForget(DefaultPayload.create(out, metadata)).subscribe();
+        bufferList.add(out);
     }
 
     /**
@@ -107,4 +116,29 @@ public class EventDataNetworkStream {
         rSocket.dispose();
     }
 
+    @Override
+    public void run() {
+        System.out.println("Consumer started");
+        ArrayList<ByteBuf> buffers = new ArrayList<>(10000);
+        while (true) {
+            while (bufferList.isEmpty()) {
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+            synchronized (bufferList) {
+                int drainCount = bufferList.drainTo(buffers);
+                System.err.println("Size is: " + bufferList.size() + " Drain Count: " + drainCount);
+            }
+            buffers.parallelStream().forEach(b -> {
+                if (b == null) {
+                    return;
+                }
+                rSocket.fireAndForget(DefaultPayload.create(b, metadata.copy())).subscribe();
+            });
+            buffers.clear();
+        }
+    }
 }

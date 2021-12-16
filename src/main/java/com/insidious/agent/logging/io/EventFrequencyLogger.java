@@ -88,7 +88,27 @@ public class EventFrequencyLogger implements IEventLogger {
 	public void recordEvent(int dataId, float value) {
 		countOccurrence(dataId);
 	}
-	
+
+	@Override
+	public void recordClassInfo(String str) {
+
+	}
+
+	@Override
+	public void recordMethodInfo(String str) {
+
+	}
+
+	@Override
+	public void recordDataInfo(String str) {
+
+	}
+
+	@Override
+	public void recordWeaveInfo(String toByteArray) {
+
+	}
+
 	/**
 	 * Count the event occurrence.
 	 * @param dataId specifies an event to be counted.

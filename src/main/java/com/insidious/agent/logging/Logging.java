@@ -1,14 +1,14 @@
 package com.insidious.agent.logging;
 
-import java.io.File;
-import java.lang.management.ManagementFactory;
-import java.util.LinkedList;
-import java.util.Random;
-
 import com.insidious.agent.logging.io.*;
 import com.insidious.agent.logging.io.LatestEventLogger.ObjectRecordingStrategy;
 import com.insidious.agent.logging.util.AggregatedLogger;
 import io.rsocket.RSocket;
+
+import java.io.File;
+import java.lang.management.ManagementFactory;
+import java.util.LinkedList;
+import java.util.Random;
 
 
 /**
@@ -152,7 +152,6 @@ public class Logging {
      * @param dataId
      */
     public static void recordEvent(Object value, int dataId) {
-//        System.out.printf("RecordEvent [Object] [%d] - [%s]\n", dataId, value == null ? "null" : value.getClass());
         INSTANCE.recordEvent(dataId, value);
     }
 
@@ -164,7 +163,6 @@ public class Logging {
      * @param dataId
      */
     public static void recordEvent(Throwable value, int dataId) {
-//        System.out.printf("RecordEvent [Throwable] [%d] - [%s]\n", dataId, value);
         INSTANCE.recordEvent(dataId, value);
     }
 
@@ -175,7 +173,6 @@ public class Logging {
      * @param dataId
      */
     public static void recordEvent(boolean value, int dataId) {
-//        System.out.printf("RecordEvent [boolean] [%d] - [%s]\n", dataId, value);
         INSTANCE.recordEvent(dataId, value);
     }
 
@@ -186,7 +183,6 @@ public class Logging {
      * @param dataId
      */
     public static void recordEvent(byte value, int dataId) {
-//        System.out.printf("RecordEvent [byte] [%d] - [%s]\n", dataId, value);
         INSTANCE.recordEvent(dataId, value);
     }
 
@@ -197,7 +193,6 @@ public class Logging {
      * @param dataId
      */
     public static void recordEvent(char value, int dataId) {
-//        System.out.printf("RecordEvent [char] [%d] - [%s]\n", dataId, value);
         INSTANCE.recordEvent(dataId, value);
     }
 
@@ -208,7 +203,6 @@ public class Logging {
      * @param dataId
      */
     public static void recordEvent(short value, int dataId) {
-//        System.out.printf("RecordEvent [short] [%d] - [%s]\n", dataId, value);
         INSTANCE.recordEvent(dataId, value);
     }
 
@@ -219,7 +213,6 @@ public class Logging {
      * @param dataId
      */
     public static void recordEvent(int value, int dataId) {
-//        System.out.printf("RecordEvent [int] [%d] - [%s]\n", dataId, value);
         INSTANCE.recordEvent(dataId, value);
     }
 
@@ -230,7 +223,6 @@ public class Logging {
      * @param dataId
      */
     public static void recordEvent(long value, int dataId) {
-//        System.out.printf("RecordEvent [long] [%d] - [%s]\n", dataId, value);
         INSTANCE.recordEvent(dataId, value);
     }
 
@@ -241,7 +233,6 @@ public class Logging {
      * @param dataId
      */
     public static void recordEvent(float value, int dataId) {
-//        System.out.printf("RecordEvent [float] [%d] - [%s]\n", dataId, value);
         INSTANCE.recordEvent(dataId, value);
     }
 
@@ -252,7 +243,6 @@ public class Logging {
      * @param dataId
      */
     public static void recordEvent(double value, int dataId) {
-//        System.out.printf("RecordEvent [double] [%d] - [%s]\n", dataId, value);
         INSTANCE.recordEvent(dataId, value);
     }
 
@@ -263,7 +253,6 @@ public class Logging {
      * @param dataId
      */
     public static void recordEvent(int dataId) {
-//        System.out.printf("RecordEvent [NA] [%d]\n", dataId);
         INSTANCE.recordEvent(dataId, 0);
     }
 
@@ -275,7 +264,6 @@ public class Logging {
      * @param dataId specifies an event.
      */
     public static void recordArrayLoad(Object array, int index, int dataId) {
-//        System.out.printf("RecordEvent [ArrayLoad] [%d] - [%s] -[%s]\n", dataId, array, index);
         INSTANCE.recordEvent(dataId, array);
         INSTANCE.recordEvent(dataId + 1, index);
     }
@@ -290,7 +278,6 @@ public class Logging {
      * @param dataId specifies an event.
      */
     public static void recordArrayStore(Object array, int index, byte value, int dataId) {
-//        System.out.printf("RecordEvent [ArrayStoreByte] [%d] - [%s] -[%s] -[%s]\n", dataId, array, index, value);
         INSTANCE.recordEvent(dataId, array);
         INSTANCE.recordEvent(dataId + 1, index);
         INSTANCE.recordEvent(dataId + 2, value);
@@ -306,7 +293,6 @@ public class Logging {
      * @param dataId specifies an event.
      */
     public static void recordArrayStore(Object array, int index, char value, int dataId) {
-//        System.out.printf("RecordEvent [ArrayStoreChar] [%d] - [%s] -[%s] -[%s]\n", dataId, array, index, value);
         INSTANCE.recordEvent(dataId, array);
         INSTANCE.recordEvent(dataId + 1, index);
         INSTANCE.recordEvent(dataId + 2, value);
@@ -322,7 +308,6 @@ public class Logging {
      * @param dataId specifies an event.
      */
     public static void recordArrayStore(Object array, int index, double value, int dataId) {
-//        System.out.printf("RecordEvent [ArrayStoreDouble] [%d] - [%s] -[%s] -[%s]\n", dataId, array, index, value);
         INSTANCE.recordEvent(dataId, array);
         INSTANCE.recordEvent(dataId + 1, index);
         INSTANCE.recordEvent(dataId + 2, value);
@@ -338,7 +323,6 @@ public class Logging {
      * @param dataId specifies an event.
      */
     public static void recordArrayStore(Object array, int index, float value, int dataId) {
-//        System.out.printf("RecordEvent [ArrayStoreFloat] [%d] - [%s] -[%s] -[%s]\n", dataId, array, index, value);
         INSTANCE.recordEvent(dataId, array);
         INSTANCE.recordEvent(dataId + 1, index);
         INSTANCE.recordEvent(dataId + 2, value);
@@ -354,7 +338,6 @@ public class Logging {
      * @param dataId specifies an event.
      */
     public static void recordArrayStore(Object array, int index, int value, int dataId) {
-//        System.out.printf("RecordEvent [ArrayStoreInt] [%d] - [%s] -[%s] -[%s]\n", dataId, array, index, value);
         INSTANCE.recordEvent(dataId, array);
         INSTANCE.recordEvent(dataId + 1, index);
         INSTANCE.recordEvent(dataId + 2, value);
@@ -370,7 +353,6 @@ public class Logging {
      * @param dataId specifies an event.
      */
     public static void recordArrayStore(Object array, int index, long value, int dataId) {
-//        System.out.printf("RecordEvent [ArrayStoreLong] [%d] - [%s] -[%s] -[%s]\n", dataId, array, index, value);
         INSTANCE.recordEvent(dataId, array);
         INSTANCE.recordEvent(dataId + 1, index);
         INSTANCE.recordEvent(dataId + 2, value);
@@ -386,7 +368,6 @@ public class Logging {
      * @param dataId specifies an event.
      */
     public static void recordArrayStore(Object array, int index, short value, int dataId) {
-//        System.out.printf("RecordEvent [ArrayStoreShort] [%d] - [%s] -[%s] -[%s]\n", dataId, array, index, value);
         INSTANCE.recordEvent(dataId, array);
         INSTANCE.recordEvent(dataId + 1, index);
         INSTANCE.recordEvent(dataId + 2, value);
@@ -402,7 +383,6 @@ public class Logging {
      * @param dataId specifies an event.
      */
     public static void recordArrayStore(Object array, int index, Object value, int dataId) {
-//        System.out.printf("RecordEvent [ArrayStoreObject] [%d] - [%s] -[%s] -[%s]\n", dataId, array, index, value);
         INSTANCE.recordEvent(dataId, array);
         INSTANCE.recordEvent(dataId + 1, index);
         INSTANCE.recordEvent(dataId + 2, value);
@@ -416,7 +396,6 @@ public class Logging {
      * @param dataId specifies an event.
      */
     public static void recordMultiNewArray(Object array, int dataId) {
-//        System.out.printf("RecordEvent [MultiNewArray] [%d] - [%s] -[%s] -[%s]\n", dataId, array);
         INSTANCE.recordEvent(dataId, array);
         recordMultiNewArrayContents((Object[]) array, dataId);
     }
@@ -443,4 +422,8 @@ public class Logging {
         }
     }
 
+
+    public static void recordWeaveInfo(String toByteArray) {
+        INSTANCE.recordWeaveInfo(toByteArray);
+    }
 }

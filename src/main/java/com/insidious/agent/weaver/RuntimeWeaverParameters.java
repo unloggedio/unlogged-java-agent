@@ -15,7 +15,7 @@ import com.insidious.agent.weaver.RuntimeWeaver.Mode;
  */
 public class RuntimeWeaverParameters {
 
-	
+
 	private static final String[] SYSTEM_PACKAGES =  { "sun/", "com/sun/", "java/", "javax/" };
 	private static final String ARG_SEPARATOR = ",";
 	private static final String SELOGGER_DEFAULT_OUTPUT_DIR = "selogger-output";
@@ -32,7 +32,7 @@ public class RuntimeWeaverParameters {
 	private boolean outputJson = false;
 
 	/**
-	 * Dump woven class files (mainly for debugging) 
+	 * Dump woven class files (mainly for debugging)
 	 */
 	private boolean dumpClass = false;
 
@@ -40,7 +40,7 @@ public class RuntimeWeaverParameters {
 	 * The number of events recorded per code location
 	 */
 	private int bufferSize = 32;
-	
+
 	/**
 	 * Strategy to keep objects on memory
 	 */
@@ -50,7 +50,7 @@ public class RuntimeWeaverParameters {
 	 * If true, automatic filtering for security manager classes is disabled
 	 */
 	private boolean weaveSecurityManagerClass = false;
-	
+
 
 	/**
 	 * Package/class names (prefix) excluded from logging
@@ -66,7 +66,7 @@ public class RuntimeWeaverParameters {
 	 */
 	private ArrayList<String> excludedLocations;
 
-	
+
 	private Mode mode = Mode.FixedSize;
 
 	public RuntimeWeaverParameters(String args) {
@@ -136,13 +136,15 @@ public class RuntimeWeaverParameters {
 					excludedLocations.add(location);
 				}
 			} else if (arg.startsWith("format=")) {
-				String opt = arg.substring("format=".length()).toLowerCase(); 
+				String opt = arg.substring("format=".length()).toLowerCase();
 				if (opt.startsWith("freq")) {
 					mode = Mode.Frequency;
 				} else if (opt.startsWith("discard")) {
 					mode = Mode.Discard;
 				} else if (opt.startsWith("omni")||opt.startsWith("stream")) {
 					mode = Mode.Stream;
+				} else if (opt.startsWith("single")) {
+					mode = Mode.Single;
 				} else if (opt.startsWith("network")) {
 					mode = Mode.Network;
 				} else if (opt.startsWith("latest")||opt.startsWith("nearomni")||opt.startsWith("near-omni")) {
@@ -151,39 +153,39 @@ public class RuntimeWeaverParameters {
 			}
 		}
 	}
-	
+
 	public String getOutputDirname() {
 		return output_dirname;
 	}
-	
+
 	public String getWeaveOption() {
 		return weaveOption;
 	}
-	
+
 	public boolean isDumpClassEnabled() {
 		return dumpClass;
 	}
-	
+
 	public Mode getMode() {
 		return mode;
 	}
-	
+
 	public int getBufferSize() {
 		return bufferSize;
 	}
-	
+
 	public LatestEventLogger.ObjectRecordingStrategy getObjectRecordingStrategy() {
 		return keepObject;
 	}
-	
+
 	public boolean isOutputJsonEnabled() {
 		return outputJson;
 	}
-	
+
 	public boolean isWeaveSecurityManagerClassEnabled() {
 		return weaveSecurityManagerClass;
 	}
-	
+
 	public ArrayList<String> getExcludedNames() {
 		return excludedNames;
 	}

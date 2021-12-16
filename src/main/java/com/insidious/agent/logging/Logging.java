@@ -2,28 +2,13 @@ package com.insidious.agent.logging;
 
 import java.io.File;
 import java.lang.management.ManagementFactory;
-import java.net.URI;
-import java.nio.ByteBuffer;
-import java.time.Duration;
 import java.util.LinkedList;
 import java.util.Random;
 
 import com.insidious.agent.logging.io.*;
 import com.insidious.agent.logging.io.LatestEventLogger.ObjectRecordingStrategy;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufAllocator;
-import io.netty.buffer.CompositeByteBuf;
-import io.rsocket.Payload;
+import com.insidious.agent.logging.util.AggregatedLogger;
 import io.rsocket.RSocket;
-import io.rsocket.core.RSocketConnector;
-import io.rsocket.frame.decoder.PayloadDecoder;
-import io.rsocket.metadata.AuthMetadataCodec;
-import io.rsocket.metadata.CompositeMetadataCodec;
-import io.rsocket.metadata.WellKnownMimeType;
-import io.rsocket.transport.netty.client.TcpClientTransport;
-import io.rsocket.util.DefaultPayload;
-import reactor.core.publisher.Mono;
-import reactor.util.retry.Retry;
 
 
 /**
@@ -139,6 +124,12 @@ public class Logging {
      */
     public static IEventLogger initializeDiscardLogger() {
         INSTANCE = new DiscardLogger();
+        return INSTANCE;
+    }
+
+
+    public static IEventLogger initialiseAggregatedLogger(IErrorLogger errorLogger, AggregatedLogger aggregatedLogger) {
+        INSTANCE = new EventStreamAggregatedLogger(errorLogger, aggregatedLogger);
         return INSTANCE;
     }
 
@@ -451,4 +442,5 @@ public class Logging {
             }
         }
     }
+
 }

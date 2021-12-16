@@ -1,12 +1,16 @@
 package com.insidious.agent.weaver;
 
+import com.insidious.agent.logging.util.AggregatedLogger;
+import com.insidious.agent.logging.util.FileNameGenerator;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.CompositeByteBuf;
 import io.rsocket.RSocket;
 import io.rsocket.core.RSocketConnector;
 import io.rsocket.frame.decoder.PayloadDecoder;
-import io.rsocket.metadata.*;
+import io.rsocket.metadata.AuthMetadataCodec;
+import io.rsocket.metadata.CompositeMetadataCodec;
+import io.rsocket.metadata.WellKnownMimeType;
 import io.rsocket.transport.netty.client.TcpClientTransport;
 import io.rsocket.util.DefaultPayload;
 
@@ -93,7 +97,7 @@ public class WeaveConfig {
         this.sessionId = UUID.randomUUID().toString();
         this.processId = getProcessId(new Random().nextInt());
 
-        if (serverAddress != null && serverAddress.length() > 0) {
+        if (serverAddress != null && serverAddress.length() > 0 && this.username != null && this.password != null) {
             String[] addressParts = serverAddress.split(":");
 
             int addressPort = 80;
@@ -168,7 +172,8 @@ public class WeaveConfig {
     /**
      * A copy constructor with a constraint.
      *
-     * @param config
+     * @param parent
+     * @param level
      */
     public WeaveConfig(WeaveConfig parent, LogLevel level) {
         this.weaveExec = parent.weaveExec;
@@ -195,6 +200,78 @@ public class WeaveConfig {
             this.weaveObject = false;
             this.weaveLineNumber = false;
         }
+    }
+
+    public WeaveConfig(RuntimeWeaverParameters params) {
+        String options = params.getWeaveOption();
+        String opt = options.toUpperCase();
+        System.out.printf("Recording option: [%s] Server Address [%s] Username [%s] Password [%s]\n", opt, params.getServerAddress(), params.getUsername(), params.getPassword());
+        if (opt.equals(KEY_RECORD_ALL)) {
+            opt = KEY_RECORD_EXEC + KEY_RECORD_CALL + KEY_RECORD_FIELD + KEY_RECORD_ARRAY + KEY_RECORD_SYNC + KEY_RECORD_OBJECT + KEY_RECORD_PARAMETERS + KEY_RECORD_LABEL + KEY_RECORD_LOCAL + KEY_RECORD_LINE;
+        } else if (opt.equals(KEY_RECORD_DEFAULT)) {
+            opt = KEY_RECORD_EXEC + KEY_RECORD_CALL + KEY_RECORD_FIELD + KEY_RECORD_ARRAY + KEY_RECORD_SYNC + KEY_RECORD_OBJECT + KEY_RECORD_PARAMETERS;
+        } else if (opt.equals(KEY_RECORD_NONE)) {
+            opt = "";
+            weaveNone = true;
+        }
+
+        weaveExec = opt.contains(KEY_RECORD_EXEC);
+        weaveMethodCall = opt.contains(KEY_RECORD_CALL);
+        weaveFieldAccess = opt.contains(KEY_RECORD_FIELD);
+        weaveArray = opt.contains(KEY_RECORD_ARRAY);
+        weaveSynchronization = opt.contains(KEY_RECORD_SYNC);
+        weaveLabel = opt.contains(KEY_RECORD_LABEL);
+        weaveParameters = opt.contains(KEY_RECORD_PARAMETERS);
+        weaveLocalAccess = opt.contains(KEY_RECORD_LOCAL);
+        weaveObject = opt.contains(KEY_RECORD_OBJECT);
+        weaveLineNumber = opt.contains(KEY_RECORD_LINE);
+        ignoreArrayInitializer = false;
+        this.username = params.getUsername();
+        this.password = params.getPassword();
+
+        this.sessionId = UUID.randomUUID().toString();
+        this.processId = getProcessId(new Random().nextInt());
+
+        if (params.getMode().equals(RuntimeWeaver.Mode.Network)) {
+            String[] addressParts = params.getServerAddress().split(":");
+
+            int addressPort = 80;
+            if (addressParts.length > 1) {
+                addressPort = Integer.parseInt(addressParts[1]);
+            }
+
+            System.out.printf("Creating network logger at [%s]: %s:%s\n\n", params.getServerAddress(), addressParts[0], addressPort);
+
+
+            RSocketConnector connector = RSocketConnector.create();
+
+            connector.metadataMimeType(WellKnownMimeType.MESSAGE_RSOCKET_COMPOSITE_METADATA.getString());
+            connector.dataMimeType(WellKnownMimeType.MESSAGE_RSOCKET_COMPOSITE_METADATA.getString());
+            connector.payloadDecoder(PayloadDecoder.DEFAULT);
+
+
+            String user = this.username + ":" + this.sessionId;
+
+            ByteBuf byteBuf = AuthMetadataCodec.encodeSimpleMetadata(ByteBufAllocator.DEFAULT, user.toCharArray(), params.getPassword().toCharArray());
+
+            CompositeByteBuf metadata = ByteBufAllocator.DEFAULT.compositeBuffer();
+
+            CompositeMetadataCodec.encodeAndAddMetadata(metadata,
+                    ByteBufAllocator.DEFAULT,
+                    WellKnownMimeType.MESSAGE_RSOCKET_AUTHENTICATION,
+                    byteBuf
+            );
+
+            connector.setupPayload(DefaultPayload.create(DefaultPayload.EMPTY_BUFFER, metadata.nioBuffer()));
+
+            rSocket = connector.connect(TcpClientTransport.create(addressParts[0], addressPort)).block();
+            metadata.release();
+
+            System.out.printf("Connected to: [%s] Session Id [%s] Process Id [%s]\n", params.getServerAddress(), this.sessionId, this.processId);
+
+
+        }
+
     }
 
     private static Integer getProcessId(final Integer fallback) {
@@ -347,7 +424,7 @@ public class WeaveConfig {
 
         try {
             FileOutputStream out = new FileOutputStream(propertyFile);
-            prop.store(out, "Generated: " + new Date().toString());
+            prop.store(out, "Generated: " + new Date());
             out.close();
         } catch (IOException e) {
             e.printStackTrace();
@@ -357,6 +434,5 @@ public class WeaveConfig {
     public RSocket getRsocket() {
         return rSocket;
     }
-
 
 }

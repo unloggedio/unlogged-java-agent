@@ -63,7 +63,9 @@ public class RuntimeWeaver implements ClassFileTransformer {
                         break;
 
                     case Single:
-                        AggregatedLogger aggregateLogger = new AggregatedLogger(new FileNameGenerator(new File(params.getOutputDirname()), "log-", ".selog"), weaver);
+                        AggregatedLogger aggregateLogger = new AggregatedLogger(
+                                new FileNameGenerator(new File(params.getOutputDirname()), "log-", ".selog"),
+                                weaver, config.getRsocket());
                         logger = Logging.initialiseAggregatedLogger(weaver, aggregateLogger);
                         break;
 

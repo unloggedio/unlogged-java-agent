@@ -232,7 +232,7 @@ public class WeaveConfig {
         this.sessionId = UUID.randomUUID().toString();
         this.processId = getProcessId(new Random().nextInt());
 
-        if (params.getMode().equals(RuntimeWeaver.Mode.Network)) {
+        if (params.getServerAddress() != null) {
             String[] addressParts = params.getServerAddress().split(":");
 
             int addressPort = 80;

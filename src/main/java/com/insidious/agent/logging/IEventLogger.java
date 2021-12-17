@@ -83,5 +83,5 @@ public interface IEventLogger {
 
 	void recordDataInfo(String str);
 
-	void recordWeaveInfo(String toByteArray);
+	void recordWeaveInfo(byte[] toByteArray);
 }

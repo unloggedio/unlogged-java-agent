@@ -165,7 +165,7 @@ public class EventStreamNetworkLogger implements IEventLogger {
     }
 
     @Override
-    public void recordWeaveInfo(String toByteArray) {
+    public void recordWeaveInfo(byte[] toByteArray) {
 
     }
 

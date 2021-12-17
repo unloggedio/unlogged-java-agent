@@ -212,7 +212,7 @@ public class MemoryLogger implements IEventLogger {
 	}
 
 	@Override
-	public void recordWeaveInfo(String toByteArray) {
+	public void recordWeaveInfo(byte[] toByteArray) {
 
 	}
 

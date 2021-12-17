@@ -423,7 +423,7 @@ public class Logging {
     }
 
 
-    public static void recordWeaveInfo(String toByteArray) {
+    public static void recordWeaveInfo(byte[] toByteArray) {
         INSTANCE.recordWeaveInfo(toByteArray);
     }
 }

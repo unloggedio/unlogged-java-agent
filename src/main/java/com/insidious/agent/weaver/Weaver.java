@@ -282,7 +282,7 @@ public class Weaver implements IErrorLogger {
             }
         }
 
-        Logging.recordWeaveInfo(baos.toString());
+        Logging.recordWeaveInfo(baos.toByteArray());
 
 //		System.out.printf("Send information for [%s]\n", c.getClassName());
         if (out != null) {

@@ -17,6 +17,7 @@ import java.sql.Time;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * This class is a stream specialized to write a sequence of events into files.
@@ -53,10 +54,11 @@ public class BinaryRsocketAggregatedLogger implements Runnable {
             return nextThreadId.getAndIncrement();
         }
     };
-    public final ArrayList<Byte> data = new ArrayList<>(1024 * 1024);
+    public final ArrayList<Byte> data = new ArrayList<>(1024 * 1024 * 4);
     private final byte[] FILE_BUFFER = new byte[READ_BUFFER_SIZE];
     private final List<String> fileList = new LinkedList<>();
     private final RSocket rsocket;
+    private final ReentrantLock lock = new ReentrantLock();
     private FileNameGenerator files;
     private DataOutputStream out = null;
     private IErrorLogger err;
@@ -130,11 +132,9 @@ public class BinaryRsocketAggregatedLogger implements Runnable {
 
     public void writeNewObjectType(long id, String typeId) {
         try {
-            synchronized (this) {
-
-                if (count >= MAX_EVENTS_PER_FILE) {
-                    prepareNextFile();
-                }
+            lock.lock();
+            if (count >= MAX_EVENTS_PER_FILE) {
+                prepareNextFile();
             }
             int bytesToWrite = 1 + 8 + 4 + typeId.length();
             if (bytesToWrite + bytesWritten > WRITE_BYTE_BUFFER_SIZE) {
@@ -143,20 +143,21 @@ public class BinaryRsocketAggregatedLogger implements Runnable {
             }
 
             this.bytesWritten += bytesToWrite;
-            synchronized (this) {
-                out.writeByte(1);
-                out.writeLong(id);
-                writeString(typeId);
-            }
+            out.writeByte(1);
+            out.writeLong(id);
+            writeString(typeId);
             count++;
             // System.err.println("Write new object - 1," + id + "," + typeId.length() + " - " + typeId + " = " + this.bytesWritten);
         } catch (IOException e) {
             err.log(e);
+        } finally {
+            lock.unlock();
         }
     }
 
     public void writeNewString(long id, String stringObject) {
         try {
+            lock.lock();
             if (count >= MAX_EVENTS_PER_FILE) {
                 prepareNextFile();
             }
@@ -169,25 +170,24 @@ public class BinaryRsocketAggregatedLogger implements Runnable {
 
             this.bytesWritten += bytesToWrite;
             this.bytesRemaining -= bytesToWrite;
-            synchronized (this) {
-                out.writeByte(2);
-                out.writeLong(id);
-                writeString(stringObject);
-            }
+            out.writeByte(2);
+            out.writeLong(id);
+            writeString(stringObject);
             count++;
             // System.err.println("Write new string - 2," + id + "," + stringObject.length() + " - " + stringObject + " = " + this.bytesWritten);
         } catch (IOException e) {
             err.log(e);
+        } finally {
+            lock.unlock();
         }
 
     }
 
     public void writeNewException(String toString) {
         try {
-            synchronized (this) {
-                if (count >= MAX_EVENTS_PER_FILE) {
-                    prepareNextFile();
-                }
+            lock.lock();
+            if (count >= MAX_EVENTS_PER_FILE) {
+                prepareNextFile();
             }
             int bytesToWrite = 1 + 4 + toString.length();
             if (bytesToWrite + bytesWritten > WRITE_BYTE_BUFFER_SIZE) {
@@ -196,15 +196,14 @@ public class BinaryRsocketAggregatedLogger implements Runnable {
             }
 
             this.bytesWritten += bytesToWrite;
-            synchronized (this) {
-
-                out.writeByte(3);
-                writeString(toString);
-            }
+            out.writeByte(3);
+            writeString(toString);
             count++;
             // System.err.println("Write new exception - 3," + toString.length() + " - " + toString + " = " + this.bytesWritten);
         } catch (IOException e) {
             err.log(e);
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -216,10 +215,9 @@ public class BinaryRsocketAggregatedLogger implements Runnable {
     public synchronized void writeEvent(int id, long value) {
 //        long timeStamp = System.nanoTime();
         try {
-            synchronized (this) {
-                if (count >= MAX_EVENTS_PER_FILE) {
-                    prepareNextFile();
-                }
+            lock.lock();
+            if (count >= MAX_EVENTS_PER_FILE) {
+                prepareNextFile();
             }
             int bytesToWrite = 1 + 4 + 8 + 4 + 8;
             if (bytesToWrite + bytesWritten > WRITE_BYTE_BUFFER_SIZE) {
@@ -242,15 +240,16 @@ public class BinaryRsocketAggregatedLogger implements Runnable {
 //            System.err.println("Write new event - 4," + id + "," + value + " = " + this.bytesWritten);
         } catch (IOException e) {
             err.log(e);
+        } finally {
+            lock.unlock();
         }
     }
 
     public void writeNewTypeRecord(String toString) {
         try {
-            synchronized (this) {
-                if (count >= MAX_EVENTS_PER_FILE) {
-                    prepareNextFile();
-                }
+            lock.lock();
+            if (count >= MAX_EVENTS_PER_FILE) {
+                prepareNextFile();
             }
             int bytesToWrite = 1 + 4 + toString.length();
             if (bytesToWrite + bytesWritten > WRITE_BYTE_BUFFER_SIZE) {
@@ -258,14 +257,14 @@ public class BinaryRsocketAggregatedLogger implements Runnable {
                 this.bytesWritten = 0;
             }
             this.bytesWritten += bytesToWrite;
-            synchronized (this) {
-                out.writeByte(5);
-                writeString(toString);
-            }
+            out.writeByte(5);
+            writeString(toString);
             count++;
             // System.err.println("Write type record - 5," + toString.length() + " - " + toString + " = " + this.bytesWritten);
         } catch (IOException e) {
             err.log(e);
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -298,6 +297,10 @@ public class BinaryRsocketAggregatedLogger implements Runnable {
     @Override
     public void run() {
         System.out.println("Event file consumer started");
+        DataOutputStream resetStream = null;
+        ByteArrayOutputStream resetBufferStream = null;
+        int reset = 0;
+        ArrayDeque<Byte> byteQueue = new ArrayDeque<>(READ_BUFFER_SIZE);
         while (true) {
             while (fileList.isEmpty()) {
                 try {
@@ -312,12 +315,17 @@ public class BinaryRsocketAggregatedLogger implements Runnable {
             long start = 0L;
             int bytesConsumedTotal = 0;
             int totalEventRead = 0;
+            int eventsRead = 0;
+            int bytesRead = 0;
+            int bytesConsumed = 0;
+            int eventType = -1;
+//            DataOutputStream tempBuffer;
+            ByteBuffer tempStream = null;
             try {
                 start = System.currentTimeMillis();
                 file = new File(fileToConsume);
                 InputStream fileInputStream = new BufferedInputStream(new FileInputStream(file));
-                System.err.println("File opened - " + fileToConsume);
-                int eventsRead = 0;
+                System.err.println("[" + Time.from(Instant.now()) + "] " + "File opened - " + fileToConsume);
                 while (eventsRead < MAX_EVENTS_PER_FILE) {
                     int availableBytes = 0;
 
@@ -329,22 +337,22 @@ public class BinaryRsocketAggregatedLogger implements Runnable {
                         availableBytes = fileInputStream.available();
                     }
                     // System.err("Bytes found - [" + availableBytes + "] at [" + bytesConsumedTotal + "]");
-                    int bytesRead = fileInputStream.read(FILE_BUFFER);
+                    bytesRead = fileInputStream.read(FILE_BUFFER);
                     if (bytesRead == 0) {
                         System.err.println("Bytes read is 0");
                         continue;
                     }
-                    System.err.println("Bytes read is " + bytesRead + " / " + fileInputStream.available() + "[" + READ_BUFFER_SIZE + "]");
+                    System.err.println("[" + Time.from(Instant.now()) + "] " + "Bytes read is " + bytesRead + " / " + fileInputStream.available() + "[" + READ_BUFFER_SIZE + "]");
 
                     ByteBuffer fileByteBuffer = ByteBuffer.wrap(FILE_BUFFER, 0, bytesRead);
 
-                    int bytesConsumed = 0;
+                    bytesConsumed = 0;
 
                     long bytesStart = System.currentTimeMillis();
                     while (bytesConsumed < bytesRead) {
 
 
-                        int eventType = fileByteBuffer.get();
+                        eventType = fileByteBuffer.get();
                         bytesConsumed++;
 //                        System.err.println("Event: " + eventType + " at byte [" + (bytesConsumedTotal + bytesConsumed - 1) + "]");
                         ByteBuf buffer = ByteBufAllocator.DEFAULT.buffer();
@@ -437,7 +445,7 @@ public class BinaryRsocketAggregatedLogger implements Runnable {
                             default:
                                 System.err.println("Invalid event type found in file: " + eventType + " at byte " + bytesConsumed);
 //                                System.exit(1);
-                                throw new Exception("invalid event type in file, cannot process further");
+                                throw new Exception("invalid event type in file, cannot process further at byte " + bytesConsumedTotal + " of file " + file.getAbsolutePath());
                         }
 
                         if (metadataMap.get(eventType) != null) {
@@ -448,7 +456,7 @@ public class BinaryRsocketAggregatedLogger implements Runnable {
                     }
                     long bytesEnd = System.currentTimeMillis();
                     if (bytesEnd - bytesStart > 1000) {
-                        System.err.println("Consumed [" + bytesConsumed + "] at " + (bytesConsumed / 1024) / ((bytesEnd - bytesStart) / 1000) + " Kb/s");
+                        System.err.println("[" + Time.from(Instant.now()) + "] " + "Consumed [" + bytesConsumed + "] at " + (bytesConsumed / 1024) / ((bytesEnd - bytesStart) / 1000) + " Kb/s");
                     }
                     bytesConsumedTotal += bytesConsumed;
 
@@ -465,7 +473,7 @@ public class BinaryRsocketAggregatedLogger implements Runnable {
                 err.log(e);
             } finally {
                 long end = System.currentTimeMillis();
-                System.err.println("Took " + ((end - start) / (1000)) + " seconds for reading file " + file.getAbsolutePath() + " - " + bytesConsumedTotal / 1000 + "Kb" + " => " + eventId);
+                System.err.println("[" + Time.from(Instant.now()) + "] " + "Took " + ((end - start) / (1000)) + " seconds for reading file " + file.getAbsolutePath() + " - " + bytesConsumedTotal / 1000 + "Kb" + " => " + eventId);
                 if (file != null) {
                     file.delete();
                 }
@@ -493,10 +501,9 @@ public class BinaryRsocketAggregatedLogger implements Runnable {
 
     public void writeWeaveInfo(byte[] byteArray) {
         try {
-            synchronized (this) {
-                if (count >= MAX_EVENTS_PER_FILE) {
-                    prepareNextFile();
-                }
+            lock.lock();
+            if (count >= MAX_EVENTS_PER_FILE) {
+                prepareNextFile();
             }
             int bytesToWrite = 1 + 4 + byteArray.length;
             if (bytesToWrite + bytesWritten > WRITE_BYTE_BUFFER_SIZE) {
@@ -507,15 +514,15 @@ public class BinaryRsocketAggregatedLogger implements Runnable {
             }
 //            System.err.println("Writing Event [" + 6 + "] at byte " + this.bytesWritten);
             this.bytesWritten += bytesToWrite;
-            synchronized (this) {
-                out.writeByte(6);
-                out.writeInt(byteArray.length);
-                out.write(byteArray);
-            }
+            out.writeByte(6);
+            out.writeInt(byteArray.length);
+            out.write(byteArray);
             count++;
             // System.err.println("Write weave 6," + byteArray.length + " - " + new String(byteArray) + " = " + this.bytesWritten);
         } catch (IOException e) {
             err.log(e);
+        } finally {
+            lock.unlock();
         }
     }
 }

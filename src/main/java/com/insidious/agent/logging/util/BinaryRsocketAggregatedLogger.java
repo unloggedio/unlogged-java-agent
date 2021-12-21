@@ -324,135 +324,133 @@ public class BinaryRsocketAggregatedLogger implements Runnable {
             try {
                 start = System.currentTimeMillis();
                 file = new File(fileToConsume);
-                InputStream fileInputStream = new BufferedInputStream(new FileInputStream(file));
+                DataInputStream fileInputStream = new DataInputStream(new BufferedInputStream(new FileInputStream(file)));
                 System.err.println("[" + Time.from(Instant.now()) + "] " + "File opened - " + fileToConsume);
                 while (eventsRead < MAX_EVENTS_PER_FILE) {
-                    int availableBytes = 0;
-
                     Thread.sleep(900);
-
-                    while (availableBytes < WRITE_BYTE_BUFFER_SIZE_BY_10) {
-//                        System.err.println(availableBytes + " bytes yet, sleeping");
-                        Thread.sleep(3000);
-                        availableBytes = fileInputStream.available();
-                    }
-                    // System.err("Bytes found - [" + availableBytes + "] at [" + bytesConsumedTotal + "]");
-                    bytesRead = fileInputStream.read(FILE_BUFFER);
-                    if (bytesRead == 0) {
-                        System.err.println("Bytes read is 0");
-                        continue;
-                    }
-                    System.err.println("[" + Time.from(Instant.now()) + "] " + "Bytes read is " + bytesRead + " / " + fileInputStream.available() + "[" + READ_BUFFER_SIZE + "]");
-
-                    ByteBuffer fileByteBuffer = ByteBuffer.wrap(FILE_BUFFER, 0, bytesRead);
-
                     bytesConsumed = 0;
 
                     long bytesStart = System.currentTimeMillis();
-                    while (bytesConsumed < bytesRead) {
+                    while (true) {
+
+                        if (eventsRead >= MAX_EVENTS_PER_FILE) {
+                            break;
+                        }
+
+                        while (fileInputStream.available() == 0) {
+                            System.err.println("0 bytes yet, sleeping, read only " + eventsRead + " of " + MAX_EVENTS_PER_FILE);
+                            Thread.sleep(3000);
+                        }
+
+                        try {
+                            eventType = fileInputStream.readByte();
+                            bytesConsumed++;
+//                            System.err.println("Event: " + eventType + " at byte [" + (bytesConsumedTotal + bytesConsumed - 1) + "]");
+                            ByteBuf buffer = ByteBufAllocator.DEFAULT.buffer();
+                            totalEventRead++;
+                            switch (eventType) {
+                                case 1:
+                                    // new object
+                                    long id = fileInputStream.readLong();
+                                    String str = getNextString(fileInputStream);
+                                    bytesConsumed += 8 + 4 + str.length();
 
 
-                        eventType = fileByteBuffer.get();
-                        bytesConsumed++;
-//                        System.err.println("Event: " + eventType + " at byte [" + (bytesConsumedTotal + bytesConsumed - 1) + "]");
-                        ByteBuf buffer = ByteBufAllocator.DEFAULT.buffer();
-                        totalEventRead++;
-                        switch (eventType) {
-                            case 1:
-                                // new object
-                                long id = fileByteBuffer.getLong();
-                                String str = getNextString(fileByteBuffer);
-                                bytesConsumed += 8 + 4 + str.length();
+                                    buffer.writeLong(id);
+                                    buffer.writeInt(str.length());
+                                    buffer.writeBytes(str.getBytes());
+
+                                    // System.err.println("1 - " + id + " - " + str);
+                                    break;
+                                case 2:
+                                    // new string
+                                    long stringId = fileInputStream.readLong();
+                                    String string = getNextString(fileInputStream);
+                                    bytesConsumed += 8 + 4 + string.length();
+
+                                    buffer.writeLong(stringId);
+                                    buffer.writeInt(string.length());
+                                    buffer.writeBytes(string.getBytes());
 
 
-                                buffer.writeLong(id);
-                                buffer.writeInt(str.length());
-                                buffer.writeBytes(str.getBytes());
+                                    // System.err.println("2 - " + stringId + " - " + string);
+                                    break;
+                                case 3:
+                                    // new exception
+                                    String exception = getNextString(fileInputStream);
+                                    bytesConsumed += 4 + exception.length();
 
-                                // System.err.println("1 - " + id + " - " + str);
-                                break;
-                            case 2:
-                                // new string
-                                long stringId = fileByteBuffer.getLong();
-                                String string = getNextString(fileByteBuffer);
-                                bytesConsumed += 8 + 4 + string.length();
+                                    buffer.writeInt(exception.length());
+                                    buffer.writeBytes(exception.getBytes());
 
-                                buffer.writeLong(stringId);
-                                buffer.writeInt(string.length());
-                                buffer.writeBytes(string.getBytes());
+                                    // System.err.println("3 - " + " - " + exception);
+                                    break;
+                                case 4:
+                                    // data event
+                                    int threadId = fileInputStream.readInt();
+                                    long timestamp = fileInputStream.readLong();
+                                    int dataId = fileInputStream.readInt();
+                                    long value = fileInputStream.readLong();
+                                    bytesConsumed += 4 + 8 + 4 + 8;
 
+                                    buffer.writeInt(threadId);
+                                    buffer.writeLong(timestamp);
+                                    buffer.writeInt(dataId);
+                                    buffer.writeLong(value);
 
-                                // System.err.println("2 - " + stringId + " - " + string);
-                                break;
-                            case 3:
-                                // new exception
-                                String exception = getNextString(fileByteBuffer);
-                                bytesConsumed += 4 + exception.length();
+                                    // System.err.println("4 - " + dataId + " - " + value);
+                                    break;
+                                case 5:
+                                    // type record
+                                    String type = getNextString(fileInputStream);
 
-                                buffer.writeInt(exception.length());
-                                buffer.writeBytes(exception.getBytes());
+                                    bytesConsumed += 4 + type.length();
+                                    // System.err.println("5 - " + type.length());
 
-                                // System.err.println("3 - " + " - " + exception);
-                                break;
-                            case 4:
-                                // data event
-                                int threadId = fileByteBuffer.getInt();
-                                long timestamp = fileByteBuffer.getLong();
-                                int dataId = fileByteBuffer.getInt();
-                                long value = fileByteBuffer.getLong();
-                                bytesConsumed += 4 + 8 + 4 + 8;
+                                    buffer.writeInt(type.length());
+                                    buffer.writeBytes(type.getBytes());
 
-                                buffer.writeInt(threadId);
-                                buffer.writeLong(timestamp);
-                                buffer.writeInt(dataId);
-                                buffer.writeLong(value);
-
-                                // System.err.println("4 - " + dataId + " - " + value);
-                                break;
-                            case 5:
-                                // type record
-                                String type = getNextString(fileByteBuffer);
-
-                                bytesConsumed += 4 + type.length();
-                                // System.err.println("5 - " + type.length());
-
-                                buffer.writeInt(type.length());
-                                buffer.writeBytes(type.getBytes());
-
-                                break;
-                            case 6:
-                                // weave info
-                                byte[] weaveInfo = getNextBytes(fileByteBuffer);
+                                    break;
+                                case 6:
+                                    // weave info
+                                    byte[] weaveInfo = getNextBytes(fileInputStream);
 
 //                                if (weaveInfo.length + bytesConsumed > bytesRead> ) {
 //
 //                                }
 
-                                bytesConsumed += 4 + weaveInfo.length;
-                                // System.err.println("6 - " + weaveInfo.length + " - " + new String(weaveInfo));
+                                    bytesConsumed += 4 + weaveInfo.length;
+                                    // System.err.println("6 - " + weaveInfo.length + " - " + new String(weaveInfo));
 
 //                                buffer.writeInt(weaveInfo.length);
-                                buffer.writeBytes(weaveInfo);
-                                break;
-                            case 7:
-                                // method info
-                                // System.err.println("7 - ");
-                                break;
-                            case 8:
-                                // data info
-                                // System.err.println("8 - ");
-                                break;
-                            default:
-                                System.err.println("Invalid event type found in file: " + eventType + " at byte " + bytesConsumed);
+                                    buffer.writeBytes(weaveInfo);
+                                    break;
+                                case 7:
+                                    // method info
+                                    // System.err.println("7 - ");
+                                    break;
+                                case 8:
+                                    // data info
+                                    // System.err.println("8 - ");
+                                    break;
+                                default:
+                                    System.err.println("Invalid event type found in file: " + eventType + " at byte " + bytesConsumed);
 //                                System.exit(1);
-                                throw new Exception("invalid event type in file, cannot process further at byte " + bytesConsumedTotal + " of file " + file.getAbsolutePath());
-                        }
+                                    throw new Exception("invalid event type in file, cannot process further at byte " + bytesConsumedTotal + " of file " + file.getAbsolutePath());
+                            }
 
-                        if (metadataMap.get(eventType) != null) {
-                            this.rsocket.fireAndForget(DefaultPayload.create(buffer, metadataMap.get(eventType).copy())).subscribe();
+                            if (metadataMap.get(eventType) != null) {
+                                this.rsocket.fireAndForget(DefaultPayload.create(buffer, metadataMap.get(eventType).copy())).subscribe();
+                            }
+                            eventsRead++;
+                        } catch (EOFException e) {
+                            System.err.println("Consumed " + bytesConsumed / (1024 * 1024) + "MBs : events = " + eventsRead);
+                            if (eventsRead >= MAX_EVENTS_PER_FILE) {
+                                break;
+                            }
+                            System.err.println("Continue reading file for more events: " + e);
+                            err.log(e);
                         }
-                        eventsRead++;
-//                        System.err.println("Consumed " + bytesConsumed + "/" + bytesRead + ": events = " + eventsRead + " after [" + bytesConsumedTotal + "]");
                     }
                     long bytesEnd = System.currentTimeMillis();
                     if (bytesEnd - bytesStart > 1000) {
@@ -462,7 +460,7 @@ public class BinaryRsocketAggregatedLogger implements Runnable {
 
 
                 }
-//                System.err.println("Finished reading file " + file.getAbsolutePath());
+                System.err.println("Finished reading file " + file.getAbsolutePath() + " == " + bytesConsumedTotal / (1024 * 1024) + "MB");
 //                if (!fileDeleted) {
                 // System.err("Failed to delete file " + file.getAbsolutePath());
 //                }
@@ -482,20 +480,20 @@ public class BinaryRsocketAggregatedLogger implements Runnable {
     }
 
 
-    private String getNextString(ByteBuffer buffer) {
-        int stringLength = buffer.getInt();
+    private String getNextString(DataInputStream buffer) throws IOException {
+        int stringLength = buffer.readInt();
 // System.err.println("String length - " + stringLength);
         byte[] str = new byte[stringLength];
-        buffer.get(str);
+        buffer.readFully(str);
         return new String(str);
     }
 
 
-    private byte[] getNextBytes(ByteBuffer buffer) {
-        int stringLength = buffer.getInt();
+    private byte[] getNextBytes(DataInputStream buffer) throws IOException {
+        int stringLength = buffer.readInt();
 // System.err.println("String length - " + stringLength);
         byte[] str = new byte[stringLength];
-        buffer.get(str);
+        buffer.readFully(str);
         return str;
     }
 

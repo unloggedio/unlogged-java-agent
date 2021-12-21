@@ -57,6 +57,7 @@ public class WeaveConfig {
     private boolean weaveLineNumber = true;
     private boolean ignoreArrayInitializer = false;
     private boolean weaveNone = false;
+    private String authToken;
 
     /**
      * Construct a configuration from string
@@ -433,4 +434,15 @@ public class WeaveConfig {
         return rSocket;
     }
 
+    public String getAuthToken() {
+        return authToken;
+    }
+
+    public void setAuthToken(String authToken) {
+        this.authToken = authToken;
+    }
+
+    public String getSessionId() {
+        return sessionId;
+    }
 }

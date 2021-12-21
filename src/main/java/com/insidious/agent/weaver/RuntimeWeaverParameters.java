@@ -21,6 +21,7 @@ public class RuntimeWeaverParameters {
 	private static final String SELOGGER_DEFAULT_OUTPUT_DIR = "selogger-output";
 
 	private static Pattern timePattern = Pattern.compile(".*(\\{time:([^}]+)\\}).*");
+	private String authToken;
 
 	private String output_dirname = SELOGGER_DEFAULT_OUTPUT_DIR;
 	private String serverAddress;
@@ -94,6 +95,8 @@ public class RuntimeWeaverParameters {
 				weaveOption = arg.substring("weave=".length());
 			} else if (arg.startsWith("server=")) {
 				serverAddress = arg.substring("server=".length());
+			} else if (arg.startsWith("token=")) {
+				authToken = arg.substring("token=".length());
 			} else if (arg.startsWith("username=")) {
 				username = arg.substring("username=".length());
 			} else if (arg.startsWith("password=")) {
@@ -211,4 +214,7 @@ public class RuntimeWeaverParameters {
 		return excludedLocations;
 	}
 
+	public String getAuthToken() {
+		return authToken;
+	}
 }

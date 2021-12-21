@@ -12,10 +12,16 @@ import io.rsocket.metadata.WellKnownMimeType;
 import io.rsocket.util.DefaultPayload;
 
 import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLConnection;
 import java.nio.ByteBuffer;
+import java.nio.file.Files;
 import java.sql.Time;
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -32,7 +38,7 @@ public class BinaryRsocketAggregatedLogger implements Runnable {
     /**
      * The number of events stored in a single file.
      */
-    public static final int MAX_EVENTS_PER_FILE = 100000 * 50;
+    public static final int MAX_EVENTS_PER_FILE = 100000 * 2;
     public static final int WRITE_BYTE_BUFFER_SIZE = 1024 * 1024;
     public static final int WRITE_BYTE_BUFFER_SIZE_BY_10 = WRITE_BYTE_BUFFER_SIZE / 10;
     public static final int MAX_LOG_FILE_SIZE = 32 * 1024 * 1024 * 10;
@@ -56,9 +62,10 @@ public class BinaryRsocketAggregatedLogger implements Runnable {
     };
     public final ArrayList<Byte> data = new ArrayList<>(1024 * 1024 * 4);
     private final byte[] FILE_BUFFER = new byte[READ_BUFFER_SIZE];
-    private final List<String> fileList = new LinkedList<>();
-    private final RSocket rsocket;
+    private final BlockingQueue<String> fileList = new ArrayBlockingQueue<String>(1024);
     private final ReentrantLock lock = new ReentrantLock();
+    private final String token;
+    private RSocket rsocket;
     private FileNameGenerator files;
     private DataOutputStream out = null;
     private IErrorLogger err;
@@ -73,36 +80,41 @@ public class BinaryRsocketAggregatedLogger implements Runnable {
     private CompositeByteBuf stringMapMetadata;
     private CompositeByteBuf variableMapMetadata;
     private Map<Integer, CompositeByteBuf> metadataMap;
+    private final String sessionId;
 
     /**
      * Create an instance of stream.
      *
-     * @param target  is an object generating file names.
-     * @param logger  is to report errors that occur in this class.
-     * @param rsocket
+     * @param target is an object generating file names.
+     * @param logger is to report errors that occur in this class.
+     * @param token
      */
-    public BinaryRsocketAggregatedLogger(FileNameGenerator target, IErrorLogger logger, RSocket rsocket) {
-        this.rsocket = rsocket;
+    public BinaryRsocketAggregatedLogger(FileNameGenerator target, IErrorLogger logger, String token, String sessionId) {
+        this.token = token;
+        this.sessionId = sessionId;
+        System.err.println("Session Id: [" + sessionId + "]");
         try {
             files = target;
             err = logger;
             prepareMetadata();
             prepareNextFile();
             System.out.printf("Create aggregated logger -> %s\n", currentFile);
-            if (this.rsocket != null) {
-                System.out.println("Socket connected, creating aggregated log consumer");
-                new Thread(this).start();
-            }
+//            if (this.rsocket != null) {
+//                System.out.println("Socket connected, creating aggregated log consumer");
+            new Thread(this).start();
+//            }
             count = 0;
         } catch (IOException e) {
             err.log(e);
         }
     }
 
-    private void prepareNextFile() throws FileNotFoundException {
+    private void prepareNextFile() throws IOException {
         if (out != null) {
             try {
+                out.flush();
                 out.close();
+                fileList.add(currentFile);
             } catch (IOException e) {
                 err.log(e);
             }
@@ -110,8 +122,8 @@ public class BinaryRsocketAggregatedLogger implements Runnable {
         File nextFile = files.getNextFile();
         currentFile = nextFile.getAbsolutePath();
         System.err.println("[" + Time.from(Instant.now()) + "] Prepare next file: " + currentFile);
-        fileList.add(currentFile);
         out = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(nextFile), WRITE_BYTE_BUFFER_SIZE));
+        out.writeBytes(sessionId);
         count = 0;
         this.bytesWritten = 0;
     }
@@ -294,8 +306,76 @@ public class BinaryRsocketAggregatedLogger implements Runnable {
         return metadata;
     }
 
+    private void sendPOSTRequest(String url, String attachmentFilePath) {
+        String charset = "UTF-8";
+        File binaryFile = new File(attachmentFilePath);
+        String boundary = "------------------------" + Long.toHexString(System.currentTimeMillis()); // Just generate some unique random value.
+        String CRLF = "\r\n"; // Line separator required by multipart/form-data.
+        int responseCode = 0;
+
+        try {
+            //Set POST general headers along with the boundary string (the seperator string of each part)
+            URLConnection connection = new URL(url).openConnection();
+            connection.setDoOutput(true);
+            connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary);
+            connection.addRequestProperty("User-Agent", "insidious/1.0.0");
+            connection.addRequestProperty("Accept", "*/*");
+            connection.addRequestProperty("Authorization", "Bearer " + this.token);
+
+            OutputStream output = connection.getOutputStream();
+            PrintWriter writer = new PrintWriter(new OutputStreamWriter(output, charset), true);
+
+            // Send binary file - part
+            // Part header
+            writer.append("--" + boundary).append(CRLF);
+            writer.append("Content-Disposition: form-data; name=\"file\"; filename=\"" + binaryFile.getName() + "\"").append(CRLF);
+            writer.append("Content-Type: application/octet-stream").append(CRLF);// + URLConnection.guessContentTypeFromName(binaryFile.getName())).append(CRLF);
+            writer.append(CRLF).flush();
+
+            // File data
+            Files.copy(binaryFile.toPath(), output);
+            output.flush();
+
+            // End of multipart/form-data.
+            writer.append(CRLF).append("--" + boundary + "--").flush();
+
+            responseCode = ((HttpURLConnection) connection).getResponseCode();
+            System.err.println("File uploaded: " + responseCode);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            err.log(e);
+        }
+
+    }
+
     @Override
     public void run() {
+        while (true) {
+//            while (fileList.isEmpty()) {
+//                try {
+//                    System.err.println("File list is empty");
+//                    Thread.sleep(3000);
+//                } catch (InterruptedException e) {
+//                    err.log(e);
+//                }
+//            }
+            try {
+                String filePath = fileList.take();
+                System.err.println("File to upload: " + filePath);
+                long start = System.currentTimeMillis();
+                sendPOSTRequest("http://localhost:8080/checkpoint/upload", filePath);
+                long end = System.currentTimeMillis();
+                System.err.println("Upload took " + (end - start) / 1000 + " seconds");
+
+            } catch (InterruptedException e) {
+                System.err.println("Failed to upload file: " + e.getMessage());
+                err.log(e);
+            }
+        }
+    }
+
+    public void run1() {
         System.out.println("Event file consumer started");
         DataOutputStream resetStream = null;
         ByteArrayOutputStream resetBufferStream = null;
@@ -310,7 +390,13 @@ public class BinaryRsocketAggregatedLogger implements Runnable {
                     err.log(e);
                 }
             }
-            String fileToConsume = fileList.remove(0);
+            String fileToConsume = null;
+            try {
+                fileToConsume = fileList.take();
+            } catch (InterruptedException e) {
+                err.log(e);
+                continue;
+            }
             File file = null;
             long start = 0L;
             int bytesConsumedTotal = 0;
@@ -324,7 +410,7 @@ public class BinaryRsocketAggregatedLogger implements Runnable {
             try {
                 start = System.currentTimeMillis();
                 file = new File(fileToConsume);
-                DataInputStream fileInputStream = new DataInputStream(new BufferedInputStream(new FileInputStream(file)));
+                DataInputStream fileInputStream = new DataInputStream(new BufferedInputStream(new FileInputStream(file), 1024 * 1024));
                 System.err.println("[" + Time.from(Instant.now()) + "] " + "File opened - " + fileToConsume);
                 while (eventsRead < MAX_EVENTS_PER_FILE) {
                     Thread.sleep(900);

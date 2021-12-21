@@ -2,7 +2,7 @@ package com.insidious.agent.logging.io;
 
 import com.insidious.agent.logging.IErrorLogger;
 import com.insidious.agent.logging.IEventLogger;
-import com.insidious.agent.logging.util.AggregatedLogger;
+import com.insidious.agent.logging.util.BinaryRsocketAggregatedLogger;
 import com.insidious.agent.logging.util.ObjectIdAggregatedStream;
 import com.insidious.agent.logging.util.TypeIdAggregatedStreamMap;
 
@@ -17,7 +17,7 @@ import com.insidious.agent.logging.util.TypeIdAggregatedStreamMap;
  */
 public class EventStreamAggregatedLogger implements IEventLogger {
 
-    private final AggregatedLogger aggregatedLogger;
+    private final BinaryRsocketAggregatedLogger aggregatedLogger;
     private final TypeIdAggregatedStreamMap typeToId;
     private final ObjectIdAggregatedStream objectIdMap;
 
@@ -27,7 +27,7 @@ public class EventStreamAggregatedLogger implements IEventLogger {
      * @param logger           specifies an object to record errors that occur in this class
      * @param aggregatedLogger writer
      */
-    public EventStreamAggregatedLogger(IErrorLogger logger, AggregatedLogger aggregatedLogger) {
+    public EventStreamAggregatedLogger(IErrorLogger logger, BinaryRsocketAggregatedLogger aggregatedLogger) {
         System.out.printf("New event stream aggregated logger\n");
         this.aggregatedLogger = aggregatedLogger;
         typeToId = new TypeIdAggregatedStreamMap(this.aggregatedLogger);
@@ -127,25 +127,8 @@ public class EventStreamAggregatedLogger implements IEventLogger {
     }
 
     @Override
-    public void recordClassInfo(String str) {
-        aggregatedLogger.writeClassInfo(str);
-    }
-
-    @Override
-    public void recordMethodInfo(String str) {
-        aggregatedLogger.writeMethodInfo(str);
-
-    }
-
-    @Override
-    public void recordDataInfo(String str) {
-        aggregatedLogger.writeDataInfo(str);
-
-    }
-
-    @Override
-    public void recordWeaveInfo(byte[] toByteArray) {
-        aggregatedLogger.writeWeaveInfo(toByteArray);
+    public void recordWeaveInfo(byte[] byteArray) {
+        aggregatedLogger.writeWeaveInfo(byteArray);
     }
 
 

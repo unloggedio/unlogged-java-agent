@@ -75,13 +75,6 @@ public interface IEventLogger {
 	 * @param dataId specifies an event and its bytecode location.
 	 * @param value contains a value to be recorded.
 	 */
-	public void recordEvent(int dataId, float value);
-
-    void recordClassInfo(String str);
-
-	void recordMethodInfo(String str);
-
-	void recordDataInfo(String str);
-
-	void recordWeaveInfo(byte[] toByteArray);
+	void recordEvent(int dataId, float value);
+	void recordWeaveInfo(byte[] byteArray);
 }

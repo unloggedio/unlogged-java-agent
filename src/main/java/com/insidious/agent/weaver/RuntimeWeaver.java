@@ -2,7 +2,7 @@ package com.insidious.agent.weaver;
 
 import com.insidious.agent.logging.IEventLogger;
 import com.insidious.agent.logging.Logging;
-import com.insidious.agent.logging.util.AggregatedLogger;
+import com.insidious.agent.logging.util.BinaryRsocketAggregatedLogger;
 import com.insidious.agent.logging.util.FileNameGenerator;
 import org.objectweb.asm.ClassReader;
 
@@ -63,7 +63,7 @@ public class RuntimeWeaver implements ClassFileTransformer {
                         break;
 
                     case Single:
-                        AggregatedLogger aggregateLogger = new AggregatedLogger(
+                        BinaryRsocketAggregatedLogger aggregateLogger = new BinaryRsocketAggregatedLogger(
                                 new FileNameGenerator(new File(params.getOutputDirname()), "log-", ".selog"),
                                 weaver, config.getRsocket());
                         logger = Logging.initialiseAggregatedLogger(weaver, aggregateLogger);

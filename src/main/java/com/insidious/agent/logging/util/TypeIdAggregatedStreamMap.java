@@ -1,11 +1,6 @@
 package com.insidious.agent.logging.util;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintWriter;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.HashMap;
 
 
@@ -40,7 +35,7 @@ public class TypeIdAggregatedStreamMap {
 		void.class, boolean.class, byte.class, char.class, double.class,
 		float.class, int.class, long.class, short.class, Object.class, String.class
 	};
-	private final AggregatedLogger aggregatedLogger;
+	private final BinaryRsocketAggregatedLogger aggregatedLogger;
 
 	private int nextId;
 
@@ -58,7 +53,7 @@ public class TypeIdAggregatedStreamMap {
 	/**
 	 * Create an initial map containing only basic types.
 	 */
-	public TypeIdAggregatedStreamMap(AggregatedLogger aggregatedLogger) {
+	public TypeIdAggregatedStreamMap(BinaryRsocketAggregatedLogger aggregatedLogger) {
 		this.aggregatedLogger = aggregatedLogger;
 		classToIdMap = new HashMap<>(65536);
 		for (int i=0; i<BASIC_TYPE_CLASS.length; ++i) {

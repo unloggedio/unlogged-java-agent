@@ -2,7 +2,7 @@ package com.insidious.agent.logging;
 
 import com.insidious.agent.logging.io.*;
 import com.insidious.agent.logging.io.LatestEventLogger.ObjectRecordingStrategy;
-import com.insidious.agent.logging.util.AggregatedLogger;
+import com.insidious.agent.logging.util.BinaryRsocketAggregatedLogger;
 import io.rsocket.RSocket;
 
 import java.io.File;
@@ -128,7 +128,7 @@ public class Logging {
     }
 
 
-    public static IEventLogger initialiseAggregatedLogger(IErrorLogger errorLogger, AggregatedLogger aggregatedLogger) {
+    public static IEventLogger initialiseAggregatedLogger(IErrorLogger errorLogger, BinaryRsocketAggregatedLogger aggregatedLogger) {
         INSTANCE = new EventStreamAggregatedLogger(errorLogger, aggregatedLogger);
         return INSTANCE;
     }
@@ -423,7 +423,7 @@ public class Logging {
     }
 
 
-    public static void recordWeaveInfo(byte[] toByteArray) {
-        INSTANCE.recordWeaveInfo(toByteArray);
+    public static void recordWeaveInfo(byte[] byteArray) {
+        INSTANCE.recordWeaveInfo(byteArray);
     }
 }

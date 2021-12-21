@@ -59,22 +59,7 @@ public class DiscardLogger implements IEventLogger {
 	}
 
 	@Override
-	public void recordClassInfo(String str) {
-
-	}
-
-	@Override
-	public void recordMethodInfo(String str) {
-
-	}
-
-	@Override
-	public void recordDataInfo(String str) {
-
-	}
-
-	@Override
-	public void recordWeaveInfo(byte[] toByteArray) {
+	public void recordWeaveInfo(byte[] byteArray) {
 
 	}
 

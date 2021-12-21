@@ -1,7 +1,5 @@
 package com.insidious.agent.weaver;
 
-import com.insidious.agent.logging.util.AggregatedLogger;
-import com.insidious.agent.logging.util.FileNameGenerator;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.CompositeByteBuf;

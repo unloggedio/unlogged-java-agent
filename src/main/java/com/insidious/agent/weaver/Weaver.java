@@ -3,14 +3,6 @@ package com.insidious.agent.weaver;
 
 import com.insidious.agent.logging.IErrorLogger;
 import com.insidious.agent.logging.Logging;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufAllocator;
-import io.netty.buffer.CompositeByteBuf;
-import io.rsocket.metadata.CompositeMetadataCodec;
-import io.rsocket.metadata.RoutingMetadata;
-import io.rsocket.metadata.TaggingMetadataCodec;
-import io.rsocket.metadata.WellKnownMimeType;
-import io.rsocket.util.DefaultPayload;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -18,7 +10,6 @@ import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.Collections;
 
 /**
  * This class manages bytecode injection process and weaving logs.
@@ -45,7 +36,6 @@ public class Weaver implements IErrorLogger {
     private int confirmedDataId;
     private int confirmedMethodId;
     private Writer methodIdWriter;
-    private Writer classIdWriter;
     private boolean dumpOption;
     private MessageDigest digest;
 
@@ -73,7 +63,7 @@ public class Weaver implements IErrorLogger {
         }
 
         try {
-            classIdWriter = new BufferedWriter(new FileWriter(new File(outputDir, CLASS_ID_FILE)), 32 * 1024);
+//            classIdWriter = new BufferedWriter(new FileWriter(new File(outputDir, CLASS_ID_FILE)), 32 * 1024);
             methodIdWriter = new BufferedWriter(new FileWriter(new File(outputDir, METHOD_ID_FILE)), 32 * 1024);
             dataIdWriter = new BufferedWriter(new FileWriter(new File(outputDir, DATA_ID_FILE)), 32 * 1024);
         } catch (IOException e) {
@@ -108,11 +98,11 @@ public class Weaver implements IErrorLogger {
      * Close files written by the weaver.
      */
     public void close() {
-        try {
-            if (classIdWriter != null) classIdWriter.close();
-        } catch (IOException e) {
-            e.printStackTrace(logger);
-        }
+//        try {
+//            if (classIdWriter != null) classIdWriter.close();
+//        } catch (IOException e) {
+//            e.printStackTrace(logger);
+//        }
         try {
             if (methodIdWriter != null) methodIdWriter.close();
         } catch (IOException e) {
@@ -211,94 +201,74 @@ public class Weaver implements IErrorLogger {
      */
     private void finishClassProcess(ClassInfo c, WeaveLog result) {
 
-        ByteBuf out = null;
-        if (this.config.getRsocket() != null) {
-            out = ByteBufAllocator.DEFAULT.buffer();
-        }
+        ByteArrayOutputStream boas = new ByteArrayOutputStream();
+        DataOutputStream out = new DataOutputStream(boas);
 
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+//        System.err.println("Finish class weave");
 
-        if (classIdWriter != null) {
-            try {
-                String str = c.toString();
-                classIdWriter.write(str);
-                classIdWriter.write(lineSeparator);
+        try {
+            String str = c.toString();
+//                classIdWriter.write(str);
+//                classIdWriter.write(lineSeparator);
 
-                baos.write(str.length());
-                baos.write(str.getBytes());
+            out.writeInt(str.length());
+            out.write(str.getBytes());
+//            System.err.println("Wrote bytes - " + str.length() + " - " + str);
 
-                classIdWriter.flush();
-            } catch (IOException e) {
-                e.printStackTrace(logger);
-                classIdWriter = null;
-            }
+
+        } catch (IOException e) {
+            e.printStackTrace(logger);
         }
         classId++;
 
         // Commit location IDs to the final output
         confirmedDataId = result.getNextDataId();
         try {
-            if (dataIdWriter != null) {
-                ArrayList<DataInfo> dataEntries = result.getDataEntries();
-                if (out != null) {
-                    out.writeInt(dataEntries.size());
-                }
-                for (DataInfo loc : dataEntries) {
-                    String locString = loc.toString();
-                    dataIdWriter.write(locString);
-                    dataIdWriter.write(lineSeparator);
-                    baos.write(locString.length());
-                    baos.write(locString.getBytes());
+            ArrayList<DataInfo> dataEntries = result.getDataEntries();
+//                if (out != null) {
+            out.writeInt(dataEntries.size());
+//                }
+            for (DataInfo loc : dataEntries) {
+                String locString = loc.toString();
+//                    dataIdWriter.write(locString);
+//                    dataIdWriter.write(lineSeparator);
+                out.writeInt(locString.length());
+                out.write(locString.getBytes());
 
-                }
-                dataIdWriter.flush();
             }
+//                dataIdWriter.flush();
         } catch (IOException e) {
             e.printStackTrace(logger);
-            dataIdWriter = null;
+//            dataIdWriter = null;
         }
 
         // Commit method IDs to the final output
         confirmedMethodId = result.getNextMethodId();
-        if (methodIdWriter != null) {
-            try {
-                ArrayList<MethodInfo> methods = result.getMethods();
-                if (out != null) {
-                    out.writeInt(methods.size());
-                }
-                for (MethodInfo method : methods) {
-                    String methodString = method.toString();
-                    methodIdWriter.write(methodString);
-                    methodIdWriter.write(lineSeparator);
+        try {
+            ArrayList<MethodInfo> methods = result.getMethods();
+//                if (out != null) {
+            out.writeInt(methods.size());
+//                }
+            for (MethodInfo method : methods) {
+                String methodString = method.toString();
+//                    methodIdWriter.write(methodString);
+//                    methodIdWriter.write(lineSeparator);
 
-                    baos.write(methodString.length());
-                    baos.write(methodString.getBytes());
+                out.writeInt(methodString.length());
+                out.write(methodString.getBytes());
 
-                }
-                methodIdWriter.flush();
-            } catch (IOException e) {
-                e.printStackTrace(logger);
-                methodIdWriter = null;
             }
+//                methodIdWriter.flush();
+        } catch (IOException e) {
+            e.printStackTrace(logger);
+//                methodIdWriter = null;
         }
+//        }
 
-        Logging.recordWeaveInfo(baos.toByteArray());
 
-//		System.out.printf("Send information for [%s]\n", c.getClassName());
-        if (out != null) {
-            out.writeBytes(baos.toByteArray());
-            CompositeByteBuf metadata = ByteBufAllocator.DEFAULT.compositeBuffer();
-            RoutingMetadata routingMetadata = TaggingMetadataCodec.createRoutingMetadata(
-                    ByteBufAllocator.DEFAULT, Collections.singletonList("class-mapping")
-            );
-            CompositeMetadataCodec.encodeAndAddMetadata(metadata,
-                    ByteBufAllocator.DEFAULT,
-                    WellKnownMimeType.MESSAGE_RSOCKET_ROUTING,
-                    routingMetadata.getContent()
-            );
-
-            this.config.getRsocket().fireAndForget(DefaultPayload.create(out, metadata)).subscribe();
-        }
+        byte[] array = boas.toByteArray();
+//        System.err.println("Weave info - " + new String(array));
+        Logging.recordWeaveInfo(array);
 
     }
 

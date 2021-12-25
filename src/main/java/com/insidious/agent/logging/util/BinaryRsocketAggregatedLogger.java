@@ -459,7 +459,7 @@ public class BinaryRsocketAggregatedLogger implements Runnable {
                                     buffer.writeBytes(string.getBytes());
 
 
-                                    // System.err.println("2 - " + stringId + " - " + string);
+                                    // System.err.println("2 - " + objectId + " - " + string);
                                     break;
                                 case 3:
                                     // new exception

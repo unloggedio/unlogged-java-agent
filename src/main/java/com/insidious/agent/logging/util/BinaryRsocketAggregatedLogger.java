@@ -38,7 +38,7 @@ public class BinaryRsocketAggregatedLogger implements Runnable {
     /**
      * The number of events stored in a single file.
      */
-    public static final int MAX_EVENTS_PER_FILE = 100000 * 2;
+    public static final int MAX_EVENTS_PER_FILE = 100000 * 2 * 5;
     public static final int WRITE_BYTE_BUFFER_SIZE = 1024 * 1024;
     public static final int WRITE_BYTE_BUFFER_SIZE_BY_10 = WRITE_BYTE_BUFFER_SIZE / 10;
     public static final int MAX_LOG_FILE_SIZE = 32 * 1024 * 1024 * 10;
@@ -65,6 +65,8 @@ public class BinaryRsocketAggregatedLogger implements Runnable {
     private final BlockingQueue<String> fileList = new ArrayBlockingQueue<String>(1024);
     private final ReentrantLock lock = new ReentrantLock();
     private final String token;
+    private final String serverEndpoint;
+    private final String sessionId;
     private RSocket rsocket;
     private FileNameGenerator files;
     private DataOutputStream out = null;
@@ -80,29 +82,29 @@ public class BinaryRsocketAggregatedLogger implements Runnable {
     private CompositeByteBuf stringMapMetadata;
     private CompositeByteBuf variableMapMetadata;
     private Map<Integer, CompositeByteBuf> metadataMap;
-    private final String sessionId;
 
     /**
      * Create an instance of stream.
      *
-     * @param target is an object generating file names.
-     * @param logger is to report errors that occur in this class.
+     * @param outputDirName location for generated files
+     * @param logger        is to report errors that occur in this class.
      * @param token
+     * @param serverAddress
      */
-    public BinaryRsocketAggregatedLogger(FileNameGenerator target, IErrorLogger logger, String token, String sessionId) {
+    public BinaryRsocketAggregatedLogger(String outputDirName, IErrorLogger logger, String token, String sessionId, String serverAddress) {
         this.token = token;
         this.sessionId = sessionId;
+        this.serverEndpoint = serverAddress;
         System.err.println("Session Id: [" + sessionId + "]");
         try {
-            files = target;
+            files = new FileNameGenerator(new File(outputDirName), "log-", ".selog");
             err = logger;
             prepareMetadata();
             prepareNextFile();
             System.out.printf("Create aggregated logger -> %s\n", currentFile);
-//            if (this.rsocket != null) {
-//                System.out.println("Socket connected, creating aggregated log consumer");
-            new Thread(this).start();
-//            }
+            if (this.serverEndpoint != null) {
+                new Thread(this).start();
+            }
             count = 0;
         } catch (IOException e) {
             err.log(e);
@@ -239,13 +241,11 @@ public class BinaryRsocketAggregatedLogger implements Runnable {
 
             this.bytesWritten += bytesToWrite;
 
-            synchronized (this) {
-                out.writeByte(4);
-                out.writeInt(threadId.get());
-                out.writeLong(eventId);
-                out.writeInt(id);
-                out.writeLong(value);
-            }
+            out.writeByte(4);
+            out.writeInt(threadId.get());
+            out.writeLong(eventId);
+            out.writeInt(id);
+            out.writeLong(value);
 
             count++;
             eventId++;
@@ -351,22 +351,17 @@ public class BinaryRsocketAggregatedLogger implements Runnable {
 
     @Override
     public void run() {
+        System.err.println("Sending dumps to: " + this.serverEndpoint);
         while (true) {
-//            while (fileList.isEmpty()) {
-//                try {
-//                    System.err.println("File list is empty");
-//                    Thread.sleep(3000);
-//                } catch (InterruptedException e) {
-//                    err.log(e);
-//                }
-//            }
+
             try {
                 String filePath = fileList.take();
                 System.err.println("File to upload: " + filePath);
                 long start = System.currentTimeMillis();
-                sendPOSTRequest("http://localhost:8080/checkpoint/upload", filePath);
+                sendPOSTRequest(this.serverEndpoint + "/checkpoint/upload", filePath);
                 long end = System.currentTimeMillis();
-                System.err.println("Upload took " + (end - start) / 1000 + " seconds");
+                System.err.println("Upload took " + (end - start) / 1000 + " seconds, deleting file " + filePath);
+                new File(filePath).delete();
 
             } catch (InterruptedException e) {
                 System.err.println("Failed to upload file: " + e.getMessage());

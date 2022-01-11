@@ -231,7 +231,7 @@ public class WeaveConfig {
         this.sessionId = UUID.randomUUID().toString();
         this.processId = getProcessId(new Random().nextInt());
 
-        if (params.getServerAddress() != null) {
+        if (params.getServerAddress() != null && params.getPassword() != null) {
             String[] addressParts = params.getServerAddress().split(":");
 
             int addressPort = 80;

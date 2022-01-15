@@ -3,13 +3,6 @@ package com.insidious.agent.logging.util;
 import com.insidious.agent.logging.IErrorLogger;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
-import io.netty.buffer.CompositeByteBuf;
-import io.rsocket.RSocket;
-import io.rsocket.metadata.CompositeMetadataCodec;
-import io.rsocket.metadata.RoutingMetadata;
-import io.rsocket.metadata.TaggingMetadataCodec;
-import io.rsocket.metadata.WellKnownMimeType;
-import io.rsocket.util.DefaultPayload;
 
 import java.io.*;
 import java.net.HttpURLConnection;
@@ -19,7 +12,8 @@ import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.sql.Time;
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -33,7 +27,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * this stream creates a number of files whose size is limited by the number of events
  * (MAX_EVENTS_PER_FILE field).
  */
-public class BinaryRsocketAggregatedLogger implements Runnable {
+public class BinaryFileAggregatedLogger implements Runnable {
 
     /**
      * The number of events stored in a single file.
@@ -67,21 +61,14 @@ public class BinaryRsocketAggregatedLogger implements Runnable {
     private final String token;
     private final String serverEndpoint;
     private final String sessionId;
-    private RSocket rsocket;
     private FileNameGenerator files;
     private DataOutputStream out = null;
     private IErrorLogger err;
     private int count;
     private long eventId = 0;
     private String currentFile;
-    private CompositeByteBuf dataEventMetadata;
     private int bytesWritten = 0;
     private int bytesRemaining = 0;
-    private CompositeByteBuf classMapMetadata;
-    private CompositeByteBuf typeMapMetadata;
-    private CompositeByteBuf stringMapMetadata;
-    private CompositeByteBuf variableMapMetadata;
-    private Map<Integer, CompositeByteBuf> metadataMap;
 
     /**
      * Create an instance of stream.
@@ -91,7 +78,7 @@ public class BinaryRsocketAggregatedLogger implements Runnable {
      * @param token
      * @param serverAddress
      */
-    public BinaryRsocketAggregatedLogger(String outputDirName, IErrorLogger logger, String token, String sessionId, String serverAddress) {
+    public BinaryFileAggregatedLogger(String outputDirName, IErrorLogger logger, String token, String sessionId, String serverAddress) {
         this.token = token;
         this.sessionId = sessionId;
         this.serverEndpoint = serverAddress;
@@ -99,7 +86,6 @@ public class BinaryRsocketAggregatedLogger implements Runnable {
         try {
             files = new FileNameGenerator(new File(outputDirName), "log-", ".selog");
             err = logger;
-            prepareMetadata();
             prepareNextFile();
             System.out.printf("Create aggregated logger -> %s\n", currentFile);
             if (this.serverEndpoint != null) {
@@ -280,32 +266,6 @@ public class BinaryRsocketAggregatedLogger implements Runnable {
         }
     }
 
-    private void prepareMetadata() {
-        metadataMap = new HashMap<>();
-
-        metadataMap.put(1, createMetadata("object-mapping"));
-        metadataMap.put(2, createMetadata("string-mapping"));
-        metadataMap.put(3, createMetadata("exception-mapping"));
-        metadataMap.put(4, createMetadata("data-event"));
-        metadataMap.put(5, createMetadata("type-mapping"));
-        metadataMap.put(6, createMetadata("class-mapping"));
-
-
-    }
-
-    private CompositeByteBuf createMetadata(String path) {
-        CompositeByteBuf metadata = ByteBufAllocator.DEFAULT.compositeBuffer();
-        RoutingMetadata route = TaggingMetadataCodec.createRoutingMetadata(
-                ByteBufAllocator.DEFAULT, Collections.singletonList(path)
-        );
-        CompositeMetadataCodec.encodeAndAddMetadata(metadata,
-                ByteBufAllocator.DEFAULT,
-                WellKnownMimeType.MESSAGE_RSOCKET_ROUTING,
-                route.getContent()
-        );
-        return metadata;
-    }
-
     private void sendPOSTRequest(String url, String attachmentFilePath) {
         String charset = "UTF-8";
         File binaryFile = new File(attachmentFilePath);
@@ -361,7 +321,7 @@ public class BinaryRsocketAggregatedLogger implements Runnable {
                 sendPOSTRequest(this.serverEndpoint + "/checkpoint/upload", filePath);
                 long end = System.currentTimeMillis();
                 System.err.println("Upload took " + (end - start) / 1000 + " seconds, deleting file " + filePath);
-                new File(filePath).delete();
+//                new File(filePath).delete();
 
             } catch (InterruptedException e) {
                 System.err.println("Failed to upload file: " + e.getMessage());
@@ -518,10 +478,6 @@ public class BinaryRsocketAggregatedLogger implements Runnable {
                                     System.err.println("Invalid event type found in file: " + eventType + " at byte " + bytesConsumed);
 //                                System.exit(1);
                                     throw new Exception("invalid event type in file, cannot process further at byte " + bytesConsumedTotal + " of file " + file.getAbsolutePath());
-                            }
-
-                            if (metadataMap.get(eventType) != null) {
-                                this.rsocket.fireAndForget(DefaultPayload.create(buffer, metadataMap.get(eventType).copy())).subscribe();
                             }
                             eventsRead++;
                         } catch (EOFException e) {

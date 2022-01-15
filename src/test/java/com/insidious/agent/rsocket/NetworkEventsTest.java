@@ -1,6 +1,7 @@
 package com.insidious.agent.rsocket;
 
 import com.insidious.agent.logging.Logging;
+import com.insidious.agent.logging.util.BinaryFileAggregatedLogger;
 import com.insidious.agent.weaver.WeaveClassLoader;
 import com.insidious.agent.weaver.WeaveConfig;
 import com.insidious.agent.weaver.Weaver;
@@ -26,10 +27,6 @@ public class NetworkEventsTest {
         });
 
         String resourceName = "com.insidious.agent.rsocket.TestTarget";
-//        byte[] classFileBuffer = readAllBytesOfClass(ClassLoader.getSystemResourceAsStream(resourceName));
-//        byte[] transformedClass = runtimeWeaver.transform(this.getClass().getClassLoader(), TestTarget.class.getName(),
-//                null, this.getClass().getProtectionDomain(), classFileBuffer);
-
 
         WeaveConfig weaveConfig = new WeaveConfig(agentArgs, "localhost:9921", "user", "password");
 
@@ -43,7 +40,9 @@ public class NetworkEventsTest {
         WeaveClassLoader weaveClassLoader = new WeaveClassLoader(weaveConfig);
 
 
-        Logging.initializeStreamNetworkLogger(testOutputDir, true, weaveConfig.getRsocket(), weaver);
+        String token = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJ1c2VyIiwicHJvamVjdElkIjoiNjFhMGRiMzBhMTgwNDM1MzViNTdjMTUwIiwiaWF0IjoxNjQxOTIzNDc5LCJleHAiOjE2NDI0MjQxMzN9.IdSE0Ond_3pmerb5Rg9Tzaw2ZFL_CF3XgK2g4VEBpEZ_XDnGEz0Z2JSm5rt6Ksw5yu-MEePw0xIHJYwymM6VfA";
+        BinaryFileAggregatedLogger binaryFileAggregatedLogger = new BinaryFileAggregatedLogger("test", weaver, token, "session-1", "http://localhost:8080");
+        Logging.initialiseAggregatedLogger(weaver, binaryFileAggregatedLogger);
         Class<?> testTargetClass = weaveClassLoader.loadAndWeaveClass(resourceName);
 
         Runnable targetInstance = (Runnable) testTargetClass.newInstance();

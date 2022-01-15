@@ -2,7 +2,7 @@ package com.insidious.agent.logging;
 
 import com.insidious.agent.logging.io.*;
 import com.insidious.agent.logging.io.LatestEventLogger.ObjectRecordingStrategy;
-import com.insidious.agent.logging.util.BinaryRsocketAggregatedLogger;
+import com.insidious.agent.logging.util.BinaryFileAggregatedLogger;
 import io.rsocket.RSocket;
 
 import java.io.File;
@@ -128,7 +128,7 @@ public class Logging {
     }
 
 
-    public static IEventLogger initialiseAggregatedLogger(IErrorLogger errorLogger, BinaryRsocketAggregatedLogger aggregatedLogger) {
+    public static IEventLogger initialiseAggregatedLogger(IErrorLogger errorLogger, BinaryFileAggregatedLogger aggregatedLogger) {
         INSTANCE = new EventStreamAggregatedLogger(errorLogger, aggregatedLogger);
         return INSTANCE;
     }

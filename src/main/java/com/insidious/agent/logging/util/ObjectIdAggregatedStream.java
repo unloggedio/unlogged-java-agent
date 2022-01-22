@@ -53,32 +53,34 @@ public class ObjectIdAggregatedStream extends ObjectIdMap {
             try {
                 Throwable t = (Throwable) o;
                 long causeId = getId(t.getCause());
-                Throwable[] suppressed = t.getSuppressed();
-                long[] suppressedId = new long[suppressed.length];
-                for (int i = 0; i < suppressedId.length; ++i) {
-                    suppressedId[i] = getId(suppressed[i]);
-                }
+//                Throwable[] suppressed = t.getSuppressed();
+//                long[] suppressedId = new long[suppressed.length];
+//                for (int i = 0; i < suppressedId.length; ++i) {
+//                    suppressedId[i] = getId(suppressed[i]);
+//                }
 
                 StringBuilder builder = new StringBuilder(1028);
                 builder.append(id);
                 builder.append(",M,");
                 builder.append(t.getMessage());
-                builder.append("\n");
-                builder.append(id);
                 builder.append(",CS,");
                 builder.append(causeId);
-                for (int i = 0; i < suppressedId.length; ++i) {
-                    builder.append(",");
-                    builder.append(suppressedId[i]);
-                }
-                builder.append("\n");
+                builder.append(",");
+//                for (int i = 0; i < suppressedId.length; ++i) {
+//                    builder.append(",");
+//                    builder.append(suppressedId[i]);
+//                    builder.append(",");
+//                    builder.append(suppressed[i].getClass().getName());
+//                }
+//                builder.append("\n");
 
                 StackTraceElement[] trace = t.getStackTrace();
-                for (int i = 0; i < trace.length; ++i) {
-                    builder.append(id);
-                    builder.append(",S,");
+//                builder.append(trace.length);
+//                builder.append(",");
+                // todo: recording only first item in the stack trace
+                for (int i = 0; i < 1; ++i) {
                     StackTraceElement e = trace[i];
-                    builder.append(e.isNativeMethod() ? "T," : "F, ");
+                    builder.append(e.isNativeMethod() ? "T," : "F,");
                     builder.append(e.getClassName());
                     builder.append(",");
                     builder.append(e.getMethodName());
@@ -86,7 +88,7 @@ public class ObjectIdAggregatedStream extends ObjectIdMap {
                     builder.append(e.getFileName());
                     builder.append(",");
                     builder.append(e.getLineNumber());
-                    builder.append("\n");
+//                    builder.append("\n");
                 }
                 aggregatedLogger.writeNewException(builder.toString());
             } catch (Throwable e) {

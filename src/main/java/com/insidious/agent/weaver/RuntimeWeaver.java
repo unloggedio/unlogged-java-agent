@@ -99,6 +99,8 @@ public class RuntimeWeaver implements ClassFileTransformer {
      * @param inst
      */
     public static void premain(String agentArgs, Instrumentation inst) {
+        System.err.println("Premain: " + agentArgs + " - " + inst.getAllLoadedClasses());
+
 
         final RuntimeWeaver runtimeWeaver = new RuntimeWeaver(agentArgs);
         Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
@@ -177,7 +179,7 @@ public class RuntimeWeaver implements ClassFileTransformer {
     public synchronized byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined,
                                          ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
 
-//		System.out.printf("Load class: [%s]\n", className);
+//        System.out.printf("Load class: [%s]\n", className);
         if (isExcludedFromLogging(className)) {
             weaver.log("Excluded by name filter: " + className);
             return null;

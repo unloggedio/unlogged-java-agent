@@ -18,41 +18,9 @@ public class RuntimeWeaverParameters {
 
     private static final String[] SYSTEM_PACKAGES = {"sun/", "com/sun/", "java/", "javax/"};
     private static final String ARG_SEPARATOR = ",";
-    private static final String SELOGGER_DEFAULT_OUTPUT_DIR = "selogger-output";
+    private static final String SELOGGER_DEFAULT_OUTPUT_DIR = "selogger-output-{time}";
 
     private static final Pattern timePattern = Pattern.compile(".*(\\{time:([^}]+)\\}).*");
-    private String authToken;
-
-    private String output_dirname = SELOGGER_DEFAULT_OUTPUT_DIR;
-    private String serverAddress;
-    private String username;
-    private String password;
-
-    private String weaveOption = WeaveConfig.KEY_RECORD_ALL;
-
-    private boolean outputJson = false;
-
-    /**
-     * Dump woven class files (mainly for debugging)
-     */
-    private boolean dumpClass = false;
-
-    /**
-     * The number of events recorded per code location
-     */
-    private int bufferSize = 32;
-
-    /**
-     * Strategy to keep objects on memory
-     */
-    private LatestEventLogger.ObjectRecordingStrategy keepObject = LatestEventLogger.ObjectRecordingStrategy.Strong;
-
-    /**
-     * If true, automatic filtering for security manager classes is disabled
-     */
-    private boolean weaveSecurityManagerClass = false;
-
-
     /**
      * Package/class names (prefix) excluded from logging
      */
@@ -61,18 +29,42 @@ public class RuntimeWeaverParameters {
      * Package/class names (prefix) included in logging
      */
     private final ArrayList<String> includedNames;
-
     /**
      * Location names (substring) excluded from logging
      */
     private final ArrayList<String> excludedLocations;
-
-
-    private Mode mode = Mode.FixedSize;
+    private String authToken;
+    private String output_dirname = SELOGGER_DEFAULT_OUTPUT_DIR;
+    private String serverAddress;
+    private String username;
+    private String password;
+    private String weaveOption = WeaveConfig.KEY_RECORD_ALL;
+    private boolean outputJson = false;
+    /**
+     * Dump woven class files (mainly for debugging)
+     */
+    private boolean dumpClass = false;
+    /**
+     * The number of events recorded per code location
+     */
+    private int bufferSize = 32;
+    /**
+     * Strategy to keep objects on memory
+     */
+    private LatestEventLogger.ObjectRecordingStrategy keepObject = LatestEventLogger.ObjectRecordingStrategy.Strong;
+    /**
+     * If true, automatic filtering for security manager classes is disabled
+     */
+    private boolean weaveSecurityManagerClass = false;
+    private Mode mode = Mode.Single;
 
     public RuntimeWeaverParameters(String args) {
         if (args == null) args = "";
         String[] a = args.split(ARG_SEPARATOR);
+
+        SimpleDateFormat f = new SimpleDateFormat("yyyyMMdd-HHmmssSSS");
+        output_dirname = output_dirname.replace("{time}", f.format(new Date()));
+
         excludedNames = new ArrayList<String>();
         includedNames = new ArrayList<String>();
         excludedLocations = new ArrayList<String>();
@@ -82,12 +74,10 @@ public class RuntimeWeaverParameters {
             if (arg.startsWith("output=")) {
                 output_dirname = arg.substring("output=".length());
                 if (output_dirname.contains("{time}")) {
-                    SimpleDateFormat f = new SimpleDateFormat("yyyyMMdd-HHmmssSSS");
                     output_dirname = output_dirname.replace("{time}", f.format(new Date()));
                 } else {
                     Matcher m = timePattern.matcher(output_dirname);
                     if (m.matches()) {
-                        SimpleDateFormat f = new SimpleDateFormat(m.group(2));
                         output_dirname = output_dirname.replace(m.group(1), f.format(new Date()));
                     }
                 }

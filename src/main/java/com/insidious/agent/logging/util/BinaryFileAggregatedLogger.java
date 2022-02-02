@@ -90,6 +90,7 @@ public class BinaryFileAggregatedLogger implements Runnable {
             System.out.printf("Create aggregated logger -> %s\n", currentFile);
             if (this.serverEndpoint != null) {
                 new Thread(this).start();
+                new Thread(new LogFileTimeExpiry()).start();
             }
             count = 0;
         } catch (IOException e) {
@@ -516,7 +517,6 @@ public class BinaryFileAggregatedLogger implements Runnable {
         }
     }
 
-
     private String getNextString(DataInputStream buffer) throws IOException {
         int stringLength = buffer.readInt();
 // System.err.println("String length - " + stringLength);
@@ -524,7 +524,6 @@ public class BinaryFileAggregatedLogger implements Runnable {
         buffer.readFully(str);
         return new String(str);
     }
-
 
     private byte[] getNextBytes(DataInputStream buffer) throws IOException {
         int stringLength = buffer.readInt();
@@ -558,6 +557,33 @@ public class BinaryFileAggregatedLogger implements Runnable {
             err.log(e);
         } finally {
             lock.unlock();
+        }
+    }
+
+    class LogFileTimeExpiry implements Runnable {
+
+        @Override
+        public void run() {
+            while (true) {
+                try {
+                    Thread.sleep(30 * 1000);
+                    System.err.println("30 seconds log file checker");
+                    lock.lock();
+                    if (count > 0 && fileList.isEmpty()) {
+                        System.err.println("30 seconds log file checker: " + count + " events in file");
+                        prepareNextFile();
+                    } else {
+                        System.err.println("30 seconds log file checker: not enough data");
+                    }
+
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } finally {
+                    lock.unlock();
+                }
+            }
         }
     }
 }

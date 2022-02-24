@@ -1,18 +1,12 @@
 package com.insidious.agent.logging.util;
 
 import com.insidious.agent.logging.IErrorLogger;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufAllocator;
 
 import java.io.*;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.net.URLConnection;
-import java.nio.ByteBuffer;
+import java.net.*;
 import java.nio.file.Files;
 import java.sql.Time;
 import java.time.Instant;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -61,6 +55,7 @@ public class BinaryFileAggregatedLogger implements Runnable {
     private final String token;
     private final String serverEndpoint;
     private final String sessionId;
+    private String hostname;
     private FileNameGenerator files;
     private DataOutputStream out = null;
     private IErrorLogger err;
@@ -82,11 +77,26 @@ public class BinaryFileAggregatedLogger implements Runnable {
         this.token = token;
         this.sessionId = sessionId;
         this.serverEndpoint = serverAddress;
-        System.err.println("Session Id: [" + sessionId + "]");
+        try {
+            this.hostname = InetAddress.getLocalHost().getHostName();
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+            try {
+                BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(Runtime.getRuntime().exec("hostname").getInputStream()));
+                this.hostname = reader.readLine();
+                reader.close();
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+        }
+        System.err.println("Session Id: [" + sessionId + "] on hostname [" + hostname + "]");
         try {
             files = new FileNameGenerator(new File(outputDirName), "log-", ".selog");
             err = logger;
             prepareNextFile();
+            writeHostname();
+            writeTimestamp();
             System.out.printf("Create aggregated logger -> %s\n", currentFile);
             if (this.serverEndpoint != null) {
                 new Thread(this).start();
@@ -228,15 +238,62 @@ public class BinaryFileAggregatedLogger implements Runnable {
 
             this.bytesWritten += bytesToWrite;
 
-            out.writeByte(4);
-            out.writeInt(threadId.get());
-            out.writeLong(eventId);
-            out.writeInt(id);
-            out.writeLong(value);
+            out.writeByte(4);          // 1
+            out.writeInt(threadId.get()); // 4
+            out.writeLong(eventId);       // 8
+            out.writeInt(id);             // 4
+            out.writeLong(value);         // 8
 
             count++;
             eventId++;
 //            System.err.println("Write new event - 4," + id + "," + value + " = " + this.bytesWritten);
+        } catch (IOException e) {
+            err.log(e);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public synchronized void writeHostname() {
+        try {
+            int bytesToWrite = 1 + 4 + hostname.length();
+            if (bytesToWrite + bytesWritten > WRITE_BYTE_BUFFER_SIZE) {
+                out.flush();
+                this.bytesWritten = 0;
+            }
+            this.bytesWritten += bytesToWrite;
+            out.writeByte(8);
+            out.writeInt(hostname.length());
+            out.writeBytes(hostname);
+            count++;
+            eventId++;
+
+        } catch (IOException e) {
+            err.log(e);
+        }
+    }
+
+    public synchronized void writeTimestamp() {
+        long timeStamp = System.currentTimeMillis();
+        try {
+            lock.lock();
+            if (count >= MAX_EVENTS_PER_FILE) {
+                prepareNextFile();
+            }
+            int bytesToWrite = 1 + 8;
+            if (bytesToWrite + bytesWritten > WRITE_BYTE_BUFFER_SIZE) {
+                out.flush();
+                this.bytesWritten = 0;
+            }
+
+            this.bytesWritten += bytesToWrite;
+
+            out.writeByte(7);
+            out.writeLong(timeStamp);
+
+            count++;
+            eventId++;
+
         } catch (IOException e) {
             err.log(e);
         } finally {
@@ -331,207 +388,6 @@ public class BinaryFileAggregatedLogger implements Runnable {
         }
     }
 
-    public void run1() {
-        System.out.println("Event file consumer started");
-        DataOutputStream resetStream = null;
-        ByteArrayOutputStream resetBufferStream = null;
-        int reset = 0;
-        ArrayDeque<Byte> byteQueue = new ArrayDeque<>(READ_BUFFER_SIZE);
-        while (true) {
-            while (fileList.isEmpty()) {
-                try {
-                    System.err.println("File list is empty " + fileList);
-                    Thread.sleep(3000);
-                } catch (InterruptedException e) {
-                    err.log(e);
-                }
-            }
-            String fileToConsume = null;
-            try {
-                fileToConsume = fileList.take();
-            } catch (InterruptedException e) {
-                err.log(e);
-                continue;
-            }
-            File file = null;
-            long start = 0L;
-            int bytesConsumedTotal = 0;
-            int totalEventRead = 0;
-            int eventsRead = 0;
-            int bytesRead = 0;
-            int bytesConsumed = 0;
-            int eventType = -1;
-//            DataOutputStream tempBuffer;
-            ByteBuffer tempStream = null;
-            try {
-                start = System.currentTimeMillis();
-                file = new File(fileToConsume);
-                DataInputStream fileInputStream = new DataInputStream(new BufferedInputStream(new FileInputStream(file), 1024 * 1024));
-                System.err.println("[" + Time.from(Instant.now()) + "] " + "File opened - " + fileToConsume);
-                while (eventsRead < MAX_EVENTS_PER_FILE) {
-                    Thread.sleep(900);
-                    bytesConsumed = 0;
-
-                    long bytesStart = System.currentTimeMillis();
-                    while (true) {
-
-                        if (eventsRead >= MAX_EVENTS_PER_FILE) {
-                            break;
-                        }
-
-                        while (fileInputStream.available() == 0) {
-                            System.err.println("0 bytes yet, sleeping, read only " + eventsRead + " of " + MAX_EVENTS_PER_FILE);
-                            Thread.sleep(3000);
-                        }
-
-                        try {
-                            eventType = fileInputStream.readByte();
-                            bytesConsumed++;
-//                            System.err.println("Event: " + eventType + " at byte [" + (bytesConsumedTotal + bytesConsumed - 1) + "]");
-                            ByteBuf buffer = ByteBufAllocator.DEFAULT.buffer();
-                            totalEventRead++;
-                            switch (eventType) {
-                                case 1:
-                                    // new object
-                                    long id = fileInputStream.readLong();
-                                    String str = getNextString(fileInputStream);
-                                    bytesConsumed += 8 + 4 + str.length();
-
-
-                                    buffer.writeLong(id);
-                                    buffer.writeInt(str.length());
-                                    buffer.writeBytes(str.getBytes());
-
-                                    // System.err.println("1 - " + id + " - " + str);
-                                    break;
-                                case 2:
-                                    // new string
-                                    long stringId = fileInputStream.readLong();
-                                    String string = getNextString(fileInputStream);
-                                    bytesConsumed += 8 + 4 + string.length();
-
-                                    buffer.writeLong(stringId);
-                                    buffer.writeInt(string.length());
-                                    buffer.writeBytes(string.getBytes());
-
-
-                                    // System.err.println("2 - " + objectId + " - " + string);
-                                    break;
-                                case 3:
-                                    // new exception
-                                    String exception = getNextString(fileInputStream);
-                                    bytesConsumed += 4 + exception.length();
-
-                                    buffer.writeInt(exception.length());
-                                    buffer.writeBytes(exception.getBytes());
-
-                                    // System.err.println("3 - " + " - " + exception);
-                                    break;
-                                case 4:
-                                    // data event
-                                    int threadId = fileInputStream.readInt();
-                                    long timestamp = fileInputStream.readLong();
-                                    int dataId = fileInputStream.readInt();
-                                    long value = fileInputStream.readLong();
-                                    bytesConsumed += 4 + 8 + 4 + 8;
-
-                                    buffer.writeInt(threadId);
-                                    buffer.writeLong(timestamp);
-                                    buffer.writeInt(dataId);
-                                    buffer.writeLong(value);
-
-                                    // System.err.println("4 - " + dataId + " - " + value);
-                                    break;
-                                case 5:
-                                    // type record
-                                    String type = getNextString(fileInputStream);
-
-                                    bytesConsumed += 4 + type.length();
-                                    // System.err.println("5 - " + type.length());
-
-                                    buffer.writeInt(type.length());
-                                    buffer.writeBytes(type.getBytes());
-
-                                    break;
-                                case 6:
-                                    // weave info
-                                    byte[] weaveInfo = getNextBytes(fileInputStream);
-
-//                                if (weaveInfo.length + bytesConsumed > bytesRead> ) {
-//
-//                                }
-
-                                    bytesConsumed += 4 + weaveInfo.length;
-                                    // System.err.println("6 - " + weaveInfo.length + " - " + new String(weaveInfo));
-
-//                                buffer.writeInt(weaveInfo.length);
-                                    buffer.writeBytes(weaveInfo);
-                                    break;
-                                case 7:
-                                    // method info
-                                    // System.err.println("7 - ");
-                                    break;
-                                case 8:
-                                    // data info
-                                    // System.err.println("8 - ");
-                                    break;
-                                default:
-                                    System.err.println("Invalid event type found in file: " + eventType + " at byte " + bytesConsumed);
-//                                System.exit(1);
-                                    throw new Exception("invalid event type in file, cannot process further at byte " + bytesConsumedTotal + " of file " + file.getAbsolutePath());
-                            }
-                            eventsRead++;
-                        } catch (EOFException e) {
-                            System.err.println("Consumed " + bytesConsumed / (1024 * 1024) + "MBs : events = " + eventsRead);
-                            if (eventsRead >= MAX_EVENTS_PER_FILE) {
-                                break;
-                            }
-                            System.err.println("Continue reading file for more events: " + e);
-                            err.log(e);
-                        }
-                    }
-                    long bytesEnd = System.currentTimeMillis();
-                    if (bytesEnd - bytesStart > 1000) {
-                        System.err.println("[" + Time.from(Instant.now()) + "] " + "Consumed [" + bytesConsumed + "] at " + (bytesConsumed / 1024) / ((bytesEnd - bytesStart) / 1000) + " Kb/s");
-                    }
-                    bytesConsumedTotal += bytesConsumed;
-
-
-                }
-                System.err.println("Finished reading file " + file.getAbsolutePath() + " == " + bytesConsumedTotal / (1024 * 1024) + "MB");
-//                if (!fileDeleted) {
-                // System.err("Failed to delete file " + file.getAbsolutePath());
-//                }
-
-            } catch (Exception e) {
-//                System.err.println("exception " + e.getMessage() + "[" + e.getStackTrace()[0].getFileName() + "]" + e.getStackTrace()[0].getLineNumber());
-                e.printStackTrace();
-                err.log(e);
-            } finally {
-                long end = System.currentTimeMillis();
-                System.err.println("[" + Time.from(Instant.now()) + "] " + "Took " + ((end - start) / (1000)) + " seconds for reading file " + file.getAbsolutePath() + " - " + bytesConsumedTotal / 1000 + "Kb" + " => " + eventId);
-                if (file != null) {
-                    file.delete();
-                }
-            }
-        }
-    }
-
-    private String getNextString(DataInputStream buffer) throws IOException {
-        int stringLength = buffer.readInt();
-// System.err.println("String length - " + stringLength);
-        byte[] str = new byte[stringLength];
-        buffer.readFully(str);
-        return new String(str);
-    }
-
-    private byte[] getNextBytes(DataInputStream buffer) throws IOException {
-        int stringLength = buffer.readInt();
-// System.err.println("String length - " + stringLength);
-        byte[] str = new byte[stringLength];
-        buffer.readFully(str);
-        return str;
-    }
 
     public void writeWeaveInfo(byte[] byteArray) {
         try {
@@ -582,6 +438,21 @@ public class BinaryFileAggregatedLogger implements Runnable {
                     e.printStackTrace();
                 } finally {
                     lock.unlock();
+                }
+            }
+        }
+    }
+
+    class SystemTimeEventGEnerator implements Runnable {
+
+        @Override
+        public void run() {
+            while (true) {
+                try {
+                    Thread.sleep(1000 * 60 * 5);
+                    writeTimestamp();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
                 }
             }
         }

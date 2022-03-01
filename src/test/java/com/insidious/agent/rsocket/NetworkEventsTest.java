@@ -20,7 +20,7 @@ public class NetworkEventsTest {
 
     @Test
     public void testNetworkEvents() throws IllegalClassFormatException, IOException, InstantiationException, IllegalAccessException {
-        String agentArgs = "output=./selogger-{time},size=64,i=com/artbrain,weave=ALL,format=network,server=localhost:9921,username=user,password=password";
+        String agentArgs = "output=./selogger-{time},size=64,i=com/artbrain,weave=ALL,format=com.insidious.plugin.network,server=localhost:9921,username=user,password=password";
 
         Hooks.onErrorDropped(error -> {
             logger.error("Exception happened:", error);

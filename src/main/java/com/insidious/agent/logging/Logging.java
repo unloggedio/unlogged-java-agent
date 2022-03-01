@@ -47,7 +47,7 @@ public class Logging {
 
 
     /**
-     * Create a network stream logger and stores it to the INSTANCE field.
+     * Create a com.insidious.plugin.network stream logger and stores it to the INSTANCE field.
      * The stream logger stores a sequence of events into files.
      *
      * @param outputDir    specifies a directory where files are created.

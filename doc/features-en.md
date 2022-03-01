@@ -30,7 +30,7 @@ You must have a target Java application and a test case to execute the program.
     * Create your own analysis program with selogger.reader.LogDirectory and EventReader classes. 
 
 testdata.bat.txt is an example batch file for Windows to execute the three steps described above for testdata package in selogger.
-You may execute it by removing the extension .txt.
+You may execute it by removing the com.insidious.plugin.extension .txt.
 
 
 ## Features

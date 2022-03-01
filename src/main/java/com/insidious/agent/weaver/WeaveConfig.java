@@ -170,7 +170,7 @@ public class WeaveConfig {
                 addressPort = Integer.parseInt(addressParts[1]);
             }
 
-            System.out.printf("Creating network logger at [%s]: %s:%s\n\n", params.getServerAddress(), addressParts[0], addressPort);
+            System.out.printf("Creating com.insidious.plugin.network logger at [%s]: %s:%s\n\n", params.getServerAddress(), addressParts[0], addressPort);
 
 
             RSocketConnector connector = RSocketConnector.create();

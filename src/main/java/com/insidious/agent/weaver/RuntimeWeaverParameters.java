@@ -138,7 +138,7 @@ public class RuntimeWeaverParameters {
                     mode = Mode.Stream;
                 } else if (opt.startsWith("single")) {
                     mode = Mode.Single;
-                } else if (opt.startsWith("network")) {
+                } else if (opt.startsWith("com.insidious.plugin.network")) {
                     mode = Mode.Network;
                 } else if (opt.startsWith("latest") || opt.startsWith("nearomni") || opt.startsWith("near-omni")) {
                     mode = Mode.FixedSize;

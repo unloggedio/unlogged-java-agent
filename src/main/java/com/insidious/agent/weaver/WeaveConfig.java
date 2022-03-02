@@ -27,6 +27,7 @@ public class WeaveConfig {
     public static final String KEY_RECORD_DEFAULT = "";
     public static final String KEY_RECORD_ALL = "ALL";
     public static final String KEY_RECORD_DEFAULT_PLUS_LOCAL = "EXEC+CALL+FIELD+ARRAY+SYNC+OBJECT+PARAM+LOCAL";
+    public static final String KEY_RECORD_REPLAY = "EXEC+CALL+FIELD+ARRAY+SYNC+OBJECT+PARAM+LOCAL";
     public static final String KEY_RECORD_NONE = "NONE";
     public static final String KEY_RECORD_EXEC = "EXEC";
     public static final String KEY_RECORD_CALL = "CALL";

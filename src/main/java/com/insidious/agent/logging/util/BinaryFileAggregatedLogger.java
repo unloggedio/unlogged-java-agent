@@ -26,7 +26,7 @@ public class BinaryFileAggregatedLogger implements Runnable {
     /**
      * The number of events stored in a single file.
      */
-    public static final int MAX_EVENTS_PER_FILE = 100000 * 2 * 5;
+    public static final int MAX_EVENTS_PER_FILE = 100000 * 2 * 10;
     public static final int WRITE_BYTE_BUFFER_SIZE = 1024 * 1024;
     public static final int WRITE_BYTE_BUFFER_SIZE_BY_10 = WRITE_BYTE_BUFFER_SIZE / 10;
     public static final int MAX_LOG_FILE_SIZE = 32 * 1024 * 1024 * 10;
@@ -55,6 +55,7 @@ public class BinaryFileAggregatedLogger implements Runnable {
     private final String token;
     private final String serverEndpoint;
     private final String sessionId;
+    private final int bytesRemaining = 0;
     private String hostname;
     private FileNameGenerator files;
     private DataOutputStream out = null;
@@ -63,7 +64,6 @@ public class BinaryFileAggregatedLogger implements Runnable {
     private long eventId = 0;
     private String currentFile;
     private int bytesWritten = 0;
-    private int bytesRemaining = 0;
 
     /**
      * Create an instance of stream.
@@ -101,6 +101,7 @@ public class BinaryFileAggregatedLogger implements Runnable {
             if (this.serverEndpoint != null) {
                 new Thread(this).start();
                 new Thread(new LogFileTimeExpiry()).start();
+
             }
             count = 0;
         } catch (IOException e) {
@@ -130,7 +131,7 @@ public class BinaryFileAggregatedLogger implements Runnable {
     /**
      * Close the stream.
      */
-    public synchronized void close() {
+    public void close() {
         System.out.print("Close file\n");
         try {
             out.close();
@@ -141,81 +142,99 @@ public class BinaryFileAggregatedLogger implements Runnable {
         }
     }
 
-    public void writeNewObjectType(long id, String typeId) {
+    public void writeNewObjectType(long id, long typeId) {
+        int bytesToWrite = 1 + 8 + 8;
         try {
             lock.lock();
             if (count >= MAX_EVENTS_PER_FILE) {
                 prepareNextFile();
             }
-            int bytesToWrite = 1 + 8 + 4 + typeId.length();
-            if (bytesToWrite + bytesWritten > WRITE_BYTE_BUFFER_SIZE) {
-                out.flush();
-                this.bytesWritten = 0;
-            }
-
-            this.bytesWritten += bytesToWrite;
-            out.writeByte(1);
-            out.writeLong(id);
-            writeString(typeId);
-            count++;
-            // System.err.println("Write new object - 1," + id + "," + typeId.length() + " - " + typeId + " = " + this.bytesWritten);
         } catch (IOException e) {
             err.log(e);
         } finally {
             lock.unlock();
         }
+        this.bytesWritten += bytesToWrite;
+
+        try {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream(bytesToWrite);
+            DataOutputStream tempOut = new DataOutputStream(baos);
+            tempOut.writeByte(1);
+            tempOut.writeLong(id);
+            tempOut.writeLong(typeId);
+//            writeString(typeId);
+            out.write(baos.toByteArray());
+        } catch (IOException e) {
+            err.log(e);
+        }
+        count++;
+        // System.err.println("Write new object - 1," + id + "," + typeId.length() + " - " + typeId + " = " + this.bytesWritten);
+
     }
 
     public void writeNewString(long id, String stringObject) {
+        int bytesToWrite = 1 + 8 + 4 + stringObject.length();
         try {
             lock.lock();
             if (count >= MAX_EVENTS_PER_FILE) {
                 prepareNextFile();
             }
-            int bytesToWrite = 1 + 8 + 4 + stringObject.length();
-            if (bytesToWrite + bytesWritten > WRITE_BYTE_BUFFER_SIZE) {
-                out.flush();
-                this.bytesWritten = 0;
-                this.bytesRemaining = WRITE_BYTE_BUFFER_SIZE;
-            }
-
-            this.bytesWritten += bytesToWrite;
-            this.bytesRemaining -= bytesToWrite;
-            out.writeByte(2);
-            out.writeLong(id);
-            writeString(stringObject);
-            count++;
-            // System.err.println("Write new string - 2," + id + "," + stringObject.length() + " - " + stringObject + " = " + this.bytesWritten);
         } catch (IOException e) {
             err.log(e);
         } finally {
             lock.unlock();
         }
+
+
+        this.bytesWritten += bytesToWrite;
+        try {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream(bytesToWrite);
+            DataOutputStream tempOut = new DataOutputStream(baos);
+            tempOut.writeByte(2);
+            tempOut.writeLong(id);
+            tempOut.writeInt(stringObject.length());
+            tempOut.write(stringObject.getBytes());
+            out.write(baos.toByteArray());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+//        writeString(stringObject);
+
+        count++;
+
+        // System.err.println("Write new string - 2," + id + "," + stringObject.length() + " - " + stringObject + " = " + this.bytesWritten);
+
 
     }
 
     public void writeNewException(String toString) {
+        int bytesToWrite = 1 + 4 + toString.length();
         try {
             lock.lock();
             if (count >= MAX_EVENTS_PER_FILE) {
                 prepareNextFile();
             }
-            int bytesToWrite = 1 + 4 + toString.length();
-            if (bytesToWrite + bytesWritten > WRITE_BYTE_BUFFER_SIZE) {
-                out.flush();
-                this.bytesWritten = 0;
-            }
-
-            this.bytesWritten += bytesToWrite;
-            out.writeByte(3);
-            writeString(toString);
-            count++;
-            // System.err.println("Write new exception - 3," + toString.length() + " - " + toString + " = " + this.bytesWritten);
         } catch (IOException e) {
             err.log(e);
         } finally {
             lock.unlock();
         }
+        this.bytesWritten += bytesToWrite;
+
+
+        try {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream(bytesToWrite);
+            DataOutputStream tempOut = new DataOutputStream(baos);
+            tempOut.writeByte(3);
+            tempOut.writeInt(toString.length());
+            tempOut.write(toString.getBytes());
+            out.write(baos.toByteArray());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+//        writeString(toString);
+        count++;
+        // System.err.println("Write new exception - 3," + toString.length() + " - " + toString + " = " + this.bytesWritten);
     }
 
     private void writeString(String string) throws IOException {
@@ -223,38 +242,49 @@ public class BinaryFileAggregatedLogger implements Runnable {
         out.writeBytes(string);
     }
 
-    public synchronized void writeEvent(int id, long value) {
-//        long timeStamp = System.nanoTime();
+    public void writeEvent(int id, long value) {
+
+        int bytesToWrite = 1 + 4 + 8 + 4 + 8;
+
+
         try {
+
             lock.lock();
             if (count >= MAX_EVENTS_PER_FILE) {
                 prepareNextFile();
             }
-            int bytesToWrite = 1 + 4 + 8 + 4 + 8;
             if (bytesToWrite + bytesWritten > WRITE_BYTE_BUFFER_SIZE) {
                 out.flush();
                 this.bytesWritten = 0;
             }
 
-            this.bytesWritten += bytesToWrite;
-
-            out.writeByte(4);          // 1
-            out.writeInt(threadId.get()); // 4
-            out.writeLong(eventId);       // 8
-            out.writeInt(id);             // 4
-            out.writeLong(value);         // 8
-
-            count++;
-            eventId++;
-//            System.err.println("Write new event - 4," + id + "," + value + " = " + this.bytesWritten);
         } catch (IOException e) {
             err.log(e);
         } finally {
             lock.unlock();
         }
+
+        this.bytesWritten += bytesToWrite;
+        try {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream(bytesToWrite);
+            DataOutputStream tempOut = new DataOutputStream(baos);
+            tempOut.writeByte(4);          // 1
+            tempOut.writeInt(threadId.get()); // 4
+            tempOut.writeLong(eventId);       // 8
+            tempOut.writeInt(id);             // 4
+            tempOut.writeLong(value);         // 8
+
+            this.out.write(baos.toByteArray());
+            count++;
+            eventId++;
+        } catch (IOException e) {
+            err.log(e);
+        }
+//            System.err.println("Write new event - 4," + id + "," + value + " = " + this.bytesWritten);
+
     }
 
-    public synchronized void writeHostname() {
+    public void writeHostname() {
         try {
             int bytesToWrite = 1 + 4 + hostname.length();
             if (bytesToWrite + bytesWritten > WRITE_BYTE_BUFFER_SIZE) {
@@ -266,62 +296,76 @@ public class BinaryFileAggregatedLogger implements Runnable {
             out.writeInt(hostname.length());
             out.writeBytes(hostname);
             count++;
-            eventId++;
 
         } catch (IOException e) {
             err.log(e);
         }
     }
 
-    public synchronized void writeTimestamp() {
+    public void writeTimestamp() {
+        int bytesToWrite = 1 + 8;
         long timeStamp = System.currentTimeMillis();
+        if (count < 0) {
+            return;
+        }
+
+
         try {
             lock.lock();
             if (count >= MAX_EVENTS_PER_FILE) {
                 prepareNextFile();
             }
-            int bytesToWrite = 1 + 8;
-            if (bytesToWrite + bytesWritten > WRITE_BYTE_BUFFER_SIZE) {
-                out.flush();
-                this.bytesWritten = 0;
-            }
-
-            this.bytesWritten += bytesToWrite;
-
-            out.writeByte(7);
-            out.writeLong(timeStamp);
-
-            count++;
-            eventId++;
-
         } catch (IOException e) {
             err.log(e);
         } finally {
             lock.unlock();
         }
+
+        this.bytesWritten += bytesToWrite;
+
+        try {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream(bytesToWrite);
+            DataOutputStream tempOut = new DataOutputStream(baos);
+            tempOut.writeByte(7);      // 1
+            tempOut.writeLong(timeStamp); // 8
+            out.write(baos.toByteArray());
+        } catch (IOException e) {
+            err.log(e);
+        }
+
+        count++;
     }
 
     public void writeNewTypeRecord(String toString) {
+
+        int bytesToWrite = 1 + 4 + toString.length();
+
         try {
             lock.lock();
             if (count >= MAX_EVENTS_PER_FILE) {
                 prepareNextFile();
             }
-            int bytesToWrite = 1 + 4 + toString.length();
-            if (bytesToWrite + bytesWritten > WRITE_BYTE_BUFFER_SIZE) {
-                out.flush();
-                this.bytesWritten = 0;
-            }
-            this.bytesWritten += bytesToWrite;
-            out.writeByte(5);
-            writeString(toString);
-            count++;
-            // System.err.println("Write type record - 5," + toString.length() + " - " + toString + " = " + this.bytesWritten);
         } catch (IOException e) {
             err.log(e);
         } finally {
             lock.unlock();
         }
+
+        this.bytesWritten += bytesToWrite;
+        try {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream(bytesToWrite);
+            DataOutputStream tempOut = new DataOutputStream(baos);
+            tempOut.writeByte(5);
+            tempOut.writeInt(toString.length());
+            tempOut.write(toString.getBytes());
+            out.write(baos.toByteArray());
+        } catch (IOException e) {
+            err.log(e);
+            e.printStackTrace();
+        }
+//        writeString(toString);
+        count++;
+        // System.err.println("Write type record - 5," + toString.length() + " - " + toString + " = " + this.bytesWritten);
     }
 
     private void sendPOSTRequest(String url, String attachmentFilePath) {
@@ -422,7 +466,8 @@ public class BinaryFileAggregatedLogger implements Runnable {
         public void run() {
             while (true) {
                 try {
-                    Thread.sleep(30 * 1000);
+                    Thread.sleep(60 * 1000);
+                    writeTimestamp();
                     System.err.println("30 seconds log file checker");
                     lock.lock();
                     if (count > 0 && fileList.isEmpty()) {
@@ -443,7 +488,7 @@ public class BinaryFileAggregatedLogger implements Runnable {
         }
     }
 
-    class SystemTimeEventGEnerator implements Runnable {
+    class SystemTimeEventGenerator implements Runnable {
 
         @Override
         public void run() {

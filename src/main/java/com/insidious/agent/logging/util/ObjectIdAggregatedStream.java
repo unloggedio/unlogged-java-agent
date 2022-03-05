@@ -43,7 +43,7 @@ public class ObjectIdAggregatedStream extends ObjectIdMap {
      */
     @Override
     protected void onNewObjectId(Object o, long id) {
-        String typeId = typeToId.getTypeIdString(o.getClass());
+        int typeId = typeToId.getTypeIdString(o.getClass());
         aggregatedLogger.writeNewObjectType(id, typeId);
 
         if (o instanceof String) {

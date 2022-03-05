@@ -42,7 +42,7 @@ public class TypeIdAggregatedStreamMap {
 	/**
 	 * Mapping from a Class object to String type ID.
 	 */
-	private HashMap<Class<?>, String> classToIdMap;
+	private HashMap<Class<?>, Integer> classToIdMap;
 
 	/**
 	 * A list of type information.
@@ -57,8 +57,8 @@ public class TypeIdAggregatedStreamMap {
 		this.aggregatedLogger = aggregatedLogger;
 		classToIdMap = new HashMap<>(65536);
 		for (int i=0; i<BASIC_TYPE_CLASS.length; ++i) {
-			String id = createTypeRecord(BASIC_TYPE_CLASS[i]);
-			assert id.equals(Integer.toString(i));
+			Integer id = createTypeRecord(BASIC_TYPE_CLASS[i]);
+			assert id.equals(i);
 		}
 	}
 	
@@ -67,15 +67,16 @@ public class TypeIdAggregatedStreamMap {
 	 * @param type specifies a type to be translated into an ID.
 	 * @return a String of an integer ID (to be stored in a HashMap).
 	 */
-	private String createTypeRecord(Class<?> type) {
+	private int createTypeRecord(Class<?> type) {
 		// Assign type IDs to dependent classes first.
-		String superClass = getTypeIdString(type.getSuperclass());
-		String componentType = getTypeIdString(type.getComponentType());
+		Integer superClass = getTypeIdString(type.getSuperclass());
+		Integer componentType = getTypeIdString(type.getComponentType());
 		// Getting a class location may load other types (if a custom class loader is working with selogger)
 		String classLocation = getClassLocation(type);
-		
-		String id = Integer.toString(nextId++);
-		classToIdMap.put(type, id);
+
+		int newId = nextId++;
+		String id = Integer.toString(newId);
+		classToIdMap.put(type, newId);
 		StringBuilder record = new StringBuilder(512);
 		record.append(id);
 		record.append(SEPARATOR);
@@ -89,16 +90,16 @@ public class TypeIdAggregatedStreamMap {
 		record.append(SEPARATOR);
 		record.append(TypeIdUtil.getClassLoaderIdentifier(type.getClassLoader(), type.getName()));
 		this.aggregatedLogger.writeNewTypeRecord(record.toString());
-		return id;
+		return newId;
 	}
 
 	/**
 	 * Return a string representing a type ID number.
 	 * This is to generate a type ID list file. 
 	 */
-	public String getTypeIdString(Class<?> type) {
+	public int getTypeIdString(Class<?> type) {
 		if (type == null) {
-			return Integer.toString(TYPEID_NULL);
+			return TYPEID_NULL;
 		} else {
 			if (classToIdMap.containsKey(type)) { 
 				return classToIdMap.get(type);

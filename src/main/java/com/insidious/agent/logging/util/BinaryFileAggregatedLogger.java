@@ -333,7 +333,6 @@ public class BinaryFileAggregatedLogger implements Runnable {
             err.log(e);
         }
 
-        count++;
     }
 
     public void writeNewTypeRecord(String toString) {

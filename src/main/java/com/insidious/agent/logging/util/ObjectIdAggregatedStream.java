@@ -48,7 +48,9 @@ public class ObjectIdAggregatedStream extends ObjectIdMap {
 
         if (o instanceof String) {
             String stringObject = (String) o;
-            aggregatedLogger.writeNewString(id, stringObject);
+            if (stringObject.length() < 1001) {
+                aggregatedLogger.writeNewString(id, stringObject);
+            }
         } else if (o instanceof Throwable) {
             try {
                 Throwable t = (Throwable) o;

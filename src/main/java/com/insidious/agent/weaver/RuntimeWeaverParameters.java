@@ -56,7 +56,7 @@ public class RuntimeWeaverParameters {
      * If true, automatic filtering for security manager classes is disabled
      */
     private boolean weaveSecurityManagerClass = false;
-    private Mode mode = Mode.Single;
+    private Mode mode = Mode.PerThread;
 
     public RuntimeWeaverParameters(String args) {
         if (args == null) args = "";
@@ -138,6 +138,8 @@ public class RuntimeWeaverParameters {
                     mode = Mode.Stream;
                 } else if (opt.startsWith("single")) {
                     mode = Mode.Single;
+                } else if (opt.startsWith("perthread")) {
+                    mode = Mode.PerThread;
                 } else if (opt.startsWith("com.insidious.plugin.network")) {
                     mode = Mode.Network;
                 } else if (opt.startsWith("latest") || opt.startsWith("nearomni") || opt.startsWith("near-omni")) {

@@ -58,7 +58,7 @@ public class BinaryFileAggregatedLogger implements Runnable {
     private final int bytesRemaining = 0;
     private String hostname;
     private FileNameGenerator files;
-    private DataOutputStream out = null;
+    private BufferedOutputStream out = null;
     private IErrorLogger err;
     private int count;
     private long eventId = 0;
@@ -122,8 +122,8 @@ public class BinaryFileAggregatedLogger implements Runnable {
         File nextFile = files.getNextFile();
         currentFile = nextFile.getAbsolutePath();
         System.err.println("[" + Time.from(Instant.now()) + "] Prepare next file: " + currentFile);
-        out = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(nextFile), WRITE_BYTE_BUFFER_SIZE));
-        out.writeBytes(sessionId);
+        out = new BufferedOutputStream(new FileOutputStream(nextFile), WRITE_BYTE_BUFFER_SIZE);
+        out.write(sessionId.getBytes());
         count = 0;
         this.bytesWritten = 0;
     }
@@ -237,11 +237,6 @@ public class BinaryFileAggregatedLogger implements Runnable {
         // System.err.println("Write new exception - 3," + toString.length() + " - " + toString + " = " + this.bytesWritten);
     }
 
-    private void writeString(String string) throws IOException {
-        out.writeInt(string.length());
-        out.writeBytes(string);
-    }
-
     public void writeEvent(int id, long value) {
 
         int bytesToWrite = 1 + 4 + 8 + 4 + 8;
@@ -292,9 +287,15 @@ public class BinaryFileAggregatedLogger implements Runnable {
                 this.bytesWritten = 0;
             }
             this.bytesWritten += bytesToWrite;
-            out.writeByte(8);
-            out.writeInt(hostname.length());
-            out.writeBytes(hostname);
+
+            ByteArrayOutputStream baos = new ByteArrayOutputStream(bytesToWrite);
+            DataOutputStream tempOut = new DataOutputStream(baos);
+
+
+            tempOut.writeByte(8);
+            tempOut.writeInt(hostname.length());
+            tempOut.writeBytes(hostname);
+            out.write(baos.toByteArray());
             count++;
 
         } catch (IOException e) {
@@ -354,9 +355,9 @@ public class BinaryFileAggregatedLogger implements Runnable {
         try {
             ByteArrayOutputStream baos = new ByteArrayOutputStream(bytesToWrite);
             DataOutputStream tempOut = new DataOutputStream(baos);
-            tempOut.writeByte(5);
-            tempOut.writeInt(toString.length());
-            tempOut.write(toString.getBytes());
+            tempOut.writeByte(5);              // 1
+            tempOut.writeInt(toString.length());  // 4
+            tempOut.write(toString.getBytes());   // length
             out.write(baos.toByteArray());
         } catch (IOException e) {
             err.log(e);
@@ -447,9 +448,15 @@ public class BinaryFileAggregatedLogger implements Runnable {
             }
 //            System.err.println("Writing Event [" + 6 + "] at byte " + this.bytesWritten);
             this.bytesWritten += bytesToWrite;
-            out.writeByte(6);
-            out.writeInt(byteArray.length);
-            out.write(byteArray);
+
+            ByteArrayOutputStream baos = new ByteArrayOutputStream(bytesToWrite);
+            DataOutputStream tempOut = new DataOutputStream(baos);
+
+
+            tempOut.writeByte(6);
+            tempOut.writeInt(byteArray.length);
+            tempOut.write(byteArray);
+            out.write(baos.toByteArray());
             count++;
             // System.err.println("Write weave 6," + byteArray.length + " - " + new String(byteArray) + " = " + this.bytesWritten);
         } catch (IOException e) {

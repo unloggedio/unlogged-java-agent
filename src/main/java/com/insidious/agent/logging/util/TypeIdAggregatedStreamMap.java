@@ -35,7 +35,7 @@ public class TypeIdAggregatedStreamMap {
 		void.class, boolean.class, byte.class, char.class, double.class,
 		float.class, int.class, long.class, short.class, Object.class, String.class
 	};
-	private final BinaryFileAggregatedLogger aggregatedLogger;
+	private final AggregatedFileLogger aggregatedLogger;
 
 	private int nextId;
 
@@ -53,7 +53,7 @@ public class TypeIdAggregatedStreamMap {
 	/**
 	 * Create an initial map containing only basic types.
 	 */
-	public TypeIdAggregatedStreamMap(BinaryFileAggregatedLogger aggregatedLogger) {
+	public TypeIdAggregatedStreamMap(AggregatedFileLogger aggregatedLogger) {
 		this.aggregatedLogger = aggregatedLogger;
 		classToIdMap = new HashMap<>(65536);
 		for (int i=0; i<BASIC_TYPE_CLASS.length; ++i) {

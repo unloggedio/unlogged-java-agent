@@ -8,6 +8,8 @@ import java.nio.file.Files;
 import java.sql.Time;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -21,7 +23,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * this stream creates a number of files whose size is limited by the number of events
  * (MAX_EVENTS_PER_FILE field).
  */
-public class BinaryFileAggregatedLogger implements Runnable, AggregatedFileLogger {
+public class PerThreadBinaryFileAggregatedLogger implements Runnable, AggregatedFileLogger {
 
     /**
      * The number of events stored in a single file.
@@ -38,17 +40,16 @@ public class BinaryFileAggregatedLogger implements Runnable, AggregatedFileLogge
     private static final ThreadLocal<Integer> threadId = ThreadLocal.withInitial(nextThreadId::getAndIncrement);
     public final ArrayList<Byte> data = new ArrayList<>(1024 * 1024 * 4);
     private final BlockingQueue<String> fileList = new ArrayBlockingQueue<String>(1024);
-    private final ReentrantLock lock = new ReentrantLock();
     private final String token;
     private final String serverEndpoint;
     private final String sessionId;
+    private final Map<Integer, BufferedOutputStream> threadFileMap = new HashMap<>();
+    private final Map<Integer, String> currentFileMap = new HashMap<>();
+    private final Map<Integer, AtomicInteger> count = new HashMap<>();
     private String hostname;
     private FileNameGenerator files;
-    private BufferedOutputStream out = null;
     private IErrorLogger err;
-    private int count;
     private long eventId = 0;
-    private String currentFile;
     private int bytesWritten = 0;
 
     /**
@@ -59,7 +60,7 @@ public class BinaryFileAggregatedLogger implements Runnable, AggregatedFileLogge
      * @param token
      * @param serverAddress
      */
-    public BinaryFileAggregatedLogger(String outputDirName, IErrorLogger logger, String token, String sessionId, String serverAddress) {
+    public PerThreadBinaryFileAggregatedLogger(String outputDirName, IErrorLogger logger, String token, String sessionId, String serverAddress) {
         this.token = token;
         this.sessionId = sessionId;
         this.serverEndpoint = serverAddress;
@@ -80,66 +81,82 @@ public class BinaryFileAggregatedLogger implements Runnable, AggregatedFileLogge
         try {
             files = new FileNameGenerator(new File(outputDirName), "log-", ".selog");
             err = logger;
-            prepareNextFile();
+            prepareNextFile(-1);
             writeHostname();
             writeTimestamp();
-            System.out.printf("Create aggregated logger -> %s\n", currentFile);
+            System.out.printf("Create aggregated logger -> %s\n", currentFileMap.get(-1));
             if (this.serverEndpoint != null) {
                 new Thread(this).start();
                 new Thread(new LogFileTimeExpiry()).start();
 
             }
-            count = 0;
         } catch (IOException e) {
             err.log(e);
         }
     }
 
-    private void prepareNextFile() throws IOException {
+    private BufferedOutputStream getStreamForThread(Integer threadId) {
+        if (threadFileMap.containsKey(threadId)) {
+            return threadFileMap.get(threadId);
+        }
+        BufferedOutputStream threadStream = null;
+        try {
+            threadStream = prepareNextFile(threadId);
+        } catch (IOException e) {
+            err.log(e);
+        }
+        threadFileMap.put(threadId, threadStream);
+        return threadStream;
+    }
+
+    private BufferedOutputStream prepareNextFile(int currentThreadId) throws IOException {
+        BufferedOutputStream out = threadFileMap.get(currentThreadId);
         if (out != null) {
             try {
                 out.flush();
                 out.close();
-                fileList.add(currentFile);
+                fileList.add(currentFileMap.get(currentThreadId));
             } catch (IOException e) {
                 err.log(e);
             }
         }
-        File nextFile = files.getNextFile();
-        currentFile = nextFile.getAbsolutePath();
-        System.err.println("[" + Time.from(Instant.now()) + "] Prepare next file: " + currentFile);
+        File nextFile = files.getNextFile(currentThreadId);
+        currentFileMap.put(currentThreadId, nextFile.getAbsolutePath());
+        System.err.println("[" + Time.from(Instant.now()) + "] Prepare next file for thread [" + currentThreadId + "]: " + nextFile.getAbsolutePath());
         out = new BufferedOutputStream(new FileOutputStream(nextFile), WRITE_BYTE_BUFFER_SIZE);
         out.write(sessionId.getBytes());
-        count = 0;
+        count.put(currentThreadId, new AtomicInteger(0));
         this.bytesWritten = 0;
+        return out;
     }
 
     /**
      * Close the stream.
      */
     public void close() {
-        System.out.print("Close file\n");
-        try {
-            out.close();
-            out = null;
-        } catch (IOException e) {
-            out = null;
-            err.log(e);
+        for (Map.Entry<Integer, BufferedOutputStream> threadStreamEntrySet : threadFileMap.entrySet()) {
+            BufferedOutputStream out = threadStreamEntrySet.getValue();
+            Integer streamTheadId = threadStreamEntrySet.getKey();
+            System.out.print("Close file for thread [" + streamTheadId + "]\n");
+            try {
+                out.close();
+            } catch (IOException e) {
+                err.log(e);
+            }
         }
+
+
     }
 
-    @Override
     public void writeNewObjectType(long id, long typeId) {
+        BufferedOutputStream out = getStreamForThread(threadId.get());
         int bytesToWrite = 1 + 8 + 8;
         try {
-            lock.lock();
-            if (count >= MAX_EVENTS_PER_FILE) {
-                prepareNextFile();
+            if (count.get(-1).get() >= MAX_EVENTS_PER_FILE) {
+                prepareNextFile(-1);
             }
         } catch (IOException e) {
             err.log(e);
-        } finally {
-            lock.unlock();
         }
         this.bytesWritten += bytesToWrite;
 
@@ -154,23 +171,20 @@ public class BinaryFileAggregatedLogger implements Runnable, AggregatedFileLogge
         } catch (IOException e) {
             err.log(e);
         }
-        count++;
+        count.get(-1).addAndGet(1);
         // System.err.println("Write new object - 1," + id + "," + typeId.length() + " - " + typeId + " = " + this.bytesWritten);
 
     }
 
-    @Override
     public void writeNewString(long id, String stringObject) {
         int bytesToWrite = 1 + 8 + 4 + stringObject.length();
+        Integer currentThreadId = threadId.get();
         try {
-            lock.lock();
-            if (count >= MAX_EVENTS_PER_FILE) {
-                prepareNextFile();
+            if (count.get(currentThreadId).get() >= MAX_EVENTS_PER_FILE) {
+                prepareNextFile(currentThreadId);
             }
         } catch (IOException e) {
             err.log(e);
-        } finally {
-            lock.unlock();
         }
 
 
@@ -182,31 +196,28 @@ public class BinaryFileAggregatedLogger implements Runnable, AggregatedFileLogge
             tempOut.writeLong(id);
             tempOut.writeInt(stringObject.length());
             tempOut.write(stringObject.getBytes());
-            out.write(baos.toByteArray());
+            getStreamForThread(threadId.get()).write(baos.toByteArray());
         } catch (IOException e) {
             e.printStackTrace();
         }
 //        writeString(stringObject);
 
-        count++;
+        count.get(currentThreadId).addAndGet(1);
 
         // System.err.println("Write new string - 2," + id + "," + stringObject.length() + " - " + stringObject + " = " + this.bytesWritten);
 
 
     }
 
-    @Override
     public void writeNewException(String toString) {
         int bytesToWrite = 1 + 4 + toString.length();
+        Integer currentThreadId = threadId.get();
         try {
-            lock.lock();
-            if (count >= MAX_EVENTS_PER_FILE) {
-                prepareNextFile();
+            if (count.get(currentThreadId).get() >= MAX_EVENTS_PER_FILE) {
+                prepareNextFile(currentThreadId);
             }
         } catch (IOException e) {
             err.log(e);
-        } finally {
-            lock.unlock();
         }
         this.bytesWritten += bytesToWrite;
 
@@ -217,36 +228,29 @@ public class BinaryFileAggregatedLogger implements Runnable, AggregatedFileLogge
             tempOut.writeByte(3);
             tempOut.writeInt(toString.length());
             tempOut.write(toString.getBytes());
-            out.write(baos.toByteArray());
+            getStreamForThread(threadId.get()).write(baos.toByteArray());
         } catch (IOException e) {
             e.printStackTrace();
         }
 //        writeString(toString);
-        count++;
+        count.get(currentThreadId).addAndGet(1);
         // System.err.println("Write new exception - 3," + toString.length() + " - " + toString + " = " + this.bytesWritten);
     }
 
-    @Override
     public void writeEvent(int id, long value) {
 
         int bytesToWrite = 1 + 4 + 8 + 4 + 8;
+        Integer currentThreadId = threadId.get();
 
 
         try {
 
-            lock.lock();
-            if (count >= MAX_EVENTS_PER_FILE) {
-                prepareNextFile();
-            }
-            if (bytesToWrite + bytesWritten > WRITE_BYTE_BUFFER_SIZE) {
-                out.flush();
-                this.bytesWritten = 0;
-            }
 
+            if (count.get(currentThreadId).get() >= MAX_EVENTS_PER_FILE) {
+                prepareNextFile(currentThreadId);
+            }
         } catch (IOException e) {
             err.log(e);
-        } finally {
-            lock.unlock();
         }
 
         this.bytesWritten += bytesToWrite;
@@ -254,13 +258,13 @@ public class BinaryFileAggregatedLogger implements Runnable, AggregatedFileLogge
             ByteArrayOutputStream baos = new ByteArrayOutputStream(bytesToWrite);
             DataOutputStream tempOut = new DataOutputStream(baos);
             tempOut.writeByte(4);          // 1
-            tempOut.writeInt(threadId.get()); // 4
+            tempOut.writeInt(currentThreadId); // 4
             tempOut.writeLong(eventId);       // 8
             tempOut.writeInt(id);             // 4
             tempOut.writeLong(value);         // 8
 
-            this.out.write(baos.toByteArray());
-            count++;
+            getStreamForThread(threadId.get()).write(baos.toByteArray());
+            count.get(currentThreadId).addAndGet(1);
             eventId++;
         } catch (IOException e) {
             err.log(e);
@@ -269,15 +273,9 @@ public class BinaryFileAggregatedLogger implements Runnable, AggregatedFileLogge
 
     }
 
-    @Override
     public void writeHostname() {
         try {
             int bytesToWrite = 1 + 4 + hostname.length();
-            if (bytesToWrite + bytesWritten > WRITE_BYTE_BUFFER_SIZE) {
-                out.flush();
-                this.bytesWritten = 0;
-            }
-            this.bytesWritten += bytesToWrite;
 
             ByteArrayOutputStream baos = new ByteArrayOutputStream(bytesToWrite);
             DataOutputStream tempOut = new DataOutputStream(baos);
@@ -286,33 +284,16 @@ public class BinaryFileAggregatedLogger implements Runnable, AggregatedFileLogge
             tempOut.writeByte(8);
             tempOut.writeInt(hostname.length());
             tempOut.writeBytes(hostname);
-            out.write(baos.toByteArray());
-            count++;
+            getStreamForThread(threadId.get()).write(baos.toByteArray());
 
         } catch (IOException e) {
             err.log(e);
         }
     }
 
-    @Override
     public void writeTimestamp() {
         int bytesToWrite = 1 + 8;
         long timeStamp = System.currentTimeMillis();
-        if (count < 0) {
-            return;
-        }
-
-
-        try {
-            lock.lock();
-            if (count >= MAX_EVENTS_PER_FILE) {
-                prepareNextFile();
-            }
-        } catch (IOException e) {
-            err.log(e);
-        } finally {
-            lock.unlock();
-        }
 
         this.bytesWritten += bytesToWrite;
 
@@ -321,27 +302,25 @@ public class BinaryFileAggregatedLogger implements Runnable, AggregatedFileLogge
             DataOutputStream tempOut = new DataOutputStream(baos);
             tempOut.writeByte(7);      // 1
             tempOut.writeLong(timeStamp); // 8
-            out.write(baos.toByteArray());
+            getStreamForThread(threadId.get()).write(baos.toByteArray());
         } catch (IOException e) {
             err.log(e);
         }
 
     }
 
-    @Override
     public void writeNewTypeRecord(String toString) {
 
         int bytesToWrite = 1 + 4 + toString.length();
+        Integer currentThreadId = threadId.get();
 
         try {
-            lock.lock();
-            if (count >= MAX_EVENTS_PER_FILE) {
-                prepareNextFile();
+
+            if (count.get(currentThreadId).get() >= MAX_EVENTS_PER_FILE) {
+                prepareNextFile(currentThreadId);
             }
         } catch (IOException e) {
             err.log(e);
-        } finally {
-            lock.unlock();
         }
 
         this.bytesWritten += bytesToWrite;
@@ -351,13 +330,13 @@ public class BinaryFileAggregatedLogger implements Runnable, AggregatedFileLogge
             tempOut.writeByte(5);              // 1
             tempOut.writeInt(toString.length());  // 4
             tempOut.write(toString.getBytes());   // length
-            out.write(baos.toByteArray());
+            getStreamForThread(currentThreadId).write(baos.toByteArray());
         } catch (IOException e) {
             err.log(e);
             e.printStackTrace();
         }
 //        writeString(toString);
-        count++;
+        count.get(currentThreadId).addAndGet(1);
         // System.err.println("Write type record - 5," + toString.length() + " - " + toString + " = " + this.bytesWritten);
     }
 
@@ -426,22 +405,15 @@ public class BinaryFileAggregatedLogger implements Runnable, AggregatedFileLogge
     }
 
 
-    @Override
     public void writeWeaveInfo(byte[] byteArray) {
+        Integer currentThreadId = threadId.get();
         try {
-            lock.lock();
-            if (count >= MAX_EVENTS_PER_FILE) {
-                prepareNextFile();
+
+            if (count.get(currentThreadId).get() >= MAX_EVENTS_PER_FILE) {
+                prepareNextFile(currentThreadId);
             }
             int bytesToWrite = 1 + 4 + byteArray.length;
-            if (bytesToWrite + bytesWritten > WRITE_BYTE_BUFFER_SIZE) {
-                synchronized (this) {
-                    out.flush();
-                }
-                this.bytesWritten = 0;
-            }
-//            System.err.println("Writing Event [" + 6 + "] at byte " + this.bytesWritten);
-            this.bytesWritten += bytesToWrite;
+
 
             ByteArrayOutputStream baos = new ByteArrayOutputStream(bytesToWrite);
             DataOutputStream tempOut = new DataOutputStream(baos);
@@ -450,14 +422,13 @@ public class BinaryFileAggregatedLogger implements Runnable, AggregatedFileLogge
             tempOut.writeByte(6);
             tempOut.writeInt(byteArray.length);
             tempOut.write(byteArray);
-            out.write(baos.toByteArray());
-            count++;
+            getStreamForThread(currentThreadId).write(baos.toByteArray());
+            count.get(currentThreadId).addAndGet(1);
             // System.err.println("Write weave 6," + byteArray.length + " - " + new String(byteArray) + " = " + this.bytesWritten);
         } catch (IOException e) {
             err.log(e);
-        } finally {
-            lock.unlock();
         }
+
     }
 
     class LogFileTimeExpiry implements Runnable {
@@ -469,20 +440,19 @@ public class BinaryFileAggregatedLogger implements Runnable, AggregatedFileLogge
                     Thread.sleep(60 * 1000);
                     writeTimestamp();
                     System.err.println("30 seconds log file checker");
-                    lock.lock();
-                    if (count > 0 && fileList.isEmpty()) {
-                        System.err.println("30 seconds log file checker: " + count + " events in file");
-                        prepareNextFile();
-                    } else {
-                        System.err.println("30 seconds log file checker: not enough data");
-                    }
 
+                    for (Map.Entry<Integer, BufferedOutputStream> threadStreamEntry : threadFileMap.entrySet()) {
+                        if (count.get(threadStreamEntry.getKey()).get() > 0 && fileList.isEmpty()) {
+                            System.err.println("30 seconds log file checker: " + count + " events in file");
+                            prepareNextFile(threadStreamEntry.getKey());
+                        } else {
+                            System.err.println("30 seconds log file checker: not enough data");
+                        }
+                    }
                 } catch (InterruptedException e) {
-                    e.printStackTrace();
+                    err.log(e);
                 } catch (IOException e) {
-                    e.printStackTrace();
-                } finally {
-                    lock.unlock();
+                    err.log(e);
                 }
             }
         }

@@ -3,6 +3,7 @@ package com.insidious.agent.weaver;
 import com.insidious.agent.logging.IEventLogger;
 import com.insidious.agent.logging.Logging;
 import com.insidious.agent.logging.util.BinaryFileAggregatedLogger;
+import com.insidious.agent.logging.util.PerThreadBinaryFileAggregatedLogger;
 import org.objectweb.asm.ClassReader;
 
 import java.io.File;
@@ -66,6 +67,13 @@ public class RuntimeWeaver implements ClassFileTransformer {
                                 params.getOutputDirname(),
                                 weaver, params.getAuthToken(), config.getSessionId(), params.getServerAddress());
                         logger = Logging.initialiseAggregatedLogger(weaver, aggregateLogger);
+                        break;
+
+                    case PerThread:
+                        PerThreadBinaryFileAggregatedLogger perThreadBinaryFileAggregatedLogger = new PerThreadBinaryFileAggregatedLogger(
+                                params.getOutputDirname(),
+                                weaver, params.getAuthToken(), config.getSessionId(), params.getServerAddress());
+                        logger = Logging.initialiseAggregatedLogger(weaver, perThreadBinaryFileAggregatedLogger);
                         break;
 
                     case Stream:
@@ -262,6 +270,6 @@ public class RuntimeWeaver implements ClassFileTransformer {
         return null;
     }
 
-    public enum Mode {Stream, Frequency, FixedSize, Discard, Network, Single}
+    public enum Mode {Stream, Frequency, FixedSize, Discard, Network, Single, PerThread}
 
 }

@@ -9,7 +9,7 @@ import java.io.IOException;
 public class ObjectIdAggregatedStream extends ObjectIdMap {
 
     private final String lineSeparator = "\n";
-    private final BinaryFileAggregatedLogger aggregatedLogger;
+    private final AggregatedFileLogger aggregatedLogger;
     private final TypeIdAggregatedStreamMap typeToId;
 
     /**
@@ -19,7 +19,7 @@ public class ObjectIdAggregatedStream extends ObjectIdMap {
      * @param aggregatedLogger
      * @throws IOException
      */
-    public ObjectIdAggregatedStream(BinaryFileAggregatedLogger aggregatedLogger, TypeIdAggregatedStreamMap typeToId) {
+    public ObjectIdAggregatedStream(AggregatedFileLogger aggregatedLogger, TypeIdAggregatedStreamMap typeToId) {
         super(16 * 1024 * 1024);
         this.typeToId = typeToId;
         this.aggregatedLogger = aggregatedLogger;

@@ -2,6 +2,7 @@ package com.insidious.agent.logging.io;
 
 import com.insidious.agent.logging.IErrorLogger;
 import com.insidious.agent.logging.IEventLogger;
+import com.insidious.agent.logging.util.AggregatedFileLogger;
 import com.insidious.agent.logging.util.BinaryFileAggregatedLogger;
 import com.insidious.agent.logging.util.ObjectIdAggregatedStream;
 import com.insidious.agent.logging.util.TypeIdAggregatedStreamMap;
@@ -17,7 +18,7 @@ import com.insidious.agent.logging.util.TypeIdAggregatedStreamMap;
  */
 public class EventStreamAggregatedLogger implements IEventLogger {
 
-    private final BinaryFileAggregatedLogger aggregatedLogger;
+    private final AggregatedFileLogger aggregatedLogger;
     private final TypeIdAggregatedStreamMap typeToId;
     private final ObjectIdAggregatedStream objectIdMap;
 
@@ -27,7 +28,7 @@ public class EventStreamAggregatedLogger implements IEventLogger {
      * @param logger           specifies an object to record errors that occur in this class
      * @param aggregatedLogger writer
      */
-    public EventStreamAggregatedLogger(IErrorLogger logger, BinaryFileAggregatedLogger aggregatedLogger) {
+    public EventStreamAggregatedLogger(IErrorLogger logger, AggregatedFileLogger aggregatedLogger) {
         System.out.printf("New event stream aggregated logger\n");
         this.aggregatedLogger = aggregatedLogger;
         typeToId = new TypeIdAggregatedStreamMap(this.aggregatedLogger);

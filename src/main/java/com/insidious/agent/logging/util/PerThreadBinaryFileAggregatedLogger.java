@@ -215,13 +215,15 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
         try {
             ByteArrayOutputStream baos = new ByteArrayOutputStream(bytesToWrite);
             DataOutputStream tempOut = new DataOutputStream(baos);
+//            err.log("Write string [" + id + "] -> [" + stringObject.length() + "] -> [" + stringObject + "]");
             tempOut.writeByte(2);
             tempOut.writeLong(id);
-            tempOut.writeInt(stringObject.length());
-            tempOut.write(stringObject.getBytes());
+            byte[] bytes = stringObject.getBytes();
+            tempOut.writeInt(bytes.length);
+            tempOut.write(bytes);
             getStreamForThread(threadId.get()).write(baos.toByteArray());
         } catch (IOException e) {
-            e.printStackTrace();
+            err.log(e);
         }
 //        writeString(stringObject);
 
@@ -258,8 +260,9 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
             ByteArrayOutputStream baos = new ByteArrayOutputStream(bytesToWrite);
             DataOutputStream tempOut = new DataOutputStream(baos);
             tempOut.writeByte(3);
-            tempOut.writeInt(toString.length());
-            tempOut.write(toString.getBytes());
+            byte[] bytes = toString.getBytes();
+            tempOut.writeInt(bytes.length);
+            tempOut.write(bytes);
             getStreamForThread(threadId.get()).write(baos.toByteArray());
         } catch (IOException e) {
             e.printStackTrace();

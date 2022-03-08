@@ -1,5 +1,7 @@
 package com.insidious.agent.logging.util;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 
 
@@ -55,44 +57,40 @@ public class ObjectIdAggregatedStream extends ObjectIdMap {
             try {
                 Throwable t = (Throwable) o;
                 long causeId = getId(t.getCause());
-//                Throwable[] suppressed = t.getSuppressed();
-//                long[] suppressedId = new long[suppressed.length];
-//                for (int i = 0; i < suppressedId.length; ++i) {
-//                    suppressedId[i] = getId(suppressed[i]);
-//                }
 
-                StringBuilder builder = new StringBuilder(1028);
-                builder.append(id);
-                builder.append(",M,");
-                builder.append(t.getMessage());
-                builder.append(",CS,");
-                builder.append(causeId);
-                builder.append(",");
-//                for (int i = 0; i < suppressedId.length; ++i) {
-//                    builder.append(",");
-//                    builder.append(suppressedId[i]);
-//                    builder.append(",");
-//                    builder.append(suppressed[i].getClass().getName());
-//                }
-//                builder.append("\n");
+                ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+                DataOutputStream output = new DataOutputStream(outputStream);
+                output.writeLong(id);
+                byte[] messageBytes = t.getMessage().getBytes();
+                output.writeInt(messageBytes.length);
+                output.write(messageBytes);
+                output.writeLong(causeId);
 
                 StackTraceElement[] trace = t.getStackTrace();
-//                builder.append(trace.length);
-//                builder.append(",");
+
                 // todo: recording only first item in the stack trace
                 for (int i = 0; i < 1; ++i) {
                     StackTraceElement e = trace[i];
-                    builder.append(e.isNativeMethod() ? "T," : "F,");
-                    builder.append(e.getClassName());
-                    builder.append(",");
-                    builder.append(e.getMethodName());
-                    builder.append(",");
-                    builder.append(e.getFileName());
-                    builder.append(",");
-                    builder.append(e.getLineNumber());
-//                    builder.append("\n");
+
+                    byte[] classNameBytes = e.getClassName().getBytes();
+                    byte[] methodNameBytes = e.getMethodName().getBytes();
+                    byte[] fileNameBytes = e.getFileName().getBytes();
+
+                    output.writeBoolean(e.isNativeMethod());
+
+                    output.writeInt(classNameBytes.length);
+                    output.write(classNameBytes);
+
+                    output.writeInt(methodNameBytes.length);
+                    output.write(methodNameBytes);
+
+                    output.writeInt(fileNameBytes.length);
+                    output.write(fileNameBytes);
+
+                    output.writeInt(e.getLineNumber());
+
                 }
-                aggregatedLogger.writeNewException(builder.toString());
+                aggregatedLogger.writeNewException(outputStream.toByteArray());
             } catch (Throwable e) {
                 // ignore all exceptions
             }

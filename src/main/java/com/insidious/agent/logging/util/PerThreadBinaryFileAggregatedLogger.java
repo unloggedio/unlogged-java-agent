@@ -234,8 +234,8 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
 
     }
 
-    public void writeNewException(String toString) {
-        int bytesToWrite = 1 + 4 + toString.length();
+    public void writeNewException(byte[] exceptionBytes) {
+        int bytesToWrite = 1 + 4 + exceptionBytes.length;
 
         Integer currentThreadId = threadId.get();
         if (!count.containsKey(currentThreadId)) {
@@ -260,9 +260,8 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
             ByteArrayOutputStream baos = new ByteArrayOutputStream(bytesToWrite);
             DataOutputStream tempOut = new DataOutputStream(baos);
             tempOut.writeByte(3);
-            byte[] bytes = toString.getBytes();
-            tempOut.writeInt(bytes.length);
-            tempOut.write(bytes);
+            tempOut.writeInt(exceptionBytes.length);
+            tempOut.write(exceptionBytes);
             getStreamForThread(threadId.get()).write(baos.toByteArray());
         } catch (IOException e) {
             e.printStackTrace();

@@ -5,7 +5,7 @@ public interface AggregatedFileLogger {
 
     void writeNewString(long id, String stringObject);
 
-    void writeNewException(String toString);
+    void writeNewException(byte[] toString);
 
     void writeEvent(int id, long value);
 

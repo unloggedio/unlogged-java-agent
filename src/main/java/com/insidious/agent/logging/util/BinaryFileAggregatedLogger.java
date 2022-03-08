@@ -196,8 +196,8 @@ public class BinaryFileAggregatedLogger implements Runnable, AggregatedFileLogge
     }
 
     @Override
-    public void writeNewException(String toString) {
-        int bytesToWrite = 1 + 4 + toString.length();
+    public void writeNewException(byte[] exceptionBytes) {
+        int bytesToWrite = 1 + 4 + exceptionBytes.length;
         try {
             lock.lock();
             if (count >= MAX_EVENTS_PER_FILE) {
@@ -215,8 +215,8 @@ public class BinaryFileAggregatedLogger implements Runnable, AggregatedFileLogge
             ByteArrayOutputStream baos = new ByteArrayOutputStream(bytesToWrite);
             DataOutputStream tempOut = new DataOutputStream(baos);
             tempOut.writeByte(3);
-            tempOut.writeInt(toString.length());
-            tempOut.write(toString.getBytes());
+            tempOut.writeInt(exceptionBytes.length);
+            tempOut.write(exceptionBytes);
             out.write(baos.toByteArray());
         } catch (IOException e) {
             e.printStackTrace();

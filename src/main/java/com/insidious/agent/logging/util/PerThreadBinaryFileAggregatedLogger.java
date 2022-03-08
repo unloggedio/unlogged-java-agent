@@ -13,7 +13,6 @@ import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * This class is a stream specialized to write a sequence of events into files.
@@ -47,7 +46,7 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
     private final Map<Integer, String> currentFileMap = new HashMap<>();
     private final Map<Integer, AtomicInteger> count = new HashMap<>();
     private String hostname;
-    private FileNameGenerator files;
+    private FileNameGenerator fileNameGenerator;
     private IErrorLogger err;
     private long eventId = 0;
 
@@ -78,7 +77,7 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
         }
         System.err.println("Session Id: [" + sessionId + "] on hostname [" + hostname + "]");
         try {
-            files = new FileNameGenerator(new File(outputDirName), "log-", ".selog");
+            fileNameGenerator = new FileNameGenerator(new File(outputDirName), "log-", ".selog");
             err = logger;
             prepareNextFile(threadId.get());
             writeHostname();
@@ -122,9 +121,8 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
                 err.log(e);
             }
         }
-        File nextFile = files.getNextFile(currentThreadId);
+        File nextFile = fileNameGenerator.getNextFile(currentThreadId);
         System.err.println("[" + Time.from(Instant.now()) + "] Prepare next file for thread [" + currentThreadId + "]: " + nextFile.getAbsolutePath());
-        new Exception().printStackTrace();
 
         currentFileMap.put(currentThreadId, nextFile.getAbsolutePath());
         out = new BufferedOutputStream(new FileOutputStream(nextFile), WRITE_BYTE_BUFFER_SIZE);
@@ -497,7 +495,7 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
                                     + theThreadId + "] in file [" + currentFileMap.get(theThreadId) + "]");
                             prepareNextFile(theThreadId);
                         } else {
-                            System.err.println("log file checker: not enough data for thread [" + theThreadId + "]");
+//                            System.err.println("log file checker: not enough data for thread [" + theThreadId + "]");
                         }
                     }
                 } catch (InterruptedException e) {

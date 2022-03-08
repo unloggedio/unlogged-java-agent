@@ -467,7 +467,6 @@ public class BinaryFileAggregatedLogger implements Runnable, AggregatedFileLogge
             while (true) {
                 try {
                     Thread.sleep(60 * 1000);
-                    writeTimestamp();
                     System.err.println("30 seconds log file checker");
                     lock.lock();
                     if (count > 0 && fileList.isEmpty()) {
@@ -488,18 +487,4 @@ public class BinaryFileAggregatedLogger implements Runnable, AggregatedFileLogge
         }
     }
 
-    class SystemTimeEventGenerator implements Runnable {
-
-        @Override
-        public void run() {
-            while (true) {
-                try {
-                    Thread.sleep(1000 * 60 * 5);
-                    writeTimestamp();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-    }
 }

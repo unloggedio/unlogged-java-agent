@@ -8,10 +8,10 @@ import java.io.File;
  */
 public class FileNameGenerator {
 
-    private int fileCount = 0;
     private final File dir;
     private final String prefix;
     private final String suffix;
+    private int fileCount = 0;
 
     /**
      * Create a generator instance.
@@ -36,6 +36,6 @@ public class FileNameGenerator {
     }
 
     public File getNextFile(int threadId) {
-        return new File(dir, prefix + "-" + threadId + "-" + String.format("%05d", ++fileCount) + suffix);
+        return new File(dir, prefix + String.format("%06d", ++fileCount) + prefix + threadId + suffix);
     }
 }

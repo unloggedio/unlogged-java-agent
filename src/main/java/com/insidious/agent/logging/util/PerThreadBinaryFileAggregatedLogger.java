@@ -486,16 +486,14 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
                     Thread.sleep(60 * 1000);
                     writeTimestamp();
 
-                    System.err.println("30 seconds log file checker");
+                    err.log("30 seconds log file checker");
                     for (Map.Entry<Integer, BufferedOutputStream> threadStreamEntry : threadFileMap.entrySet()) {
                         Integer theThreadId = threadStreamEntry.getKey();
                         int eventCount = count.get(theThreadId).get();
                         if (eventCount > 0 && fileList.isEmpty()) {
-                            System.err.println("log file has : " + eventCount + " events in file for thread ["
+                            err.log("log file has : " + eventCount + " events in file for thread ["
                                     + theThreadId + "] in file [" + currentFileMap.get(theThreadId) + "]");
                             prepareNextFile(theThreadId);
-                        } else {
-//                            System.err.println("log file checker: not enough data for thread [" + theThreadId + "]");
                         }
                     }
                 } catch (InterruptedException e) {

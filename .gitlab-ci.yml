@@ -58,6 +58,7 @@ deploy:jdk8:
     # - 'mvn $MAVEN_CLI_OPTS deploy -s ci_settings.xml'
     - 'mvn package -DskipTests'
   artifacts:
+    name: videobug-java-agent.zip
     paths:
       - target/*.jar
     expire_in: 1 week

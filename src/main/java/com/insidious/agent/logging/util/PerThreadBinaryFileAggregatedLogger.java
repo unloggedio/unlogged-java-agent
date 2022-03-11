@@ -485,14 +485,14 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
         public void run() {
             while (true) {
                 try {
-                    Thread.sleep(60 * 1000);
+                    Thread.sleep(30 * 1000);
                     writeTimestamp();
 
                     err.log("30 seconds log file checker");
                     for (Map.Entry<Integer, BufferedOutputStream> threadStreamEntry : threadFileMap.entrySet()) {
                         Integer theThreadId = threadStreamEntry.getKey();
                         int eventCount = count.get(theThreadId).get();
-                        if (eventCount > 0 && fileList.isEmpty()) {
+                        if (eventCount > 0) {
                             err.log("log file has : " + eventCount + " events in file for thread ["
                                     + theThreadId + "] in file [" + currentFileMap.get(theThreadId) + "]");
                             prepareNextFile(theThreadId);

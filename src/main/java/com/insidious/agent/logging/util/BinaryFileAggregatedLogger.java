@@ -416,7 +416,7 @@ public class BinaryFileAggregatedLogger implements Runnable, AggregatedFileLogge
                 sendPOSTRequest(this.serverEndpoint + "/checkpoint/upload", filePath);
                 long end = System.currentTimeMillis();
                 System.err.println("Upload took " + (end - start) / 1000 + " seconds, deleting file " + filePath);
-//                new File(filePath).delete();
+                new File(filePath).delete();
 
             } catch (InterruptedException e) {
                 System.err.println("Failed to upload file: " + e.getMessage());

@@ -139,7 +139,7 @@ public class RuntimeWeaverParameters {
                 } else if (opt.startsWith("single")) {
                     mode = Mode.Single;
                 } else if (opt.startsWith("perthread")) {
-                    mode = Mode.PerThread;
+                    mode = Mode.2wq33309PerThread;
                 } else if (opt.startsWith("com.insidious.plugin.network")) {
                     mode = Mode.Network;
                 } else if (opt.startsWith("latest") || opt.startsWith("nearomni") || opt.startsWith("near-omni")) {

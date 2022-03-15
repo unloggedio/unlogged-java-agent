@@ -466,14 +466,14 @@ public class BinaryFileAggregatedLogger implements Runnable, AggregatedFileLogge
         public void run() {
             while (true) {
                 try {
-                    Thread.sleep(60 * 1000);
-                    System.err.println("30 seconds log file checker");
+                    Thread.sleep(1 * 1000);
+//                    System.err.println("30 seconds log file checker");
                     lock.lock();
                     if (count > 0 && fileList.isEmpty()) {
-                        System.err.println("30 seconds log file checker: " + count + " events in file");
+                        System.err.println("1 seconds log file checker: " + count + " events in file");
                         prepareNextFile();
                     } else {
-                        System.err.println("30 seconds log file checker: not enough data");
+//                        System.err.println("30 seconds log file checker: not enough data");
                     }
 
                 } catch (InterruptedException e) {

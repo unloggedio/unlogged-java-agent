@@ -8,6 +8,7 @@ import java.nio.file.Files;
 import java.sql.Time;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -50,6 +51,7 @@ public class BinaryFileAggregatedLogger implements Runnable, AggregatedFileLogge
     private long eventId = 0;
     private String currentFile;
     private int bytesWritten = 0;
+    private long timestamp = System.currentTimeMillis();
 
     /**
      * Create an instance of stream.
@@ -468,6 +470,8 @@ public class BinaryFileAggregatedLogger implements Runnable, AggregatedFileLogge
                 try {
                     Thread.sleep(1 * 1000);
 //                    System.err.println("30 seconds log file checker");
+                    timestamp = System.currentTimeMillis();
+                    writeTimestamp();
                     lock.lock();
                     if (count > 0 && fileList.isEmpty()) {
                         System.err.println("1 seconds log file checker: " + count + " events in file");

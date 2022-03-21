@@ -47,7 +47,7 @@ public class ObjectIdStream extends ObjectIdMap {
      * @throws IOException
      */
     public ObjectIdStream(File outputDir, boolean recordString, TypeIdMap typeToId, RSocket rSocket, Integer processId) throws IOException {
-        super(16 * 1024 * 1024);
+        super(64 * 1024 * 1024);
         this.typeToId = typeToId;
         this.rSocket = rSocket;
 

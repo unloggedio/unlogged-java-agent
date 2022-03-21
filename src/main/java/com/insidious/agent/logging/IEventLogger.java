@@ -1,6 +1,8 @@
 package com.insidious.agent.logging;
 
 
+import java.util.Date;
+
 /**
  * This interface defines a set of methods for recording runtime events. 
  * Classes implementing this interface should provide an actual logging strategy. 
@@ -27,6 +29,15 @@ public interface IEventLogger {
 	 * @param value contains a value to be recorded.
 	 */
 	public void recordEvent(int dataId, int value);
+	public void recordEvent(int dataId, Integer value);
+	public void recordEvent(int dataId, Byte value);
+	public void recordEvent(int dataId, Short value);
+	public void recordEvent(int dataId, Long value);
+	public void recordEvent(int dataId, Double value);
+	public void recordEvent(int dataId, Float value);
+	public void recordEvent(int dataId, Boolean value);
+	public void recordEvent(int dataId, Character value);
+	public void recordEvent(int dataId, Date value);
 
 	/**
 	 * Record an event occurrence and a value.

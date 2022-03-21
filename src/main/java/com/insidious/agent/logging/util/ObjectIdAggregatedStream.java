@@ -22,7 +22,7 @@ public class ObjectIdAggregatedStream extends ObjectIdMap {
      * @throws IOException
      */
     public ObjectIdAggregatedStream(AggregatedFileLogger aggregatedLogger, TypeIdAggregatedStreamMap typeToId) {
-        super(16 * 1024 * 1024);
+        super(64 * 1024 * 1024);
         this.typeToId = typeToId;
         this.aggregatedLogger = aggregatedLogger;
     }

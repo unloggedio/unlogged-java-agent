@@ -7,6 +7,8 @@ import com.insidious.agent.logging.util.BinaryFileAggregatedLogger;
 import com.insidious.agent.logging.util.ObjectIdAggregatedStream;
 import com.insidious.agent.logging.util.TypeIdAggregatedStreamMap;
 
+import java.util.Date;
+
 /**
  * This class is an implementation of IEventLogger that records
  * a sequence of runtime events in files.
@@ -49,8 +51,47 @@ public class EventStreamAggregatedLogger implements IEventLogger {
      */
     public void recordEvent(int dataId, Object value) {
         long objectId = objectIdMap.getId(value);
-//        System.out.printf("Record event in event stream aggregated logger %s -> %s\n", dataId, objectId);
         aggregatedLogger.writeEvent(dataId, objectId);
+    }
+
+    /**
+     * Record an event and an object.
+     * The object is translated into an object ID.
+     */
+    public void recordEvent(int dataId, Integer value) {
+        aggregatedLogger.writeEvent(dataId, value);
+    }
+
+    /**
+     * Record an event and an object.
+     * The object is translated into an object ID.
+     */
+    public void recordEvent(int dataId, Long value) {
+        aggregatedLogger.writeEvent(dataId, value);
+    }
+
+    /**
+     * Record an event and an object.
+     * The object is translated into an object ID.
+     */
+    public void recordEvent(int dataId, Byte value) {
+        aggregatedLogger.writeEvent(dataId, value);
+    }
+
+    /**
+     * Record an event and an object.
+     * The object is translated into an object ID.
+     */
+    public void recordEvent(int dataId, Date value) {
+        aggregatedLogger.writeEvent(dataId, value.getTime());
+    }
+
+    /**
+     * Record an event and an object.
+     * The object is translated into an object ID.
+     */
+    public void recordEvent(int dataId, Double value) {
+        aggregatedLogger.writeEvent(dataId, value.longValue());
     }
 
     /**

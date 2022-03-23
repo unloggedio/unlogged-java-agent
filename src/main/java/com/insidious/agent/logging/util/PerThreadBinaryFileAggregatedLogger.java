@@ -27,7 +27,7 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
     /**
      * The number of events stored in a single file.
      */
-    public static final int MAX_EVENTS_PER_FILE = 100000 * 2 * 10;
+    public static final int MAX_EVENTS_PER_FILE = 1000000;
     public static final int WRITE_BYTE_BUFFER_SIZE = 1024 * 1024;
     /**
      * This object records the number of threads observed by SELogger.
@@ -36,15 +36,15 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
     /**
      * Assign an integer to this thread.
      */
-    private static final ThreadLocal<Integer> threadId = ThreadLocal.withInitial(nextThreadId::getAndIncrement);
+    private final ThreadLocal<Long> threadId = ThreadLocal.withInitial(Thread.currentThread()::getId);
     public final ArrayList<Byte> data = new ArrayList<>(1024 * 1024 * 4);
     private final BlockingQueue<String> fileList = new ArrayBlockingQueue<String>(1024);
     private final String token;
     private final String serverEndpoint;
     private final String sessionId;
-    private final Map<Integer, BufferedOutputStream> threadFileMap = new HashMap<>();
-    private final Map<Integer, String> currentFileMap = new HashMap<>();
-    private final Map<Integer, AtomicInteger> count = new HashMap<>();
+    private final Map<Long, BufferedOutputStream> threadFileMap = new HashMap<>();
+    private final Map<Long, String> currentFileMap = new HashMap<>();
+    private final Map<Long, AtomicInteger> count = new HashMap<>();
     private String hostname;
     private FileNameGenerator fileNameGenerator;
     private IErrorLogger err;
@@ -58,7 +58,9 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
      * @param token
      * @param serverAddress
      */
-    public PerThreadBinaryFileAggregatedLogger(String outputDirName, IErrorLogger logger, String token, String sessionId, String serverAddress) {
+    public PerThreadBinaryFileAggregatedLogger(
+            String outputDirName, IErrorLogger logger,
+            String token, String sessionId, String serverAddress) {
         this.token = token;
         this.sessionId = sessionId;
         this.serverEndpoint = serverAddress;
@@ -68,7 +70,9 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
             e.printStackTrace();
             try {
                 BufferedReader reader = new BufferedReader(
-                        new InputStreamReader(Runtime.getRuntime().exec("hostname").getInputStream()));
+                        new InputStreamReader(
+                                Runtime.getRuntime().exec("hostname").getInputStream()
+                        ));
                 this.hostname = reader.readLine();
                 reader.close();
             } catch (IOException ex) {
@@ -93,7 +97,7 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
         }
     }
 
-    private BufferedOutputStream getStreamForThread(Integer threadId) {
+    private BufferedOutputStream getStreamForThread(Long threadId) {
         if (threadFileMap.containsKey(threadId)) {
             return threadFileMap.get(threadId);
         }
@@ -108,7 +112,7 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
         return threadStream;
     }
 
-    private BufferedOutputStream prepareNextFile(int currentThreadId) throws IOException {
+    private BufferedOutputStream prepareNextFile(long currentThreadId) throws IOException {
         err.log("prepare next file for thread [" + currentThreadId + "]");
         BufferedOutputStream out = threadFileMap.get(currentThreadId);
         if (out != null) {
@@ -136,9 +140,9 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
      * Close the stream.
      */
     public void close() {
-        for (Map.Entry<Integer, BufferedOutputStream> threadStreamEntrySet : threadFileMap.entrySet()) {
+        for (Map.Entry<Long, BufferedOutputStream> threadStreamEntrySet : threadFileMap.entrySet()) {
             BufferedOutputStream out = threadStreamEntrySet.getValue();
-            Integer streamTheadId = threadStreamEntrySet.getKey();
+            Long streamTheadId = threadStreamEntrySet.getKey();
             System.out.print("Close file for thread [" + streamTheadId + "]\n");
             try {
                 out.close();
@@ -152,7 +156,7 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
 
     public void writeNewObjectType(long id, long typeId) {
 
-        Integer currentThreadId = threadId.get();
+        Long currentThreadId = threadId.get();
         if (!count.containsKey(currentThreadId)) {
             try {
                 prepareNextFile(currentThreadId);
@@ -193,7 +197,7 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
     public void writeNewString(long id, String stringObject) {
         int bytesToWrite = 1 + 8 + 4 + stringObject.length();
 
-        Integer currentThreadId = threadId.get();
+        Long currentThreadId = threadId.get();
         if (!count.containsKey(currentThreadId)) {
             try {
                 prepareNextFile(currentThreadId);
@@ -237,7 +241,7 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
     public void writeNewException(byte[] exceptionBytes) {
         int bytesToWrite = 1 + 4 + exceptionBytes.length;
 
-        Integer currentThreadId = threadId.get();
+        Long currentThreadId = threadId.get();
         if (!count.containsKey(currentThreadId)) {
             try {
                 prepareNextFile(currentThreadId);
@@ -274,8 +278,9 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
     public void writeEvent(int id, long value) {
 
         int bytesToWrite = 1 + 4 + 8 + 4 + 8;
+        long timestamp = System.currentTimeMillis();
 
-        Integer currentThreadId = threadId.get();
+        Long currentThreadId = threadId.get();
         if (!count.containsKey(currentThreadId)) {
             try {
                 prepareNextFile(currentThreadId);
@@ -293,9 +298,6 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
             if (currentEventCount >= MAX_EVENTS_PER_FILE) {
                 prepareNextFile(currentThreadId);
             }
-            if (currentEventCount % 10000 == 0) {
-                writeTimestamp();
-            }
 
         } catch (IOException e) {
             err.log(e);
@@ -306,8 +308,8 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
             ByteArrayOutputStream baos = new ByteArrayOutputStream(bytesToWrite);
             DataOutputStream tempOut = new DataOutputStream(baos);
             tempOut.writeByte(4);          // 1
-            tempOut.writeInt(currentThreadId); // 4
-            tempOut.writeLong(eventId);       // 8
+            tempOut.writeLong(currentThreadId); // 8
+            tempOut.writeLong(timestamp);       // 8
             tempOut.writeInt(id);             // 4
             tempOut.writeLong(value);         // 8
 
@@ -360,7 +362,7 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
     public void writeNewTypeRecord(String toString) {
 
         int bytesToWrite = 1 + 4 + toString.length();
-        Integer currentThreadId = threadId.get();
+        Long currentThreadId = threadId.get();
 
         try {
 
@@ -454,7 +456,7 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
 
 
     public void writeWeaveInfo(byte[] byteArray) {
-        Integer currentThreadId = threadId.get();
+        Long currentThreadId = threadId.get();
         try {
 
             if (count.get(currentThreadId).get() >= MAX_EVENTS_PER_FILE) {
@@ -485,12 +487,11 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
         public void run() {
             while (true) {
                 try {
-                    Thread.sleep(30 * 1000);
-                    writeTimestamp();
+                    Thread.sleep(2 * 1000);
 
-                    err.log("30 seconds log file checker");
-                    for (Map.Entry<Integer, BufferedOutputStream> threadStreamEntry : threadFileMap.entrySet()) {
-                        Integer theThreadId = threadStreamEntry.getKey();
+//                    err.log("2 seconds log file checker: [" + threadFileMap.size() + "] threads open");
+                    for (Map.Entry<Long, BufferedOutputStream> threadStreamEntry : threadFileMap.entrySet()) {
+                        Long theThreadId = threadStreamEntry.getKey();
                         int eventCount = count.get(theThreadId).get();
                         if (eventCount > 0) {
                             err.log("log file has : " + eventCount + " events in file for thread ["

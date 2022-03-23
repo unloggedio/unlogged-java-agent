@@ -36,7 +36,7 @@ public class BinaryFileAggregatedLogger implements Runnable, AggregatedFileLogge
     /**
      * Assign an integer to this thread.
      */
-    private static final ThreadLocal<Integer> threadId = ThreadLocal.withInitial(nextThreadId::getAndIncrement);
+    private static final ThreadLocal<Long> threadId = ThreadLocal.withInitial(Thread.currentThread()::getId);
     public final ArrayList<Byte> data = new ArrayList<>(1024 * 1024 * 4);
     private final BlockingQueue<String> fileList = new ArrayBlockingQueue<String>(1024);
     private final ReentrantLock lock = new ReentrantLock();
@@ -231,7 +231,7 @@ public class BinaryFileAggregatedLogger implements Runnable, AggregatedFileLogge
     @Override
     public void writeEvent(int id, long value) {
 
-        int bytesToWrite = 1 + 4 + 8 + 4 + 8;
+        int bytesToWrite = 1 + 8 + 8 + 4 + 8;
 
 
         try {
@@ -256,7 +256,7 @@ public class BinaryFileAggregatedLogger implements Runnable, AggregatedFileLogge
             ByteArrayOutputStream baos = new ByteArrayOutputStream(bytesToWrite);
             DataOutputStream tempOut = new DataOutputStream(baos);
             tempOut.writeByte(4);          // 1
-            tempOut.writeInt(threadId.get()); // 4
+            tempOut.writeLong(threadId.get()); // 4
             tempOut.writeLong(eventId);       // 8
             tempOut.writeInt(id);             // 4
             tempOut.writeLong(value);         // 8

@@ -34,7 +34,7 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
      * Assign an integer to this thread.
      */
     private final ThreadLocal<Integer> threadId = ThreadLocal.withInitial(nextThreadId::getAndIncrement);
-    private final BlockingQueue<String> fileList = new ArrayBlockingQueue<String>(1024);
+    private final BlockingQueue<UploadFile> fileList = new ArrayBlockingQueue<UploadFile>(1024);
     private final String sessionId;
     private final Map<Integer, BufferedOutputStream> threadFileMap = new HashMap<>();
     private final Map<Integer, String> currentFileMap = new HashMap<>();
@@ -88,7 +88,6 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
         return threadStream;
     }
 
-
     private synchronized BufferedOutputStream prepareNextFile(int currentThreadId) throws IOException {
 //        err.log("prepare next file for thread [" + currentThreadId + "]");
 
@@ -105,7 +104,7 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
                 err.log("flush existing file for thread [" + currentThreadId + "] -> " + currentFileMap.get(currentThreadId));
                 out.flush();
                 out.close();
-                fileList.add(currentFileMap.get(currentThreadId));
+                fileList.add(new UploadFile(currentFileMap.get(currentThreadId), currentThreadId));
             } catch (IOException e) {
                 err.log(e);
             }
@@ -121,7 +120,6 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
         count.put(currentThreadId, new AtomicInteger(0));
         return out;
     }
-
 
     /**
      * Close the stream.
@@ -354,22 +352,19 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
         // System.err.println("Write type record - 5," + toString.length() + " - " + toString + " = " + this.bytesWritten);
     }
 
-
     @Override
     public void run() {
         System.err.println("Sending dumps to: " + networkClient.getServerUrl());
         while (true) {
-
             try {
-                String filePath = fileList.take();
-                networkClient.uploadFile(filePath);
+                UploadFile filePath = fileList.take();
+                networkClient.uploadFile(filePath.path, filePath.threadId);
             } catch (InterruptedException | IOException e) {
                 System.err.println("Failed to upload file: " + e.getMessage());
                 err.log(e);
             }
         }
     }
-
 
     public void writeWeaveInfo(byte[] byteArray) {
         int currentThreadId = threadId.get();
@@ -395,6 +390,16 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
             err.log(e);
         }
 
+    }
+
+    private class UploadFile {
+        public String path;
+        public long threadId;
+
+        public UploadFile(String s, long currentThreadId) {
+            this.path = s;
+            this.threadId = currentThreadId;
+        }
     }
 
     class LogFileTimeExpiry implements Runnable {

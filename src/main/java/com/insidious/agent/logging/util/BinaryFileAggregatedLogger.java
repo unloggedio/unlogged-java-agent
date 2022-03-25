@@ -368,7 +368,7 @@ public class BinaryFileAggregatedLogger implements Runnable, AggregatedFileLogge
         while (true) {
             try {
                 String filePath = fileList.take();
-                networkClient.uploadFile(filePath);
+                networkClient.uploadFile(filePath, 0);
 //                new File(filePath).delete();
             } catch (InterruptedException | IOException e) {
                 System.err.println("Failed to upload file: " + e.getMessage());

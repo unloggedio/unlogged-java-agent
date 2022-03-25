@@ -91,7 +91,7 @@ public class NetworkClient {
         return charWriter.toCharArray();
     }
 
-    public void sendPOSTRequest(String url, String attachmentFilePath) throws IOException {
+    public void sendPOSTRequest(String url, String attachmentFilePath, Long threadId) throws IOException {
 
         String charset = "UTF-8";
         Map<String, String> headers = new HashMap<>();
@@ -104,6 +104,7 @@ public class NetworkClient {
         form.addFilePart("file", binaryFile);
         form.addFormField("sessionId", sessionId);
         form.addFormField("hostname", getHostname());
+        form.addFormField("threadId", String.valueOf(threadId));
 
 
         String response = form.finish();
@@ -115,15 +116,42 @@ public class NetworkClient {
         return serverUrl;
     }
 
-    public void uploadFile(String filePath) throws IOException {
+    public void uploadFile(String filePath, long threadId) throws IOException {
         System.err.println("File to upload: " + filePath);
         long start = System.currentTimeMillis();
-        sendPOSTRequest(serverUrl + "/checkpoint/upload", filePath);
+        sendPOSTRequest(serverUrl + "/checkpoint/upload", filePath, threadId);
         long end = System.currentTimeMillis();
         long seconds = (end - start) / 1000;
         if (seconds > 2) {
             System.err.println("Upload took " + seconds + " seconds, deleting file " + filePath);
         }
 
+    }
+
+    public void uploadFile(String filePath, Long threadId) throws IOException {
+        System.err.println("File to upload: " + filePath);
+        long start = System.currentTimeMillis();
+        sendPOSTRequest(serverUrl + "/checkpoint/upload", filePath, threadId);
+        long end = System.currentTimeMillis();
+        long seconds = (end - start) / 1000;
+        if (seconds > 2) {
+            System.err.println("Upload took " + seconds + " seconds, deleting file " + filePath);
+        }
+    }
+
+    private void sendPOSTRequest(String url, String attachmentFilePath, Integer threadId) throws IOException {
+        String charset = "UTF-8";
+        Map<String, String> headers = new HashMap<>();
+        headers.put("User-Agent", "insidious/1.0.0");
+        headers.put("Authorization", "Bearer " + this.token);
+
+        MultipartUtility form = new MultipartUtility(url, charset, headers);
+
+        File binaryFile = new File(attachmentFilePath);
+        form.addFilePart("file", binaryFile);
+        form.addFormField("sessionId", sessionId);
+        form.addFormField("hostname", getHostname());
+        form.addFormField("threadId", String.valueOf(threadId));
+        String response = form.finish();
     }
 }

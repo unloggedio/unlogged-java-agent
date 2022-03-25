@@ -3,8 +3,6 @@ package com.insidious.agent.logging.util;
 import com.insidious.agent.logging.IErrorLogger;
 
 import java.io.*;
-import java.net.*;
-import java.nio.file.Files;
 import java.sql.Time;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -39,15 +37,14 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
      */
     private final ThreadLocal<Integer> threadId = ThreadLocal.withInitial(nextThreadId::getAndIncrement);
     private final BlockingQueue<String> fileList = new ArrayBlockingQueue<String>(1024);
-    private final String token;
-    private final String serverEndpoint;
     private final String sessionId;
     private final Map<Integer, BufferedOutputStream> threadFileMap = new HashMap<>();
     private final Map<Integer, String> currentFileMap = new HashMap<>();
     private final Map<Integer, AtomicInteger> count = new HashMap<>();
-    private String hostname;
-    private FileNameGenerator fileNameGenerator;
-    private IErrorLogger err;
+    private final NetworkClient networkClient;
+    private final String hostname;
+    private final FileNameGenerator fileNameGenerator;
+    private final IErrorLogger err;
     private long eventId = 0;
 
     /**
@@ -61,46 +58,27 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
     public PerThreadBinaryFileAggregatedLogger(
             String outputDirName, IErrorLogger logger,
             String token, String sessionId, String serverAddress) {
-        this.token = token;
         this.sessionId = sessionId;
-        this.serverEndpoint = serverAddress;
-        try {
-            this.hostname = InetAddress.getLocalHost().getHostName();
-        } catch (UnknownHostException e) {
-            e.printStackTrace();
-            try {
-                BufferedReader reader = new BufferedReader(
-                        new InputStreamReader(
-                                Runtime.getRuntime().exec("hostname").getInputStream()
-                        ));
-                this.hostname = reader.readLine();
-                reader.close();
-            } catch (IOException ex) {
-                ex.printStackTrace();
-            }
-        }
+
+        this.hostname = NetworkClient.getHostname();
+        this.networkClient = new NetworkClient(serverAddress, sessionId, token, logger);
 
 
         System.err.println("Session Id: [" + sessionId + "] on hostname [" + hostname + "]");
-        try {
-            fileNameGenerator = new FileNameGenerator(new File(outputDirName), "log-", ".selog");
-            err = logger;
+        fileNameGenerator = new FileNameGenerator(new File(outputDirName), "log-", ".selog");
+        err = logger;
 
-            for (int i = 0; i < 40; i++) {
-                count.put(i, new AtomicInteger(0));
-                prepareNextFile(i);
-            }
+//            for (int i = 0; i < 40; i++) {
+//                count.put(i, new AtomicInteger(0));
+//                prepareNextFile(i);
+//            }
 
-            writeHostname();
-            writeTimestamp();
-            System.out.printf("Create aggregated logger -> %s\n", currentFileMap.get(-1));
-            if (this.serverEndpoint != null) {
-                new Thread(this).start();
-                new Thread(new LogFileTimeExpiry()).start();
-
-            }
-        } catch (IOException e) {
-            err.log(e);
+        writeHostname();
+        writeTimestamp();
+        System.out.printf("Create aggregated logger -> %s\n", currentFileMap.get(-1));
+        if (serverAddress != null) {
+            new Thread(this).start();
+            new Thread(new LogFileTimeExpiry()).start();
         }
     }
 
@@ -119,7 +97,7 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
 
 
     private synchronized BufferedOutputStream prepareNextFile(int currentThreadId) throws IOException {
-        err.log("prepare next file for thread [" + currentThreadId + "]");
+//        err.log("prepare next file for thread [" + currentThreadId + "]");
 
 
         if (count.containsKey(currentThreadId) && threadFileMap.get(currentThreadId) != null) {
@@ -140,7 +118,7 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
             }
         }
         File nextFile = fileNameGenerator.getNextFile(currentThreadId);
-        System.err.println("[" + Time.from(Instant.now()) + "] Prepare next file for thread [" + currentThreadId + "]: " + nextFile.getAbsolutePath());
+//        System.err.println("[" + Time.from(Instant.now()) + "] Prepare next file for thread [" + currentThreadId + "]: " + nextFile.getAbsolutePath());
 
         currentFileMap.put(currentThreadId, nextFile.getAbsolutePath());
 
@@ -373,64 +351,16 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
         // System.err.println("Write type record - 5," + toString.length() + " - " + toString + " = " + this.bytesWritten);
     }
 
-    private void sendPOSTRequest(String url, String attachmentFilePath) {
-        String charset = "UTF-8";
-        File binaryFile = new File(attachmentFilePath);
-        String boundary = "------------------------" + Long.toHexString(System.currentTimeMillis()); // Just generate some unique random value.
-        String CRLF = "\r\n"; // Line separator required by multipart/form-data.
-        int responseCode = 0;
-
-        try {
-            //Set POST general headers along with the boundary string (the seperator string of each part)
-            URLConnection connection = new URL(url).openConnection();
-            connection.setDoOutput(true);
-            connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary);
-            connection.addRequestProperty("User-Agent", "insidious/1.0.0");
-            connection.addRequestProperty("Accept", "*/*");
-            connection.addRequestProperty("Authorization", "Bearer " + this.token);
-
-            OutputStream output = connection.getOutputStream();
-            PrintWriter writer = new PrintWriter(new OutputStreamWriter(output, charset), true);
-
-            // Send binary file - part
-            // Part header
-            writer.append("--" + boundary).append(CRLF);
-            writer.append("Content-Disposition: form-data; name=\"file\"; filename=\"" + binaryFile.getName() + "\"").append(CRLF);
-            writer.append("Content-Type: application/octet-stream").append(CRLF);// + URLConnection.guessContentTypeFromName(binaryFile.getName())).append(CRLF);
-            writer.append(CRLF).flush();
-
-            // File data
-            Files.copy(binaryFile.toPath(), output);
-            output.flush();
-
-            // End of multipart/form-data.
-            writer.append(CRLF).append("--" + boundary + "--").flush();
-
-            responseCode = ((HttpURLConnection) connection).getResponseCode();
-            System.err.println("File uploaded: " + responseCode);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            err.log(e);
-        }
-
-    }
 
     @Override
     public void run() {
-        System.err.println("Sending dumps to: " + this.serverEndpoint);
+        System.err.println("Sending dumps to: " + networkClient.getServerUrl());
         while (true) {
 
             try {
                 String filePath = fileList.take();
-                System.err.println("File to upload: " + filePath);
-                long start = System.currentTimeMillis();
-                sendPOSTRequest(this.serverEndpoint + "/checkpoint/upload", filePath);
-                long end = System.currentTimeMillis();
-                System.err.println("Upload took " + (end - start) / 1000 + " seconds, deleting file " + filePath);
-//                new File(filePath).delete();
-
-            } catch (InterruptedException e) {
+                networkClient.uploadFile(filePath);
+            } catch (InterruptedException | IOException e) {
                 System.err.println("Failed to upload file: " + e.getMessage());
                 err.log(e);
             }

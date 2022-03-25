@@ -255,7 +255,7 @@ public class BinaryFileAggregatedLogger implements Runnable, AggregatedFileLogge
             DataOutputStream tempOut = new DataOutputStream(baos);
             tempOut.writeByte(4);          // 1
             tempOut.writeLong(threadId.get()); // 4
-            tempOut.writeLong(eventId);       // 8
+            tempOut.writeLong(System.currentTimeMillis());       // 8
             tempOut.writeInt(id);             // 4
             tempOut.writeLong(value);         // 8
 

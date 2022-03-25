@@ -56,7 +56,7 @@ public class RuntimeWeaverParameters {
      * If true, automatic filtering for security manager classes is disabled
      */
     private boolean weaveSecurityManagerClass = false;
-    private Mode mode = Mode.Single;
+    private Mode mode = Mode.PerThread;
 
     public RuntimeWeaverParameters(String args) {
         if (args == null) args = "";

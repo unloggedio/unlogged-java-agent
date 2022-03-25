@@ -3,8 +3,6 @@ package com.insidious.agent.logging.util;
 import com.insidious.agent.logging.IErrorLogger;
 
 import java.io.*;
-import java.sql.Time;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -25,7 +23,7 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
     /**
      * The number of events stored in a single file.
      */
-    public static final int MAX_EVENTS_PER_FILE = 1000000;
+    public static final int MAX_EVENTS_PER_FILE = 10000;
     public static final int WRITE_BYTE_BUFFER_SIZE = 1024 * 1024;
     /**
      * This object records the number of threads observed by SELogger.
@@ -68,11 +66,6 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
         fileNameGenerator = new FileNameGenerator(new File(outputDirName), "log-", ".selog");
         err = logger;
 
-//            for (int i = 0; i < 40; i++) {
-//                count.put(i, new AtomicInteger(0));
-//                prepareNextFile(i);
-//            }
-
         writeHostname();
         writeTimestamp();
         System.out.printf("Create aggregated logger -> %s\n", currentFileMap.get(-1));
@@ -101,7 +94,7 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
 
 
         if (count.containsKey(currentThreadId) && threadFileMap.get(currentThreadId) != null) {
-            if (count.get(currentThreadId).get() < 10) {
+            if (count.get(currentThreadId).get() < 2) {
                 return threadFileMap.get(currentThreadId);
             }
         }
@@ -124,7 +117,6 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
 
 
         out = new BufferedOutputStream(new FileOutputStream(nextFile), WRITE_BYTE_BUFFER_SIZE);
-        out.write(sessionId.getBytes());
         threadFileMap.put(currentThreadId, out);
         count.put(currentThreadId, new AtomicInteger(0));
         return out;
@@ -156,7 +148,7 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
         BufferedOutputStream out = getStreamForThread(currentThreadId);
         int bytesToWrite = 1 + 8 + 8;
         try {
-            if (count.get(currentThreadId).get() >= MAX_EVENTS_PER_FILE) {
+            if (getCurrentEventCount(currentThreadId).get() >= MAX_EVENTS_PER_FILE) {
                 prepareNextFile(currentThreadId);
             }
         } catch (IOException e) {
@@ -172,6 +164,7 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
             tempOut.writeLong(typeId);
 //            writeString(typeId);
             out.write(baos.toByteArray());
+            getCurrentEventCount(currentThreadId).addAndGet(1);
         } catch (IOException e) {
             err.log(e);
         }
@@ -186,7 +179,7 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
         int currentThreadId = threadId.get();
 
         try {
-            if (count.get(currentThreadId).get() >= MAX_EVENTS_PER_FILE) {
+            if (getCurrentEventCount(currentThreadId).get() >= MAX_EVENTS_PER_FILE) {
                 prepareNextFile(currentThreadId);
             }
         } catch (IOException e) {
@@ -204,6 +197,7 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
             tempOut.writeInt(bytes.length);
             tempOut.write(bytes);
             getStreamForThread(threadId.get()).write(baos.toByteArray());
+            getCurrentEventCount(currentThreadId).addAndGet(1);
         } catch (IOException e) {
             err.log(e);
         }
@@ -222,7 +216,7 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
         int currentThreadId = threadId.get();
 
         try {
-            if (count.get(currentThreadId).get() >= MAX_EVENTS_PER_FILE) {
+            if (getCurrentEventCount(currentThreadId).get() >= MAX_EVENTS_PER_FILE) {
                 prepareNextFile(currentThreadId);
             }
         } catch (IOException e) {
@@ -237,6 +231,7 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
             tempOut.writeInt(exceptionBytes.length);
             tempOut.write(exceptionBytes);
             getStreamForThread(threadId.get()).write(baos.toByteArray());
+            getCurrentEventCount(currentThreadId).addAndGet(1);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -247,7 +242,7 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
 
     public void writeEvent(int id, long value) {
 
-        int bytesToWrite = 1 + 4 + 8 + 4 + 8;
+        int bytesToWrite = 1 + 0 + 8 + 4 + 8;
         long timestamp = System.currentTimeMillis();
 
         int currentThreadId = threadId.get();
@@ -255,7 +250,7 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
         try {
 
 
-            int currentEventCount = count.get(currentThreadId).get();
+            int currentEventCount = getCurrentEventCount(currentThreadId).get();
             if (currentEventCount >= MAX_EVENTS_PER_FILE) {
                 prepareNextFile(currentThreadId);
             }
@@ -269,19 +264,26 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
             ByteArrayOutputStream baos = new ByteArrayOutputStream(bytesToWrite);
             DataOutputStream tempOut = new DataOutputStream(baos);
             tempOut.writeByte(4);          // 1
-            tempOut.writeLong(currentThreadId); // 8
+//            tempOut.writeLong(currentThreadId); // 8
             tempOut.writeLong(timestamp);       // 8
             tempOut.writeInt(id);             // 4
             tempOut.writeLong(value);         // 8
 
-            getStreamForThread(threadId.get()).write(baos.toByteArray());
-            count.get(currentThreadId).addAndGet(1);
+            getStreamForThread(currentThreadId).write(baos.toByteArray());
+            getCurrentEventCount(currentThreadId).addAndGet(1);
             eventId++;
         } catch (IOException e) {
             err.log(e);
         }
 //            System.err.println("Write new event - 4," + id + "," + value + " = " + this.bytesWritten);
 
+    }
+
+    private AtomicInteger getCurrentEventCount(int currentThreadId) {
+        if (!count.containsKey(currentThreadId)) {
+            count.put(currentThreadId, new AtomicInteger(0));
+        }
+        return count.get(currentThreadId);
     }
 
     public void writeHostname() {
@@ -327,7 +329,7 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
 
         try {
 
-            if (count.get(currentThreadId).get() >= MAX_EVENTS_PER_FILE) {
+            if (getCurrentEventCount(currentThreadId).get() >= MAX_EVENTS_PER_FILE) {
                 prepareNextFile(currentThreadId);
             }
         } catch (IOException e) {
@@ -342,6 +344,7 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
             tempOut.writeInt(toString.length());  // 4
             tempOut.write(toString.getBytes());   // length
             getStreamForThread(currentThreadId).write(baos.toByteArray());
+            getCurrentEventCount(currentThreadId).addAndGet(1);
         } catch (IOException e) {
             err.log(e);
             e.printStackTrace();
@@ -372,7 +375,7 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
         int currentThreadId = threadId.get();
         try {
 
-            if (count.get(currentThreadId).get() >= MAX_EVENTS_PER_FILE) {
+            if (getCurrentEventCount(currentThreadId).get() >= MAX_EVENTS_PER_FILE) {
                 prepareNextFile(currentThreadId);
             }
             int bytesToWrite = 1 + 4 + byteArray.length;
@@ -386,7 +389,7 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
             tempOut.writeInt(byteArray.length);
             tempOut.write(byteArray);
             getStreamForThread(currentThreadId).write(baos.toByteArray());
-            count.get(currentThreadId).addAndGet(1);
+            getCurrentEventCount(currentThreadId).addAndGet(1);
             // System.err.println("Write weave 6," + byteArray.length + " - " + new String(byteArray) + " = " + this.bytesWritten);
         } catch (IOException e) {
             err.log(e);
@@ -406,10 +409,11 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
                         err.log("2 seconds log file checker: [ "
                                 + theThreadId + " / " + threadFileMap.size()
                                 + " ] threads open");
-                        int eventCount = count.get(theThreadId).get();
+                        int eventCount = getCurrentEventCount(theThreadId).get();
                         if (eventCount > 0) {
-                            err.log("log file for thread [" + theThreadId + "] has : " + eventCount + " events in file for thread ["
-                                    + theThreadId + "] in file [" + currentFileMap.get(theThreadId) + "]");
+                            err.log("log file for thread [" + theThreadId + "] has : " + eventCount
+                                    + " events in file for thread [" + theThreadId + "] in file ["
+                                    + currentFileMap.get(theThreadId) + "]");
                             prepareNextFile(theThreadId);
                         }
                     }

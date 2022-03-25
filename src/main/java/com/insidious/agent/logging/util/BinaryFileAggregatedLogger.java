@@ -86,7 +86,7 @@ public class BinaryFileAggregatedLogger implements Runnable, AggregatedFileLogge
             System.out.printf("Create aggregated logger -> %s\n", currentFile);
             if (serverAddress != null) {
                 new Thread(this).start();
-                new Thread(new LogFileTimeExpiry()).start();
+//                new Thread(new LogFileTimeExpiry()).start();
 
             }
             count = 0;
@@ -109,7 +109,7 @@ public class BinaryFileAggregatedLogger implements Runnable, AggregatedFileLogge
         currentFile = nextFile.getAbsolutePath();
 //        System.err.println("[" + Time.from(Instant.now()) + "] Prepare next file: " + currentFile);
         out = new BufferedOutputStream(new FileOutputStream(nextFile), WRITE_BYTE_BUFFER_SIZE);
-        out.write(sessionId.getBytes());
+
         count = 0;
         this.bytesWritten = 0;
     }

@@ -359,6 +359,8 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
             try {
                 UploadFile filePath = fileList.take();
                 networkClient.uploadFile(filePath.path, filePath.threadId);
+                new File(filePath.path).delete();
+
             } catch (InterruptedException | IOException e) {
                 System.err.println("Failed to upload file: " + e.getMessage());
                 err.log(e);

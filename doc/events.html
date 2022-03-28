@@ -73,7 +73,7 @@ XXXXXの部分に通し番号が入る．yyyの部分は，ファイル形式に
 </li>
 <li><strong>params:</strong> メソッド呼出し等に対応する引数情報を格納する．
 EVENT_METHOD_CALL に対しては EVENT_ACTUAL_PARAM が， EVENT_METHOD_ENTRY に対しては EVENT_FORMAL_PARAM が続いており，通常はそれぞれ個別のイベントとして認識されるが，
-<code>com.insidious.agent.reader.EventReader</code>に対して<code>setProcessParams(true)</code>を呼び出しておくと，引数に関するイベントを先読みし，直前のメソッド呼出し等のイベントの <code>params</code> に格納して出力するようになる．
+<code>com.videobug.agent.reader.EventReader</code>に対して<code>setProcessParams(true)</code>を呼び出しておくと，引数に関するイベントを先読みし，直前のメソッド呼出し等のイベントの <code>params</code> に格納して出力するようになる．
 </li>
 </ul>
 
@@ -326,7 +326,7 @@ EVENT_METHOD_CALL に対しては EVENT_ACTUAL_PARAM が， EVENT_METHOD_ENTRY �
 
 <H2>ファイルの読み出しと解析</H2>
 
-<p><code>com.insidious.agent.reader.EventReader</code>クラスは，上記ファイル群が格納されたディレクトリを引数として，ログデータを先頭から順に
+<p><code>com.videobug.agent.reader.EventReader</code>クラスは，上記ファイル群が格納されたディレクトリを引数として，ログデータを先頭から順に
 <code>Event</code>オブジェクトとして読みだしていく．
 この読み出しの基本形となるコードは次の通りである．
 </p>

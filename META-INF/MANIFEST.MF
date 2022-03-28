@@ -1,2 +1,2 @@
 Manifest-Version: 1.0
-Premain-Class: com.insidious.agent.weaver.RuntimeWeaver
+Premain-Class: com.videobug.agent.weaver.RuntimeWeaver

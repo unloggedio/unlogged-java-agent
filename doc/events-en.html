@@ -75,7 +75,7 @@ Its type name is available; <code>getValueType</code> returns the name, <code>ge
 </li>
 <li><strong>params</strong> returns parameters corresponding to method entry/call events.
 In an execution trace, <code>EVENT_METHOD_CALL</code> is followed by <code>EVENT_ACTUAL_PARAM</code>.  <code>EVENT_METHOD_ENTRY</code> is followed by <code>EVENT_FORMAL_PARAM</code>.
-<code>params</code> is available if <code>setProcessParams(true)</code> of <code>com.insidious.agent.reader.EventReader</code> is called before reading an event from a trace.
+<code>params</code> is available if <code>setProcessParams(true)</code> of <code>com.videobug.agent.reader.EventReader</code> is called before reading an event from a trace.
 </li>
 </ul>
 
@@ -330,7 +330,7 @@ This event is not generated if an execution is terminated by an exception.</TD>
 
 <H2>Trace Analysis Example</H2>
 
-<p><code>com.insidious.agent.reader.EventReader</code> class enables to parse event objects as follows.
+<p><code>com.videobug.agent.reader.EventReader</code> class enables to parse event objects as follows.
 </p>
 <pre>
         EventReader r = new LogDirectory(log_directory).getReader();

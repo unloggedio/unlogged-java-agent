@@ -240,7 +240,7 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
 
     public void writeEvent(int id, long value) {
 
-        int bytesToWrite = 1 + 0 + 8 + 4 + 8;
+        int bytesToWrite = 1 + 8 + 8 + 4 + 8;
         long timestamp = System.currentTimeMillis();
 
         int currentThreadId = threadId.get();
@@ -261,9 +261,9 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
         try {
             ByteArrayOutputStream baos = new ByteArrayOutputStream(bytesToWrite);
             DataOutputStream tempOut = new DataOutputStream(baos);
-            tempOut.writeByte(4);          // 1
-//            tempOut.writeLong(currentThreadId); // 8
-            tempOut.writeLong(timestamp);       // 8
+            tempOut.writeByte(4);           // 1
+            tempOut.writeLong(eventId);       // 8
+            tempOut.writeLong(timestamp);     // 8
             tempOut.writeInt(id);             // 4
             tempOut.writeLong(value);         // 8
 

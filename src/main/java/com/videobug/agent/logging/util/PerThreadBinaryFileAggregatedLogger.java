@@ -44,6 +44,7 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
     private final FileNameGenerator fileNameGenerator;
     private final IErrorLogger err;
     private long eventId = 0;
+    private long currentTimestamp = System.currentTimeMillis();
 
     /**
      * Create an instance of stream.
@@ -118,6 +119,7 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
         out = new BufferedOutputStream(new FileOutputStream(nextFile), WRITE_BYTE_BUFFER_SIZE);
         threadFileMap.put(currentThreadId, out);
         count.put(currentThreadId, new AtomicInteger(0));
+        writeTimestamp();
         return out;
     }
 
@@ -305,7 +307,7 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
 
     public void writeTimestamp() {
         int bytesToWrite = 1 + 8;
-        long timeStamp = System.currentTimeMillis();
+        long timeStamp = currentTimestamp;
 
 
         try {
@@ -410,6 +412,7 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
         public void run() {
             while (true) {
                 try {
+                    currentTimestamp = System.currentTimeMillis();
                     Thread.sleep(2 * 1000);
 
                     for (Integer theThreadId : threadFileMap.keySet()) {

@@ -196,10 +196,10 @@ public class Weaver implements IErrorLogger {
      * Write the weaving result to files.
      * Without calling this method, this object discards data when a weaving failed.
      *
-     * @param c      records the class information.
+     * @param classInfo      records the class information.
      * @param result records the state after weaving.
      */
-    private void finishClassProcess(ClassInfo c, WeaveLog result) {
+    private void finishClassProcess(ClassInfo classInfo, WeaveLog result) {
 
         ByteArrayOutputStream boas = new ByteArrayOutputStream();
         DataOutputStream out = new DataOutputStream(boas);
@@ -207,12 +207,12 @@ public class Weaver implements IErrorLogger {
 //        System.err.println("Finish class weave");
 
         try {
-            String str = c.toString();
+            String classToString = classInfo.toString();
 //                classIdWriter.write(str);
 //                classIdWriter.write(lineSeparator);
 
-            out.writeInt(str.length());
-            out.write(str.getBytes());
+            out.writeInt(classToString.length());
+            out.write(classToString.getBytes());
 //            System.err.println("Wrote bytes - " + str.length() + " - " + str);
 
 

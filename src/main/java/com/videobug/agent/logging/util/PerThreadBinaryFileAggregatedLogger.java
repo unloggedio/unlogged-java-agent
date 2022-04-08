@@ -3,10 +3,7 @@ package com.videobug.agent.logging.util;
 import com.videobug.agent.logging.IErrorLogger;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -36,7 +33,7 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
      */
     private final ThreadLocal<Integer> threadId = ThreadLocal.withInitial(nextThreadId::getAndIncrement);
     private final BlockingQueue<UploadFile> fileList = new ArrayBlockingQueue<UploadFile>(1024);
-    private final String sessionId;
+
     private final Map<Integer, BufferedOutputStream> threadFileMap = new HashMap<>();
     private final Map<Integer, String> currentFileMap = new HashMap<>();
     private final Map<Integer, AtomicInteger> count = new HashMap<>();
@@ -44,9 +41,11 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
     private final String hostname;
     private final FileNameGenerator fileNameGenerator;
     private final IErrorLogger err;
+    private final ThreadLocal<byte[]> threadLocalByteBuffer = ThreadLocal.withInitial(() -> new byte[29]);
+    private final Set<Long> valueSet = new HashSet<>();
+    private final Set<Long> probeIdSet = new HashSet<>();
     private long eventId = 0;
     private long currentTimestamp = System.currentTimeMillis();
-    private final ThreadLocal<byte[]> threadLocalByteBuffer = ThreadLocal.withInitial(() -> new byte[29]);
 
     /**
      * Create an instance of stream.
@@ -59,8 +58,6 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
     public PerThreadBinaryFileAggregatedLogger(
             String outputDirName, IErrorLogger logger,
             String token, String sessionId, String serverAddress) {
-        this.sessionId = sessionId;
-
         this.hostname = NetworkClient.getHostname();
         this.networkClient = new NetworkClient(serverAddress, sessionId, token, logger);
 
@@ -103,13 +100,16 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
 
         BufferedOutputStream out = threadFileMap.get(currentThreadId);
         if (out != null) {
-            try {
-                err.log("flush existing file for thread [" + currentThreadId + "] -> " + currentFileMap.get(currentThreadId));
-                out.flush();
-                out.close();
-                fileList.add(new UploadFile(currentFileMap.get(currentThreadId), currentThreadId));
-            } catch (IOException e) {
-                err.log(e);
+            String currentFile = currentFileMap.get(currentThreadId);
+            err.log("flush existing file for thread [" + currentThreadId + "] -> " + currentFile);
+            out.flush();
+            out.close();
+            boolean offerTaken = fileList.offer(new UploadFile(currentFile, currentThreadId));
+            if (!offerTaken) {
+                err.log(String.format(
+                        "warning, file upload queue is full, deleting and skipping file [%s]", currentFile
+                ));
+                new File(currentFile).delete();
             }
         }
         File nextFile = fileNameGenerator.getNextFile(currentThreadId);
@@ -430,7 +430,7 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
 
     }
 
-    private class UploadFile {
+    private static class UploadFile {
         public String path;
         public long threadId;
 

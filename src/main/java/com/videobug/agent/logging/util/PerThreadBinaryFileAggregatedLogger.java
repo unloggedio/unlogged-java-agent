@@ -6,6 +6,7 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -45,6 +46,7 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
     private final IErrorLogger err;
     private long eventId = 0;
     private long currentTimestamp = System.currentTimeMillis();
+    private final ThreadLocal<byte[]> threadLocalByteBuffer = ThreadLocal.withInitial(() -> new byte[29]);
 
     /**
      * Create an instance of stream.
@@ -142,33 +144,50 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
     }
 
     public void writeNewObjectType(long id, long typeId) {
+//        err.log("new object[" + id + "] type [" + typeId + "] record");
 
         int currentThreadId = threadId.get();
 
         BufferedOutputStream out = getStreamForThread(currentThreadId);
         int bytesToWrite = 1 + 8 + 8;
-        try {
-            if (getCurrentEventCount(currentThreadId).get() >= MAX_EVENTS_PER_FILE) {
-                prepareNextFile(currentThreadId);
-            }
-        } catch (IOException e) {
-            err.log(e);
-        }
-
 
         try {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream(bytesToWrite);
-            DataOutputStream tempOut = new DataOutputStream(baos);
-            tempOut.writeByte(1);
-            tempOut.writeLong(id);
-            tempOut.writeLong(typeId);
-//            writeString(typeId);
-            out.write(baos.toByteArray());
+
+//            ByteArrayOutputStream baos = new ByteArrayOutputStream(bytesToWrite);
+//            DataOutputStream tempOut = new DataOutputStream(baos);
+//            tempOut.writeByte(1);
+//            tempOut.writeLong(id);
+//            tempOut.writeLong(typeId);
+
+            byte[] buffer = threadLocalByteBuffer.get();
+            buffer[0] = 1;
+
+
+            buffer[1] = (byte) (id >>> 56);
+            buffer[2] = (byte) (id >>> 48);
+            buffer[3] = (byte) (id >>> 40);
+            buffer[4] = (byte) (id >>> 32);
+            buffer[5] = (byte) (id >>> 24);
+            buffer[6] = (byte) (id >>> 16);
+            buffer[7] = (byte) (id >>> 8);
+            buffer[8] = (byte) (id >>> 0);
+
+
+            buffer[9] = (byte) (typeId >>> 56);
+            buffer[10] = (byte) (typeId >>> 48);
+            buffer[11] = (byte) (typeId >>> 40);
+            buffer[12] = (byte) (typeId >>> 32);
+            buffer[13] = (byte) (typeId >>> 24);
+            buffer[14] = (byte) (typeId >>> 16);
+            buffer[15] = (byte) (typeId >>> 8);
+            buffer[16] = (byte) (typeId >>> 0);
+
+
+            out.write(buffer, 0, 17);
             getCurrentEventCount(currentThreadId).addAndGet(1);
         } catch (IOException e) {
             err.log(e);
         }
-        count.get(currentThreadId).addAndGet(1);
         // System.err.println("Write new object - 1," + id + "," + typeId.length() + " - " + typeId + " = " + this.bytesWritten);
 
     }
@@ -203,8 +222,6 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
         }
 //        writeString(stringObject);
 
-        count.get(currentThreadId).addAndGet(1);
-
         // System.err.println("Write new string - 2," + id + "," + stringObject.length() + " - " + stringObject + " = " + this.bytesWritten);
 
 
@@ -236,40 +253,58 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
             e.printStackTrace();
         }
 //        writeString(toString);
-        count.get(currentThreadId).addAndGet(1);
         // System.err.println("Write new exception - 3," + toString.length() + " - " + toString + " = " + this.bytesWritten);
     }
 
     public void writeEvent(int id, long value) {
 
-        int bytesToWrite = 1 + 8 + 8 + 4 + 8;
         long timestamp = currentTimestamp;
 
         int currentThreadId = threadId.get();
 
         try {
 
-
-            int currentEventCount = getCurrentEventCount(currentThreadId).get();
-            if (currentEventCount >= MAX_EVENTS_PER_FILE) {
-                prepareNextFile(currentThreadId);
-            }
-
-        } catch (IOException e) {
-            err.log(e);
-        }
+            byte[] buffer = threadLocalByteBuffer.get();
+            buffer[0] = 4;
 
 
-        try {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream(bytesToWrite);
-            DataOutputStream tempOut = new DataOutputStream(baos);
-            tempOut.writeByte(4);           // 1
-            tempOut.writeLong(eventId);       // 8
-            tempOut.writeLong(timestamp);     // 8
-            tempOut.writeInt(id);             // 4
-            tempOut.writeLong(value);         // 8
+            buffer[1] = (byte) (eventId >>> 56);
+            buffer[2] = (byte) (eventId >>> 48);
+            buffer[3] = (byte) (eventId >>> 40);
+            buffer[4] = (byte) (eventId >>> 32);
+            buffer[5] = (byte) (eventId >>> 24);
+            buffer[6] = (byte) (eventId >>> 16);
+            buffer[7] = (byte) (eventId >>> 8);
+            buffer[8] = (byte) (eventId >>> 0);
 
-            getStreamForThread(currentThreadId).write(baos.toByteArray());
+
+            buffer[9] = (byte) (timestamp >>> 56);
+            buffer[10] = (byte) (timestamp >>> 48);
+            buffer[11] = (byte) (timestamp >>> 40);
+            buffer[12] = (byte) (timestamp >>> 32);
+            buffer[13] = (byte) (timestamp >>> 24);
+            buffer[14] = (byte) (timestamp >>> 16);
+            buffer[15] = (byte) (timestamp >>> 8);
+            buffer[16] = (byte) (timestamp >>> 0);
+
+
+            buffer[17] = (byte) (id >>> 24);
+            buffer[18] = (byte) (id >>> 16);
+            buffer[19] = (byte) (id >>> 8);
+            buffer[20] = (byte) (id >>> 0);
+
+
+            buffer[21] = (byte) (value >>> 56);
+            buffer[22] = (byte) (value >>> 48);
+            buffer[23] = (byte) (value >>> 40);
+            buffer[24] = (byte) (value >>> 32);
+            buffer[25] = (byte) (value >>> 24);
+            buffer[26] = (byte) (value >>> 16);
+            buffer[27] = (byte) (value >>> 8);
+            buffer[28] = (byte) (value >>> 0);
+
+
+            getStreamForThread(currentThreadId).write(buffer);
             getCurrentEventCount(currentThreadId).addAndGet(1);
             eventId++;
         } catch (IOException e) {
@@ -350,7 +385,6 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
             e.printStackTrace();
         }
 //        writeString(toString);
-        count.get(currentThreadId).addAndGet(1);
         // System.err.println("Write type record - 5," + toString.length() + " - " + toString + " = " + this.bytesWritten);
     }
 
@@ -415,11 +449,12 @@ public class PerThreadBinaryFileAggregatedLogger implements Runnable, Aggregated
                     currentTimestamp = System.currentTimeMillis();
                     Thread.sleep(2 * 1000);
 
-                    for (Integer theThreadId : threadFileMap.keySet()) {
-                        err.log("2 seconds log file checker: [ "
-                                + theThreadId + " / " + threadFileMap.size()
-                                + " ] threads open");
+                    Integer[] keySet = threadFileMap.keySet().toArray(new Integer[0]);
+                    for (Integer theThreadId : keySet) {
                         int eventCount = getCurrentEventCount(theThreadId).get();
+                        err.log("2 seconds log file checker: [ "
+                                + theThreadId + " / " + keySet.length
+                                + " ] threads open has [" + eventCount + "] events");
                         if (eventCount > 0) {
                             err.log("log file for thread [" + theThreadId + "] has : " + eventCount
                                     + " events in file for thread [" + theThreadId + "] in file ["

@@ -35,7 +35,7 @@ public class FileNameGenerator {
         return new File(dir, prefix + String.format("%05d", ++fileCount) + suffix);
     }
 
-    public File getNextFile(long threadId) {
+    public File getNextFile(String threadId) {
         return new File(dir, prefix + String.format("%06d", ++fileCount) + "-" + threadId + suffix);
     }
 }

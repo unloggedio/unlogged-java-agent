@@ -57,6 +57,7 @@ public class RuntimeWeaverParameters {
      */
     private boolean weaveSecurityManagerClass = false;
     private Mode mode = Mode.PerThread;
+    private int filesPerIndex = 10;
 
     public RuntimeWeaverParameters(String args) {
         if (args == null) args = "";
@@ -89,6 +90,8 @@ public class RuntimeWeaverParameters {
                 authToken = arg.substring("token=".length());
             } else if (arg.startsWith("username=")) {
                 username = arg.substring("username=".length());
+            } else if (arg.startsWith("filePerIndex=")) {
+                filesPerIndex = Integer.parseInt(arg.substring("filePerIndex=".length()));
             } else if (arg.startsWith("password=")) {
                 password = arg.substring("password=".length());
             } else if (arg.startsWith("dump=")) {
@@ -209,5 +212,13 @@ public class RuntimeWeaverParameters {
 
     public String getAuthToken() {
         return authToken;
+    }
+
+    public int getFilesPerIndex() {
+        return filesPerIndex;
+    }
+
+    public void setFilesPerIndex(int filesPerIndex) {
+        this.filesPerIndex = filesPerIndex;
     }
 }

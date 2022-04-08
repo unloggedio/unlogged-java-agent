@@ -37,7 +37,7 @@ public class RuntimeWeaver implements ClassFileTransformer {
      *
      * @param params
      */
-    public RuntimeWeaver(String args) {
+    public RuntimeWeaver(String args) throws IOException {
 
         params = new RuntimeWeaverParameters(args);
 
@@ -70,9 +70,10 @@ public class RuntimeWeaver implements ClassFileTransformer {
                         break;
 
                     case PerThread:
-                        PerThreadBinaryFileAggregatedLogger perThreadBinaryFileAggregatedLogger = new PerThreadBinaryFileAggregatedLogger(
-                                params.getOutputDirname(),
-                                weaver, params.getAuthToken(), config.getSessionId(), params.getServerAddress());
+                        PerThreadBinaryFileAggregatedLogger perThreadBinaryFileAggregatedLogger
+                                = new PerThreadBinaryFileAggregatedLogger(
+                                params.getOutputDirname(), weaver, params.getAuthToken(),
+                                config.getSessionId(), params.getServerAddress(), params.getFilesPerIndex());
                         logger = Logging.initialiseAggregatedLogger(weaver, perThreadBinaryFileAggregatedLogger);
                         break;
 
@@ -106,7 +107,7 @@ public class RuntimeWeaver implements ClassFileTransformer {
      * @param agentArgs comes from command line.
      * @param inst
      */
-    public static void premain(String agentArgs, Instrumentation inst) {
+    public static void premain(String agentArgs, Instrumentation inst) throws IOException {
         System.err.println("Premain: " + agentArgs + " - " + inst.getAllLoadedClasses());
 
 

@@ -1,6 +1,7 @@
 package com.videobug.agent.logging.util;
 
 import com.videobug.agent.logging.IErrorLogger;
+import com.videobug.agent.logging.perthread.PerThreadBinaryFileAggregatedLogger;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,11 +37,11 @@ public class PerThreadBinaryFileAggregatedLoggerTest {
                 "test-output-" + new Date().getTime(), errorLogger,
                 "token", "sessionId", "serverAddress", 100);
 
-        for (int i = 0; i < 10000000; i++) {
+        for (int i = 0; i < 100000; i++) {
             logger.writeEvent(i, i);
         }
 
-        Thread.sleep(10000);
+        Thread.sleep(20000);
         logger.shutdown();
         Thread.sleep(3000);
 

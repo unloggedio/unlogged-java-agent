@@ -3,7 +3,7 @@ package com.videobug.agent.weaver;
 import com.videobug.agent.logging.IEventLogger;
 import com.videobug.agent.logging.Logging;
 import com.videobug.agent.logging.util.BinaryFileAggregatedLogger;
-import com.videobug.agent.logging.util.PerThreadBinaryFileAggregatedLogger;
+import com.videobug.agent.logging.perthread.PerThreadBinaryFileAggregatedLogger;
 import org.objectweb.asm.ClassReader;
 
 import java.io.File;

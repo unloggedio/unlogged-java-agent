@@ -1,8 +1,10 @@
-package com.videobug.agent.logging.util;
+package com.videobug.agent.logging.perthread;
 
 import com.videobug.agent.logging.IErrorLogger;
+import com.videobug.agent.logging.util.AggregatedFileLogger;
+import com.videobug.agent.logging.util.FileNameGenerator;
+import com.videobug.agent.logging.util.NetworkClient;
 import orestes.bloomfilter.BloomFilter;
-import orestes.bloomfilter.FilterBuilder;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -10,9 +12,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 /**
@@ -23,7 +22,9 @@ import java.util.zip.ZipOutputStream;
  * this stream creates a number of files whose size is limited by the number of events
  * (MAX_EVENTS_PER_FILE field).
  */
-public class PerThreadBinaryFileAggregatedLogger implements AggregatedFileLogger {
+public class PerThreadBinaryFileAggregatedLogger implements
+        AggregatedFileLogger,
+        ThreadEventCountProvider {
 
     /**
      * The number of events stored in a single file.
@@ -35,7 +36,6 @@ public class PerThreadBinaryFileAggregatedLogger implements AggregatedFileLogger
      */
     private static final AtomicInteger nextThreadId = new AtomicInteger(0);
     public final ArrayList<Byte> data = new ArrayList<>(1024 * 1024 * 4);
-    private final Lock indexWriterLock = new ReentrantLock();
     /**
      * Assign an integer to this thread.
      */
@@ -43,7 +43,7 @@ public class PerThreadBinaryFileAggregatedLogger implements AggregatedFileLogger
 
     private final BlockingQueue<UploadFile> fileList = new ArrayBlockingQueue<UploadFile>(1024);
 
-    private final Map<Integer, BufferedOutputStream> threadFileMap = new HashMap<>();
+    private final Map<Integer, OutputStream> threadFileMap = new HashMap<>();
     private final Map<Integer, String> currentFileMap = new HashMap<>();
     private final Map<Integer, AtomicInteger> count = new HashMap<>();
     private final NetworkClient networkClient;
@@ -57,15 +57,16 @@ public class PerThreadBinaryFileAggregatedLogger implements AggregatedFileLogger
     private final Map<Integer, BloomFilter<Integer>> probeIdFilterSet = new HashMap<>();
     private final ArchivedIndexWriter archivedIndexWriter;
     private final String sessionId;
-    private UploaderCron uploadCron = null;
+    private final int indexFileCount = 0;
+    private final BloomFilter<Long> aggregatedValueSet = BloomFilterUtil.newBloomFilterForValues();
+    private final BloomFilter<Integer> aggregatedProbeIdSet = BloomFilterUtil.newBloomFilterForProbes();
+    private final long currentTimestamp = System.currentTimeMillis();
+    private final ZipOutputStream archivedIndexOutputStream = null;
     ScheduledExecutorService threadPoolExecutor5Seconds = Executors.newScheduledThreadPool(1);
     ExecutorService threadPoolExecutor = Executors.newFixedThreadPool(1);
-    private LogFileTimeExpiry logFileTimeAgeChecker = null;
-    private int indexFileCount = 0;
-    private BloomFilter<Long> aggregatedValueSet = newBloomFilterForValues();
-    private BloomFilter<Integer> aggregatedProbeIdSet = newBloomFilterForProbes();
+    private RawFileCollectorCron fileCollectorCron = null;
+    private FileEventCountThresholdChecker logFileTimeAgeChecker = null;
     private long eventId = 0;
-    private long currentTimestamp = System.currentTimeMillis();
     // set to true when we are unable to upload files to the server
     // this is reset every 10 mins to check if server is online again
     // files are deleted from the disk while this is true
@@ -74,8 +75,8 @@ public class PerThreadBinaryFileAggregatedLogger implements AggregatedFileLogger
     // when skipUploads is set to true due to 10 consecutive upload failures
     // a future is set reset skipUploads to false after 10 mins gap to check if server is back again
     private ScheduledFuture<?> skipResetFuture;
-    private ZipOutputStream archivedIndexOutputStream = null;
     private boolean shudown;
+    private DataOutputStream fileIndex;
 
     /**
      * Create an instance of stream.
@@ -103,22 +104,32 @@ public class PerThreadBinaryFileAggregatedLogger implements AggregatedFileLogger
 
         writeHostname();
         writeTimestamp();
-        archivedIndexWriter = new ArchivedIndexWriter();
+        archivedIndexWriter = new ArchivedIndexWriter(indexFileNameGenerator, errorLogger, filesPerIndex);
 
         System.out.printf("Create aggregated logger -> %s\n", currentFileMap.get(-1));
+        fileCollectorCron =
+                new RawFileCollectorCron(10, archivedIndexWriter, fileList, errorLogger);
+        threadPoolExecutor.submit(fileCollectorCron);
+
         if (serverAddress != null && serverAddress.length() > 5) {
-            uploadCron = new UploaderCron(10, filesPerIndex);
-            threadPoolExecutor.submit(uploadCron);
-            logFileTimeAgeChecker = new LogFileTimeExpiry();
-            threadPoolExecutor5Seconds.scheduleAtFixedRate(logFileTimeAgeChecker, 0, 200, TimeUnit.MILLISECONDS);
+            logFileTimeAgeChecker = new FileEventCountThresholdChecker(threadFileMap, this,
+                    (theThreadId) -> {
+                        try {
+                            prepareNextFile(theThreadId);
+                        } catch (IOException e) {
+                            errorLogger.log(e);
+                        }
+                        return null;
+                    });
+            threadPoolExecutor5Seconds.
+                    scheduleAtFixedRate(logFileTimeAgeChecker, 0, 200, TimeUnit.MILLISECONDS);
         }
     }
 
-    private BufferedOutputStream getStreamForThread(int threadId) {
+    private OutputStream getStreamForThread(int threadId) {
         if (threadFileMap.containsKey(threadId)) {
             return threadFileMap.get(threadId);
         }
-        BufferedOutputStream threadStream = null;
         try {
             prepareNextFile(threadId);
         } catch (IOException e) {
@@ -137,7 +148,7 @@ public class PerThreadBinaryFileAggregatedLogger implements AggregatedFileLogger
             }
         }
 
-        BufferedOutputStream out = threadFileMap.get(currentThreadId);
+        OutputStream out = threadFileMap.get(currentThreadId);
         if (out != null) {
             String currentFile = currentFileMap.get(currentThreadId);
             errorLogger.log("flush existing file for thread [" + currentThreadId + "] -> " + currentFile);
@@ -148,8 +159,8 @@ public class PerThreadBinaryFileAggregatedLogger implements AggregatedFileLogger
             BloomFilter<Integer> probeIdBloomFilter = probeIdFilterSet.get(currentThreadId);
 
             count.put(currentThreadId, new AtomicInteger(0));
-            valueIdFilterSet.put(currentThreadId, newBloomFilterForValues());
-            probeIdFilterSet.put(currentThreadId, newBloomFilterForProbes());
+            valueIdFilterSet.put(currentThreadId, BloomFilterUtil.newBloomFilterForValues());
+            probeIdFilterSet.put(currentThreadId, BloomFilterUtil.newBloomFilterForProbes());
 
             UploadFile newLogFile = new UploadFile(currentFile, currentThreadId, valueIdBloomFilter, probeIdBloomFilter);
             boolean offerTaken = fileList.offer(newLogFile);
@@ -173,8 +184,8 @@ public class PerThreadBinaryFileAggregatedLogger implements AggregatedFileLogger
         threadFileMap.put(currentThreadId, out);
 
         count.put(currentThreadId, new AtomicInteger(0));
-        valueIdFilterSet.put(currentThreadId, newBloomFilterForValues());
-        probeIdFilterSet.put(currentThreadId, newBloomFilterForProbes());
+        valueIdFilterSet.put(currentThreadId, BloomFilterUtil.newBloomFilterForValues());
+        probeIdFilterSet.put(currentThreadId, BloomFilterUtil.newBloomFilterForProbes());
 
         writeTimestamp();
     }
@@ -183,8 +194,8 @@ public class PerThreadBinaryFileAggregatedLogger implements AggregatedFileLogger
      * Close the stream.
      */
     public void close() {
-        for (Map.Entry<Integer, BufferedOutputStream> threadStreamEntrySet : threadFileMap.entrySet()) {
-            BufferedOutputStream out = threadStreamEntrySet.getValue();
+        for (Map.Entry<Integer, OutputStream> threadStreamEntrySet : threadFileMap.entrySet()) {
+            OutputStream out = threadStreamEntrySet.getValue();
             int streamTheadId = threadStreamEntrySet.getKey();
             System.out.print("Close file for thread [" + streamTheadId + "]\n");
             try {
@@ -205,7 +216,7 @@ public class PerThreadBinaryFileAggregatedLogger implements AggregatedFileLogger
 
         int currentThreadId = threadId.get();
 
-        BufferedOutputStream out = getStreamForThread(currentThreadId);
+        OutputStream out = getStreamForThread(currentThreadId);
         int bytesToWrite = 1 + 8 + 8;
 
         try {
@@ -382,13 +393,6 @@ public class PerThreadBinaryFileAggregatedLogger implements AggregatedFileLogger
 
     }
 
-    private AtomicInteger getThreadEventCount(int currentThreadId) {
-        if (!count.containsKey(currentThreadId)) {
-            count.put(currentThreadId, new AtomicInteger(0));
-        }
-        return count.get(currentThreadId);
-    }
-
     public void writeHostname() {
 
         try {
@@ -482,20 +486,12 @@ public class PerThreadBinaryFileAggregatedLogger implements AggregatedFileLogger
 
     }
 
-    private BloomFilter<Long> newBloomFilterForValues() {
-        return new FilterBuilder(1024 * 16, 0.01).buildBloomFilter();
-    }
-
-    private BloomFilter<Integer> newBloomFilterForProbes() {
-        return new FilterBuilder(1024 * 16, 0.01).buildBloomFilter();
-    }
-
     public void shutdown() {
         skipUploads = true;
         shudown = true;
 
         archivedIndexWriter.shutdown();
-        uploadCron.shutdown();
+        fileCollectorCron.shutdown();
         threadPoolExecutor5Seconds.shutdown();
         threadPoolExecutor.shutdown();
 
@@ -503,227 +499,15 @@ public class PerThreadBinaryFileAggregatedLogger implements AggregatedFileLogger
         if (logFileTimeAgeChecker != null) {
             logFileTimeAgeChecker.run();
         }
-
-        uploadCron.upload();
-        archivedIndexWriter.run();
+        archivedIndexWriter.run(aggregatedValueSet, aggregatedProbeIdSet);
 
     }
 
-    private static class UploadFile {
-        final public String path;
-        final public long threadId;
-        final public BloomFilter<Long> valueIdBloomFilter;
-        final public BloomFilter<Integer> probeIdBloomFilter;
-
-        public UploadFile(String s, long currentThreadId,
-                          BloomFilter<Long> valueIdBloomFilter,
-                          BloomFilter<Integer> probeIdBloomFilter) {
-            this.path = s;
-            this.threadId = currentThreadId;
-            this.valueIdBloomFilter = valueIdBloomFilter;
-            this.probeIdBloomFilter = probeIdBloomFilter;
+    @Override
+    public AtomicInteger getThreadEventCount(int currentThreadId) {
+        if (!count.containsKey(currentThreadId)) {
+            count.put(currentThreadId, new AtomicInteger(0));
         }
+        return count.get(currentThreadId);
     }
-
-    public class UploaderCron implements Runnable {
-        public static final int MAX_CONSECUTIVE_FAILURE_COUNT = 10;
-        public static final int FAILURE_SLEEP_DELAY = 10;
-        public final int FILES_IN_ONE_INDEX;
-        private boolean shutdown = false;
-
-        public int continuousUploadFailureCount = 0;
-
-        public UploaderCron(int continuousUploadFailureCount, int filesInOneIndex) {
-            FILES_IN_ONE_INDEX = filesInOneIndex;
-            this.continuousUploadFailureCount = continuousUploadFailureCount;
-        }
-
-        public void shutdown() {
-            shutdown = true;
-        }
-
-        public void upload() {
-            try {
-
-                UploadFile logFile = fileList.take();
-                File fileToUpload = new File(logFile.path);
-                errorLogger.log("Take file [" + logFile.path + "]");
-
-
-                String fileName = currentTimestamp + "@" + fileToUpload.getName();
-                indexWriterLock.lock();
-
-                ByteArrayOutputStream fileBaos = new ByteArrayOutputStream();
-                DataOutputStream fileOut = new DataOutputStream(fileBaos);
-
-                long start = System.currentTimeMillis();
-                fileOut.write(logFile.valueIdBloomFilter.getBitSet().toByteArray());
-                fileOut.write(logFile.probeIdBloomFilter.getBitSet().toByteArray());
-                errorLogger.log("BF to byte[] took [" + (System.currentTimeMillis() - start) + "] ms");
-
-                start = System.currentTimeMillis();
-                ZipEntry fileZipEntry = new ZipEntry(fileName);
-                archivedIndexOutputStream.putNextEntry(fileZipEntry);
-                archivedIndexOutputStream.write(fileBaos.toByteArray());
-                archivedIndexOutputStream.closeEntry();
-                errorLogger.log("writing 1st entry took [" + (System.currentTimeMillis() - start) + "] ms");
-
-                start = System.currentTimeMillis();
-                ZipEntry eventsFileZipEntry = new ZipEntry(fileName + ".events");
-                archivedIndexOutputStream.putNextEntry(eventsFileZipEntry);
-                FileInputStream fis = new FileInputStream(fileToUpload);
-                InputStream fileInputStream = new BufferedInputStream(fis);
-                fileInputStream.transferTo(archivedIndexOutputStream);
-                fis.close();
-                archivedIndexOutputStream.closeEntry();
-
-                errorLogger.log("writing 2nd entry took [" + (System.currentTimeMillis() - start) + "] ms");
-                archivedIndexOutputStream.flush();
-
-                start = System.currentTimeMillis();
-                aggregatedValueSet.union(logFile.valueIdBloomFilter);
-                aggregatedProbeIdSet.union(logFile.probeIdBloomFilter);
-                long tts = System.currentTimeMillis() - start;
-                errorLogger.log("union took [" + tts + "] ms");
-
-                indexFileCount++;
-
-                continuousUploadFailureCount = 0;
-                fileToUpload.delete();
-
-            } catch (IOException e) {
-                System.err.println("Failed to upload file: " + e.getMessage());
-                errorLogger.log(e);
-                continuousUploadFailureCount++;
-                if (continuousUploadFailureCount > MAX_CONSECUTIVE_FAILURE_COUNT) {
-                    errorLogger.log("continuous " + MAX_CONSECUTIVE_FAILURE_COUNT
-                            + " file upload failure, skipping file uploads for 10 mins");
-                    skipUploads = true;
-                    skipResetFuture = threadPoolExecutor5Seconds.scheduleWithFixedDelay(() -> {
-                        errorLogger.log("resetting skip uploads to false after 10 mins delay since last failure");
-                        skipUploads = false;
-                        skipResetFuture.cancel(false);
-                    }, FAILURE_SLEEP_DELAY, 20, TimeUnit.MINUTES);
-                }
-            } catch (InterruptedException e) {
-                errorLogger.log("file upload cron interrupted, shutting down");
-            } finally {
-                indexWriterLock.unlock();
-                if (indexFileCount >= FILES_IN_ONE_INDEX) {
-                    errorLogger.log("write index file");
-                    archivedIndexWriter.run();
-                }
-            }
-        }
-        @Override
-        public void run() {
-            System.err.println("Sending dumps to: " + networkClient.getServerUrl());
-            while (true) {
-                if (shudown) {
-                    return;
-                }
-                long start = System.currentTimeMillis();
-                upload();
-                long timeToProcessFile = System.currentTimeMillis() - start;
-                errorLogger.log("adding file took [" + timeToProcessFile + "] ms");
-            }
-        }
-    }
-
-    class ArchivedIndexWriter {
-
-        boolean shutdown;
-
-        public ArchivedIndexWriter() throws IOException {
-            File nextIndexFile = indexFileNameGenerator.getNextFile();
-            errorLogger.log("prepare next index archive: " + nextIndexFile.getAbsolutePath());
-            archivedIndexOutputStream = new ZipOutputStream(new FileOutputStream(nextIndexFile));
-
-        }
-
-        public void run() {
-            try {
-
-                if (!indexWriterLock.tryLock()) {
-                    return;
-                }
-
-                BloomFilter<Long> valueSetBloomFilter = aggregatedValueSet;
-                BloomFilter<Integer> probeSetBloomFilter = aggregatedProbeIdSet;
-
-                aggregatedValueSet = newBloomFilterForValues();
-                aggregatedProbeIdSet = newBloomFilterForProbes();
-
-
-                byte[] valueIdsFilterArray = valueSetBloomFilter.getBitSet().toByteArray();
-                byte[] probeIdsFilterArray = probeSetBloomFilter.getBitSet().toByteArray();
-                try {
-
-                    ZipEntry indexEntry = new ZipEntry("bug.video.index");
-                    archivedIndexOutputStream.putNextEntry(indexEntry);
-                    archivedIndexOutputStream.write(sessionId.getBytes());
-                    archivedIndexOutputStream.write(valueIdsFilterArray);
-                    archivedIndexOutputStream.write(probeIdsFilterArray);
-                    archivedIndexOutputStream.closeEntry();
-
-                    prepareIndexFile();
-
-                } catch (IOException e) {
-                    errorLogger.log(e);
-                }
-            } finally {
-                indexWriterLock.unlock();
-            }
-
-            // need to store value/probe ids bitset per file in this index file
-
-        }
-
-        private void prepareIndexFile() throws IOException {
-            if (archivedIndexOutputStream != null && indexFileCount > 0) {
-                archivedIndexOutputStream.flush();
-                archivedIndexOutputStream.close();
-            }
-            if (shutdown || indexFileCount == 0) {
-                return;
-            }
-            File nextIndexFile = indexFileNameGenerator.getNextFile();
-            errorLogger.log("prepare next index archive: " + nextIndexFile.getAbsolutePath());
-            archivedIndexOutputStream = new ZipOutputStream(new FileOutputStream(nextIndexFile));
-            indexFileCount = 0;
-        }
-
-        public void shutdown() {
-            shutdown = true;
-        }
-    }
-
-    class LogFileTimeExpiry implements Runnable {
-
-        @Override
-        public void run() {
-            try {
-                currentTimestamp = System.currentTimeMillis();
-                Integer[] keySet = threadFileMap.keySet().toArray(new Integer[0]);
-                for (Integer theThreadId : keySet) {
-
-                    int eventCount = getThreadEventCount(theThreadId).get();
-
-//                    errorLogger.log("200 ms log file checker: [ "
-//                            + theThreadId + " / " + keySet.length
-//                            + " ] threads open has [" + eventCount + "] events");
-                    if (eventCount > 0) {
-                        errorLogger.log("log file for thread [" + theThreadId + "] has : " + eventCount
-                                + " events in file" +
-                                " for thread [" + theThreadId + "] in file ["
-                                + currentFileMap.get(theThreadId) + "]");
-                        prepareNextFile(theThreadId);
-                    }
-                }
-            } catch (IOException e) {
-                errorLogger.log(e);
-            }
-        }
-    }
-
 }

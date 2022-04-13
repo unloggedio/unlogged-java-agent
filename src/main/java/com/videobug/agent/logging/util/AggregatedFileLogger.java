@@ -13,7 +13,7 @@ public interface AggregatedFileLogger {
 
     void writeTimestamp();
 
-    void writeNewTypeRecord(String toString);
+    void writeNewTypeRecord(int typeId, String typeName, String toString);
 
     void writeWeaveInfo(byte[] byteArray);
 }

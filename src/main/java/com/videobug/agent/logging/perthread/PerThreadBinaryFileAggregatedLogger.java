@@ -7,12 +7,10 @@ import com.videobug.agent.logging.util.NetworkClient;
 import orestes.bloomfilter.BloomFilter;
 
 import java.io.*;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.zip.ZipOutputStream;
 
 /**
  * This class is a stream specialized to write a sequence of events into files.
@@ -35,7 +33,7 @@ public class PerThreadBinaryFileAggregatedLogger implements
      * This object records the number of threads observed by SELogger.
      */
     private static final AtomicInteger nextThreadId = new AtomicInteger(0);
-    public final ArrayList<Byte> data = new ArrayList<>(1024 * 1024 * 4);
+//    public final ArrayList<Byte> data = new ArrayList<>(1024 * 1024 * 4);
     /**
      * Assign an integer to this thread.
      */
@@ -44,27 +42,22 @@ public class PerThreadBinaryFileAggregatedLogger implements
     private final BlockingQueue<UploadFile> fileList = new ArrayBlockingQueue<UploadFile>(1024);
 
     private final Map<Integer, OutputStream> threadFileMap = new HashMap<>();
+
     private final Map<Integer, String> currentFileMap = new HashMap<>();
     private final Map<Integer, AtomicInteger> count = new HashMap<>();
     private final NetworkClient networkClient;
     private final String hostname;
     private final FileNameGenerator fileNameGenerator;
-    private final FileNameGenerator indexFileNameGenerator;
     private final IErrorLogger errorLogger;
     private final ThreadLocal<byte[]> threadLocalByteBuffer = ThreadLocal.withInitial(() -> new byte[29]);
-
     private final Map<Integer, BloomFilter<Long>> valueIdFilterSet = new HashMap<>();
     private final Map<Integer, BloomFilter<Integer>> probeIdFilterSet = new HashMap<>();
-    private final ArchivedIndexWriter archivedIndexWriter;
-    private final String sessionId;
-    private final int indexFileCount = 0;
-    private final BloomFilter<Long> aggregatedValueSet = BloomFilterUtil.newBloomFilterForValues();
-    private final BloomFilter<Integer> aggregatedProbeIdSet = BloomFilterUtil.newBloomFilterForProbes();
+
     private final long currentTimestamp = System.currentTimeMillis();
-    private final ZipOutputStream archivedIndexOutputStream = null;
+
     ScheduledExecutorService threadPoolExecutor5Seconds = Executors.newScheduledThreadPool(1);
-    ExecutorService threadPoolExecutor = Executors.newFixedThreadPool(1);
-    private RawFileCollectorCron fileCollectorCron = null;
+    ExecutorService threadPoolExecutor = Executors.newFixedThreadPool(4);
+    private RawFileCollector fileCollector = null;
     private FileEventCountThresholdChecker logFileTimeAgeChecker = null;
     private long eventId = 0;
     // set to true when we are unable to upload files to the server
@@ -75,7 +68,7 @@ public class PerThreadBinaryFileAggregatedLogger implements
     // when skipUploads is set to true due to 10 consecutive upload failures
     // a future is set reset skipUploads to false after 10 mins gap to check if server is back again
     private ScheduledFuture<?> skipResetFuture;
-    private boolean shudown;
+    private boolean shutdown;
     private DataOutputStream fileIndex;
 
     /**
@@ -85,12 +78,12 @@ public class PerThreadBinaryFileAggregatedLogger implements
      * @param logger        is to report errors that occur in this class.
      * @param token         to used to authentication for uploading logs
      * @param serverAddress endpoint for uploading logs
-     * @param filesPerIndex
+     * @param filesPerIndex number of files to store in one archive
      */
     public PerThreadBinaryFileAggregatedLogger(
             String outputDirName, IErrorLogger logger,
             String token, String sessionId, String serverAddress, int filesPerIndex) throws IOException {
-        this.sessionId = sessionId;
+//        this.sessionId = sessionId;
         this.hostname = NetworkClient.getHostname();
         this.networkClient = new NetworkClient(serverAddress, sessionId, token, logger);
         System.err.println("Session Id: [" + sessionId + "] on hostname [" + hostname + "]");
@@ -99,20 +92,22 @@ public class PerThreadBinaryFileAggregatedLogger implements
         File outputDir = new File(outputDirName);
         outputDir.mkdirs();
         this.fileNameGenerator = new FileNameGenerator(outputDir, "log-", ".selog");
-        this.indexFileNameGenerator = new FileNameGenerator(outputDir, "index-", ".zip");
 
+
+        fileCollector = new RawFileCollector(100,
+                new FileNameGenerator(outputDir, "index-", ".zip"), fileList, errorLogger);
 
         writeHostname();
         writeTimestamp();
-        archivedIndexWriter = new ArchivedIndexWriter(indexFileNameGenerator, errorLogger, filesPerIndex);
+
 
         System.out.printf("Create aggregated logger -> %s\n", currentFileMap.get(-1));
-        fileCollectorCron =
-                new RawFileCollectorCron(10, archivedIndexWriter, fileList, errorLogger);
-        threadPoolExecutor.submit(fileCollectorCron);
+
+        threadPoolExecutor.submit(fileCollector);
 
         if (serverAddress != null && serverAddress.length() > 5) {
-            logFileTimeAgeChecker = new FileEventCountThresholdChecker(threadFileMap, this,
+            logFileTimeAgeChecker = new FileEventCountThresholdChecker(
+                    threadFileMap, this,
                     (theThreadId) -> {
                         try {
                             prepareNextFile(theThreadId);
@@ -125,6 +120,7 @@ public class PerThreadBinaryFileAggregatedLogger implements
                     scheduleAtFixedRate(logFileTimeAgeChecker, 0, 200, TimeUnit.MILLISECONDS);
         }
     }
+
 
     private OutputStream getStreamForThread(int threadId) {
         if (threadFileMap.containsKey(threadId)) {
@@ -151,7 +147,7 @@ public class PerThreadBinaryFileAggregatedLogger implements
         OutputStream out = threadFileMap.get(currentThreadId);
         if (out != null) {
             String currentFile = currentFileMap.get(currentThreadId);
-            errorLogger.log("flush existing file for thread [" + currentThreadId + "] -> " + currentFile);
+//            errorLogger.log("flush existing file for thread [" + currentThreadId + "] -> " + currentFile);
             out.flush();
             out.close();
 
@@ -159,33 +155,34 @@ public class PerThreadBinaryFileAggregatedLogger implements
             BloomFilter<Integer> probeIdBloomFilter = probeIdFilterSet.get(currentThreadId);
 
             count.put(currentThreadId, new AtomicInteger(0));
-            valueIdFilterSet.put(currentThreadId, BloomFilterUtil.newBloomFilterForValues());
-            probeIdFilterSet.put(currentThreadId, BloomFilterUtil.newBloomFilterForProbes());
+            valueIdFilterSet.put(currentThreadId,
+                    BloomFilterUtil.newBloomFilterForValues(BloomFilterUtil.BLOOM_FILTER_BIT_SIZE));
+            probeIdFilterSet.put(currentThreadId,
+                    BloomFilterUtil.newBloomFilterForProbes(BloomFilterUtil.BLOOM_FILTER_BIT_SIZE));
 
             UploadFile newLogFile = new UploadFile(currentFile, currentThreadId, valueIdBloomFilter, probeIdBloomFilter);
-            boolean offerTaken = fileList.offer(newLogFile);
+            fileList.offer(newLogFile);
 
+//            fileQueueAppender.writeBytes(e -> {
+//                e.write(newLogFile.toBytes());
+//            });
 
-            if (!offerTaken) {
-                errorLogger.log(String.format(
-                        "warning, file upload queue is full, deleting and skipping file [%s]", currentFile
-                ));
-                new File(currentFile).delete();
-            }
 
         }
 
-        if (shudown) {
+        if (shutdown) {
             return;
         }
         File nextFile = fileNameGenerator.getNextFile(String.valueOf(currentThreadId));
-        currentFileMap.put(currentThreadId, nextFile.getAbsolutePath());
+        currentFileMap.put(currentThreadId, nextFile.getPath());
         out = new BufferedOutputStream(new FileOutputStream(nextFile), WRITE_BYTE_BUFFER_SIZE);
         threadFileMap.put(currentThreadId, out);
 
         count.put(currentThreadId, new AtomicInteger(0));
-        valueIdFilterSet.put(currentThreadId, BloomFilterUtil.newBloomFilterForValues());
-        probeIdFilterSet.put(currentThreadId, BloomFilterUtil.newBloomFilterForProbes());
+        valueIdFilterSet.put(currentThreadId,
+                BloomFilterUtil.newBloomFilterForValues(BloomFilterUtil.BLOOM_FILTER_BIT_SIZE));
+        probeIdFilterSet.put(currentThreadId,
+                BloomFilterUtil.newBloomFilterForProbes(BloomFilterUtil.BLOOM_FILTER_BIT_SIZE));
 
         writeTimestamp();
     }
@@ -253,6 +250,8 @@ public class PerThreadBinaryFileAggregatedLogger implements
 
             out.write(buffer, 0, 17);
             getThreadEventCount(currentThreadId).addAndGet(1);
+            fileCollector.indexObjectTypeEntry(id, (int) typeId);
+
         } catch (IOException e) {
             errorLogger.log(e);
         }
@@ -285,6 +284,7 @@ public class PerThreadBinaryFileAggregatedLogger implements
             tempOut.write(bytes);
             getStreamForThread(threadId.get()).write(baos.toByteArray());
             getThreadEventCount(currentThreadId).addAndGet(1);
+            fileCollector.indexStringEntry(id, stringObject);
         } catch (IOException e) {
             errorLogger.log(e);
         }
@@ -324,7 +324,7 @@ public class PerThreadBinaryFileAggregatedLogger implements
         // System.err.println("Write new exception - 3," + toString.length() + " - " + toString + " = " + this.bytesWritten);
     }
 
-    public void writeEvent(int id, long value) {
+    public void writeEvent(int probeId, long valueId) {
         if (skipUploads) {
             return;
         }
@@ -360,30 +360,32 @@ public class PerThreadBinaryFileAggregatedLogger implements
             buffer[16] = (byte) (timestamp >>> 0);
 
 
-            buffer[17] = (byte) (id >>> 24);
-            buffer[18] = (byte) (id >>> 16);
-            buffer[19] = (byte) (id >>> 8);
-            buffer[20] = (byte) (id >>> 0);
+            buffer[17] = (byte) (probeId >>> 24);
+            buffer[18] = (byte) (probeId >>> 16);
+            buffer[19] = (byte) (probeId >>> 8);
+            buffer[20] = (byte) (probeId >>> 0);
 
 
-            buffer[21] = (byte) (value >>> 56);
-            buffer[22] = (byte) (value >>> 48);
-            buffer[23] = (byte) (value >>> 40);
-            buffer[24] = (byte) (value >>> 32);
-            buffer[25] = (byte) (value >>> 24);
-            buffer[26] = (byte) (value >>> 16);
-            buffer[27] = (byte) (value >>> 8);
-            buffer[28] = (byte) (value >>> 0);
+            buffer[21] = (byte) (valueId >>> 56);
+            buffer[22] = (byte) (valueId >>> 48);
+            buffer[23] = (byte) (valueId >>> 40);
+            buffer[24] = (byte) (valueId >>> 32);
+            buffer[25] = (byte) (valueId >>> 24);
+            buffer[26] = (byte) (valueId >>> 16);
+            buffer[27] = (byte) (valueId >>> 8);
+            buffer[28] = (byte) (valueId >>> 0);
 
 
             getStreamForThread(currentThreadId).write(buffer);
             int threadEventCount = getThreadEventCount(currentThreadId).addAndGet(1);
-            if (threadEventCount > MAX_EVENTS_PER_FILE) {
-                prepareNextFile(currentThreadId);
-            }
+//            if (threadEventCount > MAX_EVENTS_PER_FILE) {
+//                prepareNextFile(currentThreadId);
+//            }
 
-            valueIdFilterSet.get(currentThreadId).add(value);
-            probeIdFilterSet.get(currentThreadId).add(id);
+            valueIdFilterSet.get(currentThreadId).add(valueId);
+            fileCollector.addValueId(valueId);
+            probeIdFilterSet.get(currentThreadId).add(probeId);
+            fileCollector.addProbeId(probeId);
 
             eventId++;
         } catch (IOException e) {
@@ -429,7 +431,7 @@ public class PerThreadBinaryFileAggregatedLogger implements
 
     }
 
-    public void writeNewTypeRecord(String toString) {
+    public void writeNewTypeRecord(int typeId, String typeName, String toString) {
 
         int bytesToWrite = 1 + 4 + toString.length();
         int currentThreadId = threadId.get();
@@ -450,8 +452,11 @@ public class PerThreadBinaryFileAggregatedLogger implements
             tempOut.writeByte(5);              // 1
             tempOut.writeInt(toString.length());  // 4
             tempOut.write(toString.getBytes());   // length
+
             getStreamForThread(currentThreadId).write(baos.toByteArray());
             getThreadEventCount(currentThreadId).addAndGet(1);
+            fileCollector.indexTypeEntry(typeId, typeName);
+
         } catch (IOException e) {
             errorLogger.log(e);
             e.printStackTrace();
@@ -486,12 +491,11 @@ public class PerThreadBinaryFileAggregatedLogger implements
 
     }
 
-    public void shutdown() {
+    public void shutdown() throws IOException {
         skipUploads = true;
-        shudown = true;
+        shutdown = true;
 
-        archivedIndexWriter.shutdown();
-        fileCollectorCron.shutdown();
+        fileCollector.shutdown();
         threadPoolExecutor5Seconds.shutdown();
         threadPoolExecutor.shutdown();
 
@@ -499,7 +503,6 @@ public class PerThreadBinaryFileAggregatedLogger implements
         if (logFileTimeAgeChecker != null) {
             logFileTimeAgeChecker.run();
         }
-        archivedIndexWriter.run(aggregatedValueSet, aggregatedProbeIdSet);
 
     }
 

@@ -1,6 +1,7 @@
 package com.videobug.agent.logging.util;
 
 import java.io.File;
+import java.util.Date;
 
 /**
  * This object generates file names with sequence numbers,
@@ -32,10 +33,14 @@ public class FileNameGenerator {
      * @return a file object representing a new file name.
      */
     public File getNextFile() {
-        return new File(dir, prefix + String.format("%05d", ++fileCount) + suffix);
+        return new File(dir, prefix + String.format("%05d", ++fileCount) + "-" + new Date().getTime() + suffix);
     }
 
     public File getNextFile(String threadId) {
         return new File(dir, prefix + String.format("%06d", ++fileCount) + "-" + threadId + suffix);
+    }
+
+    public String getOutputDir() {
+        return dir.getAbsolutePath();
     }
 }

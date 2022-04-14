@@ -18,6 +18,8 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class PerThreadBinaryFileAggregatedLoggerTest {
 
@@ -48,21 +50,15 @@ public class PerThreadBinaryFileAggregatedLoggerTest {
                 "token", "sessionId", "serverAddress", 64);
 
         long start = System.currentTimeMillis();
+        ExecutorService executorService = Executors.newFixedThreadPool(12);
         int eventCount = 2000000;
         for (int i = 0; i < eventCount; i++) {
-
-            eventLogger.writeEvent(i, i * 2);
-            eventLogger.writeNewTypeRecord(i * 3, "hello-type-" + i * 3, "therecord");
-            eventLogger.writeNewString(i * 4, "hello-string-" + i * 4);
-            eventLogger.writeNewObjectType(i * 5, i * 3);
-//            if (i % (eventCount / 20) == 0) {
-//                Thread.sleep(3000);
-//            }
+            executorService.submit(new DummyRunnable(i, eventLogger));
         }
         long end = System.currentTimeMillis();
         logger.info("wrote [{}] events in [{}] ms, [{}] write/ms", eventCount, end - start, eventCount / (end - start));
 
-//        Thread.sleep(20000);
+        Thread.sleep(20000);
         eventLogger.shutdown();
         Thread.sleep(1000);
 

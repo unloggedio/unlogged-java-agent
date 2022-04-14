@@ -94,7 +94,7 @@ public class PerThreadBinaryFileAggregatedLogger implements
         this.fileNameGenerator = new FileNameGenerator(outputDir, "log-", ".selog");
 
 
-        fileCollector = new RawFileCollector(100,
+        fileCollector = new RawFileCollector(filesPerIndex,
                 new FileNameGenerator(outputDir, "index-", ".zip"), fileList, errorLogger);
 
         writeHostname();
@@ -147,9 +147,10 @@ public class PerThreadBinaryFileAggregatedLogger implements
         OutputStream out = threadFileMap.get(currentThreadId);
         if (out != null) {
             String currentFile = currentFileMap.get(currentThreadId);
-//            errorLogger.log("flush existing file for thread [" + currentThreadId + "] -> " + currentFile);
+            errorLogger.log("flush existing file for thread [" + currentThreadId + "] -> " + currentFile);
             out.flush();
             out.close();
+
 
             BloomFilter<Long> valueIdBloomFilter = valueIdFilterSet.get(currentThreadId);
             BloomFilter<Integer> probeIdBloomFilter = probeIdFilterSet.get(currentThreadId);
@@ -162,10 +163,6 @@ public class PerThreadBinaryFileAggregatedLogger implements
 
             UploadFile newLogFile = new UploadFile(currentFile, currentThreadId, valueIdBloomFilter, probeIdBloomFilter);
             fileList.offer(newLogFile);
-
-//            fileQueueAppender.writeBytes(e -> {
-//                e.write(newLogFile.toBytes());
-//            });
 
 
         }
@@ -260,7 +257,8 @@ public class PerThreadBinaryFileAggregatedLogger implements
     }
 
     public void writeNewString(long id, String stringObject) {
-        int bytesToWrite = 1 + 8 + 4 + stringObject.length();
+        int stringLength = stringObject.length();
+        int bytesToWrite = 1 + 8 + 4 + stringLength;
 
         int currentThreadId = threadId.get();
 
@@ -284,7 +282,9 @@ public class PerThreadBinaryFileAggregatedLogger implements
             tempOut.write(bytes);
             getStreamForThread(threadId.get()).write(baos.toByteArray());
             getThreadEventCount(currentThreadId).addAndGet(1);
-            fileCollector.indexStringEntry(id, stringObject);
+            if (stringLength > 0) {
+                fileCollector.indexStringEntry(id, stringObject);
+            }
         } catch (IOException e) {
             errorLogger.log(e);
         }

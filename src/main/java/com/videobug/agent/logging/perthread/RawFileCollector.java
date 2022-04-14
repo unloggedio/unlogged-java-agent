@@ -10,13 +10,12 @@ import java.io.File;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 public class RawFileCollector implements Runnable {
     public static final int MAX_CONSECUTIVE_FAILURE_COUNT = 10;
     public static final int FAILURE_SLEEP_DELAY = 10;
+    public static final ExecutorService EXECUTOR_SERVICE = Executors.newFixedThreadPool(1);
     private final IErrorLogger errorLogger;
     private final BlockingQueue<UploadFile> fileList;
     private final FileNameGenerator indexFileNameGenerator;
@@ -49,35 +48,36 @@ public class RawFileCollector implements Runnable {
         archivedIndexWriter = new ArchivedIndexWriter(indexFileNameGenerator.getNextFile(), errorLogger);
         fileCount = 0;
         if (archivedIndexWriterOld != null) {
-            drainItemsToIndex(archivedIndexWriterOld);
-            new Thread(archivedIndexWriterOld::close).start();
+            EXECUTOR_SERVICE.submit(() -> {
+                drainItemsToIndex(archivedIndexWriterOld);
+                archivedIndexWriterOld.close();
+            });
         }
 
     }
 
     public void shutdown() throws IOException {
         shutdown = true;
+        EXECUTOR_SERVICE.shutdownNow().forEach(Runnable::run);
         upload();
     }
 
     public void upload() throws IOException {
         try {
-            UploadFile logFile = fileList.poll(1, TimeUnit.SECONDS);
+            UploadFile logFile = fileList.poll(0, TimeUnit.SECONDS);
             if (logFile == null) {
                 return;
             }
 
             List<UploadFile> logFiles = new LinkedList<>();
-            fileList.drainTo(logFiles);
+            fileList.drainTo(logFiles, filesPerArchive - archivedIndexWriter.fileCount());
             logFiles.add(logFile);
 
+            errorLogger.log("add [" + logFiles.size() + "] files");
             for (UploadFile file : logFiles) {
                 File fileToUpload = new File(file.path);
                 archivedIndexWriter.writeFileEntry(file);
                 fileToUpload.delete();
-                if (archivedIndexWriter.fileCount() >= filesPerArchive) {
-                    break;
-                }
             }
         } catch (IOException e) {
             System.err.println("Failed to upload file: " + e.getMessage());
@@ -120,11 +120,11 @@ public class RawFileCollector implements Runnable {
     @Override
     public void run() {
         while (true) {
+            // errorLogger.log("add file");
+            long start = System.currentTimeMillis();
             if (shutdown) {
                 return;
             }
-            // errorLogger.log("add file");
-            long start = System.currentTimeMillis();
             try {
                 new Thread(() -> drainItemsToIndex(archivedIndexWriter)).start();
                 upload();
@@ -132,7 +132,7 @@ public class RawFileCollector implements Runnable {
                 errorLogger.log(e);
             }
             long timeToProcessFile = System.currentTimeMillis() - start;
-            errorLogger.log("adding file took [" + timeToProcessFile + "] ms");
+//            errorLogger.log("adding file took [" + timeToProcessFile + "] ms");
         }
     }
 

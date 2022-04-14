@@ -12,6 +12,13 @@ public class StringInfoDocument {
                 }
             };
 
+    public static final SimpleAttribute<StringInfoDocument, Long> STRING_ID =
+            new SimpleAttribute<StringInfoDocument, Long>("stringId") {
+                public Long getValue(StringInfoDocument typeInfoDocument, QueryOptions queryOptions) {
+                    return typeInfoDocument.stringId;
+                }
+            };
+
 
     String string;
     long stringId;

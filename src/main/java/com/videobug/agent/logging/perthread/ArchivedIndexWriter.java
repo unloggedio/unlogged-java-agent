@@ -30,7 +30,7 @@ public class ArchivedIndexWriter implements IndexOutputStream {
     public static final String INDEX_TYPE_DAT_FILE = "index.type.dat";
     public static final String INDEX_STRING_DAT_FILE = "index.string.dat";
     public static final String INDEX_OBJECT_DAT_FILE = "index.object.dat";
-    public static final String INDEX_DAT_FILE = "index.dat";
+    public static final String INDEX_DAT_FILE = "index.events.dat";
     private final IErrorLogger errorLogger;
     private final Lock indexWriterLock = new ReentrantLock();
     private final String outputDir;
@@ -44,7 +44,7 @@ public class ArchivedIndexWriter implements IndexOutputStream {
     private ConcurrentIndexedCollection<ObjectInfoDocument> objectInfoIndex;
 
     private DiskPersistence<ObjectInfoDocument, Integer> objectInfoDocumentIntegerDiskPersistence;
-    private DiskPersistence<StringInfoDocument, String> stringInfoDocumentStringDiskPersistence;
+    private DiskPersistence<StringInfoDocument, Long> stringInfoDocumentStringDiskPersistence;
     private DiskPersistence<TypeInfoDocument, String> typeInfoDocumentStringDiskPersistence;
 
     private List<UploadFile> fileIndexBytes = new LinkedList<>();
@@ -90,7 +90,7 @@ public class ArchivedIndexWriter implements IndexOutputStream {
         }
 
         typeInfoDocumentStringDiskPersistence = DiskPersistence.onPrimaryKeyInFile(TypeInfoDocument.TYPE_NAME, typeIndexFile);
-        stringInfoDocumentStringDiskPersistence = DiskPersistence.onPrimaryKeyInFile(StringInfoDocument.STRING_VALUE, stringIndexFile);
+        stringInfoDocumentStringDiskPersistence = DiskPersistence.onPrimaryKeyInFile(StringInfoDocument.STRING_ID, stringIndexFile);
         objectInfoDocumentIntegerDiskPersistence = DiskPersistence.onPrimaryKeyInFile(ObjectInfoDocument.OBJECT_TYPE_ID, objectIndexFile);
 
         typeInfoIndex = new ConcurrentIndexedCollection<>(typeInfoDocumentStringDiskPersistence);
@@ -120,6 +120,10 @@ public class ArchivedIndexWriter implements IndexOutputStream {
         stringInfoIndex.addAll(stringsToIndex);
 
         long end = System.currentTimeMillis();
+
+        stringInfoIndex.retrieve(
+                com.googlecode.cqengine.query.QueryFactory.equal(StringInfoDocument.STRING_VALUE, "hello-string-13332"));
+
         errorLogger.log("Took [" + (end - start) / 1000 + "] seconds to index [" + itemCount + "] items");
     }
 
@@ -146,11 +150,7 @@ public class ArchivedIndexWriter implements IndexOutputStream {
             BlockingQueue<TypeInfoDocument> typesToIndexTemp
     ) {
 
-        if (fileIndexBytes.size() == 0) {
-            return;
-        }
         indexWriterLock.lock();
-
 
         long start = System.currentTimeMillis();
         errorLogger.log("lock acquired to finish archive: " + currentArchiveFile.getName());
@@ -211,16 +211,8 @@ public class ArchivedIndexWriter implements IndexOutputStream {
 
                 drainQueueToIndex(pendingObjects, pendingTypes, pendingStrings);
 
-                DiskPersistence<ObjectInfoDocument, Integer> previousObjectIndexPersistence = objectInfoDocumentIntegerDiskPersistence;
-                DiskPersistence<StringInfoDocument, String> previousStringIndexPersistence = stringInfoDocumentStringDiskPersistence;
-                DiskPersistence<TypeInfoDocument, String> previousTypeIndexPersistence = typeInfoDocumentStringDiskPersistence;
 
                 String currentArchiveName = currentArchiveFile.getName().split(".zip")[0];
-
-
-                previousObjectIndexPersistence.close();
-                previousStringIndexPersistence.close();
-                previousTypeIndexPersistence.close();
 
 
                 ZipEntry stringIndexEntry = new ZipEntry(INDEX_STRING_DAT_FILE);
@@ -243,14 +235,14 @@ public class ArchivedIndexWriter implements IndexOutputStream {
                 Files.copy(objectIndexFilePath, archivedIndexOutputStream);
                 objectIndexFilePath.toFile().delete();
                 archivedIndexOutputStream.closeEntry();
-
+                archivedIndexOutputStream.close();
 
             } catch (IOException e) {
                 errorLogger.log(e);
             }
         } finally {
             long end = System.currentTimeMillis();
-            errorLogger.log("Took [" + ((end - start) / 1000) + "] seconds to complete archive");
+            errorLogger.log("Took [" + ((end - start) / 1000) + "] seconds to complete archive: " + currentArchiveFile.getName());
             try {
                 indexWriterLock.unlock();
             } catch (Exception e) {
@@ -296,7 +288,7 @@ public class ArchivedIndexWriter implements IndexOutputStream {
         archivedIndexOutputStream.flush();
         long end = System.currentTimeMillis();
 
-        errorLogger.log("Add files to archive: " + logFile.path + " took - " +  (end - start) / 1000 + " seconds" );
+        errorLogger.log("Add files to archive: " + logFile.path + " took - " + (end - start) / 1000 + " ms");
     }
 
     public void addValueId(long value) {

@@ -13,6 +13,12 @@ public class TypeInfoDocument implements Serializable {
                     return typeInfoDocument.typeName;
                 }
             };
+    public static final SimpleAttribute<TypeInfoDocument, Integer> TYPE_ID  =
+            new SimpleAttribute<TypeInfoDocument, Integer>("typeId") {
+                public Integer getValue(TypeInfoDocument typeInfoDocument, QueryOptions queryOptions) {
+                    return typeInfoDocument.typeId;
+                }
+            };
     private static final long serialVersionUID = 4357600885262072086L;
 
 

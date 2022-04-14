@@ -1,5 +1,6 @@
 package com.videobug.agent.logging.perthread;
 
+import com.insidious.common.UploadFile;
 import com.videobug.agent.logging.perthread.pojo.ObjectInfoDocument;
 import com.videobug.agent.logging.perthread.pojo.StringInfoDocument;
 import com.videobug.agent.logging.perthread.pojo.TypeInfoDocument;

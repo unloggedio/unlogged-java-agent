@@ -4,6 +4,8 @@ import com.googlecode.cqengine.ConcurrentIndexedCollection;
 import com.googlecode.cqengine.index.hash.HashIndex;
 import com.googlecode.cqengine.index.radixinverted.InvertedRadixTreeIndex;
 import com.googlecode.cqengine.persistence.disk.DiskPersistence;
+import com.insidious.common.BloomFilterUtil;
+import com.insidious.common.UploadFile;
 import com.videobug.agent.logging.IErrorLogger;
 import com.videobug.agent.logging.perthread.pojo.ObjectInfoDocument;
 import com.videobug.agent.logging.perthread.pojo.StringInfoDocument;

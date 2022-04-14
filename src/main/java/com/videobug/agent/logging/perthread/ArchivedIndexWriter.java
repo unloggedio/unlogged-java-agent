@@ -27,15 +27,17 @@ import java.util.zip.ZipOutputStream;
 
 public class ArchivedIndexWriter implements IndexOutputStream {
 
+    public static final String WEAVE_DAT_FILE = "class.weave.dat";
     public static final String INDEX_TYPE_DAT_FILE = "index.type.dat";
     public static final String INDEX_STRING_DAT_FILE = "index.string.dat";
     public static final String INDEX_OBJECT_DAT_FILE = "index.object.dat";
-    public static final String INDEX_DAT_FILE = "index.events.dat";
+    public static final String INDEX_EVENTS_DAT_FILE = "index.events.dat";
+
     private final IErrorLogger errorLogger;
     private final Lock indexWriterLock = new ReentrantLock();
     private final String outputDir;
     private final File currentArchiveFile;
-    boolean shutdown;
+    private boolean shutdown;
     private BlockingQueue<StringInfoDocument> stringsToIndex;
     private BlockingQueue<TypeInfoDocument> typesToIndex;
     private BlockingQueue<ObjectInfoDocument> objectsToIndex;
@@ -53,9 +55,11 @@ public class ArchivedIndexWriter implements IndexOutputStream {
     private BloomFilter<Integer> aggregatedProbeIdSet
             = BloomFilterUtil.newBloomFilterForProbes(BloomFilterUtil.BLOOM_AGGREGATED_FILTER_BIT_SIZE);
     private ZipOutputStream archivedIndexOutputStream;
+    private final List<byte[]> classWeaves;
 
-    public ArchivedIndexWriter(File archiveFile, IErrorLogger errorLogger) throws IOException {
+    public ArchivedIndexWriter(File archiveFile, List<byte[]> classWeaves, IErrorLogger errorLogger) throws IOException {
         this.errorLogger = errorLogger;
+        this.classWeaves = classWeaves;
         outputDir = archiveFile.getParent() + "/";
         this.currentArchiveFile = archiveFile;
 
@@ -163,7 +167,19 @@ public class ArchivedIndexWriter implements IndexOutputStream {
 
             try {
 
-                ZipEntry indexEntry = new ZipEntry(INDEX_DAT_FILE);
+
+                ZipEntry classWeaveEntry = new ZipEntry(WEAVE_DAT_FILE);
+                archivedIndexOutputStream.putNextEntry(classWeaveEntry);
+                DataOutputStream weaveOutputStream = new DataOutputStream(archivedIndexOutputStream);
+
+                weaveOutputStream.writeInt(this.classWeaves.size());
+                for (byte[] classWeave : this.classWeaves) {
+                    weaveOutputStream.write(classWeave);
+                }
+                archivedIndexOutputStream.closeEntry();
+
+
+                ZipEntry indexEntry = new ZipEntry(INDEX_EVENTS_DAT_FILE);
 
                 archivedIndexOutputStream.putNextEntry(indexEntry);
                 DataOutputStream outputStream = new DataOutputStream(archivedIndexOutputStream);

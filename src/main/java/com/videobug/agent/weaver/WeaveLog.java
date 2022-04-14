@@ -78,9 +78,9 @@ public class WeaveLog {
 	
 	/**
 	 * Record a woven method name.
-	 * @param className is a clas name.
+	 * @param className is a class name.
 	 * @param methodName is a method name.
-	 * @param methodDesc is a descripor representing the signature.
+	 * @param methodDesc is a descriptor representing the signature.
 	 * @param access represents modifiers, e.g. static.
 	 * @param sourceFileName specifies a source file name recorded in the class file.
 	 */

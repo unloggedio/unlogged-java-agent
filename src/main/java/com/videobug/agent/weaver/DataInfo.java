@@ -1,5 +1,8 @@
 package com.videobug.agent.weaver;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.util.Scanner;
 
 import com.videobug.agent.EventType;
@@ -124,6 +127,9 @@ public class DataInfo {
 	 */
 	public String toString() {
 		StringBuilder buf = new StringBuilder();
+
+
+
 		buf.append(dataId);
 		buf.append(SEPARATOR);
 		buf.append(classId);
@@ -166,6 +172,26 @@ public class DataInfo {
 		sc.close();
 		return new DataInfo(classId, methodId, dataId, line, instructionIndex, t, d, attributes);
 	}
-	
 
+
+	public byte[] toBytes() throws IOException {
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		DataOutputStream dao = new DataOutputStream(baos);
+
+		dao.writeInt(classId);
+		dao.writeInt(methodId);
+		dao.writeInt(dataId);
+		dao.writeInt(line);
+		dao.writeInt(instructionIndex);
+		dao.writeInt(eventType.toString().getBytes().length);
+		dao.write(eventType.toString().getBytes());
+		dao.writeInt(valueDesc.getString().getBytes().length);
+		dao.write(valueDesc.getString().getBytes());
+		dao.writeInt(attributes.getBytes().length);
+		dao.write(attributes.getBytes());
+
+
+
+		return baos.toByteArray();
+	}
 }

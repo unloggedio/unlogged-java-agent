@@ -224,17 +224,14 @@ public class Weaver implements IErrorLogger {
         // Commit location IDs to the final output
         confirmedDataId = result.getNextDataId();
         try {
-            ArrayList<DataInfo> dataEntries = result.getDataEntries();
+            ArrayList<DataInfo> dataInfoEntries = result.getDataEntries();
 //                if (out != null) {
-            out.writeInt(dataEntries.size());
+            out.writeInt(dataInfoEntries.size());
 //                }
-            for (DataInfo loc : dataEntries) {
-                String locString = loc.toString();
-//                    dataIdWriter.write(locString);
-//                    dataIdWriter.write(lineSeparator);
-                out.writeInt(locString.length());
-                out.write(locString.getBytes());
-
+            for (DataInfo dataInfo : dataInfoEntries) {
+                byte[] classWeaveBytes = dataInfo.toBytes();
+                out.writeInt(classWeaveBytes.length);
+                out.write(classWeaveBytes);
             }
 //                dataIdWriter.flush();
         } catch (IOException e) {
@@ -251,6 +248,7 @@ public class Weaver implements IErrorLogger {
 //                }
             for (MethodInfo method : methods) {
                 String methodString = method.toString();
+                byte[] methodBytes = method.toBytes();
 //                    methodIdWriter.write(methodString);
 //                    methodIdWriter.write(lineSeparator);
 

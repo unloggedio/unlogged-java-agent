@@ -27,6 +27,7 @@ public class RawFileCollector implements Runnable {
     private BlockingQueue<StringInfoDocument> stringsToIndex;
     private BlockingQueue<TypeInfoDocument> typesToIndex;
     private BlockingQueue<ObjectInfoDocument> objectsToIndex;
+    private final List<byte[]> classWeaves = new LinkedList<>();
 
     public RawFileCollector(int filesPerArchive,
                             FileNameGenerator indexFileNameGenerator,
@@ -45,7 +46,8 @@ public class RawFileCollector implements Runnable {
     private void prepareArchive() throws IOException {
 
         IndexOutputStream archivedIndexWriterOld = archivedIndexWriter;
-        archivedIndexWriter = new ArchivedIndexWriter(indexFileNameGenerator.getNextFile(), errorLogger);
+
+        archivedIndexWriter = new ArchivedIndexWriter(indexFileNameGenerator.getNextFile(), this.classWeaves, errorLogger);
         fileCount = 0;
         if (archivedIndexWriterOld != null) {
             EXECUTOR_SERVICE.submit(() -> {
@@ -157,5 +159,9 @@ public class RawFileCollector implements Runnable {
 
     public void indexTypeEntry(int typeId, String typeName) {
         typesToIndex.offer(new TypeInfoDocument(typeId, typeName));
+    }
+
+    public void addClassWeaveInfo(byte[] byteArray) {
+        classWeaves.add(byteArray);
     }
 }

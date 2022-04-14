@@ -466,29 +466,7 @@ public class PerThreadBinaryFileAggregatedLogger implements
     }
 
     public void writeWeaveInfo(byte[] byteArray) {
-        int currentThreadId = threadId.get();
-        try {
-
-            if (getThreadEventCount(currentThreadId).get() >= MAX_EVENTS_PER_FILE) {
-                prepareNextFile(currentThreadId);
-            }
-            int bytesToWrite = 1 + 4 + byteArray.length;
-
-
-            ByteArrayOutputStream baos = new ByteArrayOutputStream(bytesToWrite);
-            DataOutputStream tempOut = new DataOutputStream(baos);
-
-
-            tempOut.writeByte(6);
-            tempOut.writeInt(byteArray.length);
-            tempOut.write(byteArray);
-            getStreamForThread(currentThreadId).write(baos.toByteArray());
-            getThreadEventCount(currentThreadId).addAndGet(1);
-            // System.err.println("Write weave 6," + byteArray.length + " - " + new String(byteArray) + " = " + this.bytesWritten);
-        } catch (IOException e) {
-            errorLogger.log(e);
-        }
-
+        fileCollector.addClassWeaveInfo(byteArray);
     }
 
     public void shutdown() throws IOException {

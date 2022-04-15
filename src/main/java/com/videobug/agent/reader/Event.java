@@ -1,6 +1,6 @@
 package com.videobug.agent.reader;
 
-import com.insidious.common.weaver.ClassInfo;
+import com.insidious.common.parser.KaitaiInsidiousClassWeaveParser;
 import com.insidious.common.weaver.MethodInfo;
 import com.videobug.agent.weaver.DataInfo;
 import com.videobug.agent.weaver.method.Descriptor;
@@ -224,7 +224,7 @@ public class Event {
 	/**
 	 * @return ClassInfo object of the event.
 	 */
-	public ClassInfo getClassEntry() {
+	public KaitaiInsidiousClassWeaveParser.ClassInfo getClassEntry() {
 		return map.getClassEntry(getMethodEntry().getClassId());
 	}
 

@@ -1,5 +1,6 @@
 package com.videobug.agent.logging.perthread;
 
+import com.insidious.common.BloomFilterUtil;
 import com.insidious.common.UploadFile;
 import com.videobug.agent.logging.IErrorLogger;
 import com.videobug.agent.logging.util.AggregatedFileLogger;

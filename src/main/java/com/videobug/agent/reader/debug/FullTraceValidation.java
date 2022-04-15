@@ -5,8 +5,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 
+import com.insidious.common.weaver.MethodInfo;
 import com.videobug.agent.logging.util.EventDataStream;
-import com.videobug.agent.weaver.MethodInfo;
 import com.videobug.agent.EventType;
 import com.videobug.agent.reader.Event;
 import com.videobug.agent.reader.EventReader;

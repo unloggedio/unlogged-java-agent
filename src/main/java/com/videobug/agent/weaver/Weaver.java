@@ -1,6 +1,9 @@
 package com.videobug.agent.weaver;
 
 
+import com.insidious.common.weaver.ClassInfo;
+import com.insidious.common.weaver.LogLevel;
+import com.insidious.common.weaver.MethodInfo;
 import com.videobug.agent.logging.IErrorLogger;
 import com.videobug.agent.logging.Logging;
 

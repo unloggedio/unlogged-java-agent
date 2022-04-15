@@ -6,9 +6,9 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 
-import com.videobug.agent.weaver.ClassInfo;
+import com.insidious.common.weaver.ClassInfo;
+import com.insidious.common.weaver.MethodInfo;
 import com.videobug.agent.weaver.DataInfo;
-import com.videobug.agent.weaver.MethodInfo;
 import com.videobug.agent.weaver.Weaver;
 
 /**

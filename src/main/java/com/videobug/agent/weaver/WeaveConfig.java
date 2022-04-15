@@ -1,5 +1,6 @@
 package com.videobug.agent.weaver;
 
+import com.insidious.common.weaver.LogLevel;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.CompositeByteBuf;

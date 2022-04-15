@@ -2,7 +2,7 @@ package com.videobug.agent.reader.debug;
 
 import java.util.Stack;
 
-import com.videobug.agent.weaver.MethodInfo;
+import com.insidious.common.weaver.MethodInfo;
 import com.videobug.agent.EventType;
 import com.videobug.agent.reader.Event;
 

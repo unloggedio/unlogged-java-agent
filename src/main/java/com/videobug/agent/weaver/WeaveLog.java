@@ -4,6 +4,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
 
+import com.insidious.common.weaver.MethodInfo;
 import com.videobug.agent.weaver.method.Descriptor;
 import com.videobug.agent.EventType;
 

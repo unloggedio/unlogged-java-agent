@@ -3,7 +3,7 @@ package com.videobug.agent.reader.debug;
 
 import java.util.Stack;
 
-import com.videobug.agent.weaver.MethodInfo;
+import com.insidious.common.weaver.MethodInfo;
 
 
 /**
@@ -64,7 +64,7 @@ public class CallStack {
 	
 	/**
 	 * Accessor for a MethodInfo on the call stack.
-	 * @param index specifies the location in the stack.
+	 * @param pos specifies the location in the stack.
 	 * @return MethodInfo stored in the location.
 	 */
 	public MethodInfo getMethodOnStack(int pos) {

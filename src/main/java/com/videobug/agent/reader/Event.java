@@ -1,5 +1,6 @@
 package com.videobug.agent.reader;
 
+import com.insidious.common.weaver.MethodInfo;
 import com.videobug.agent.weaver.ClassInfo;
 import com.videobug.agent.weaver.DataInfo;
 import com.videobug.agent.weaver.MethodInfo;

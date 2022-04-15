@@ -137,18 +137,26 @@ public class ClassInfo {
 
         try {
             dao.writeInt(classId);
+
             dao.writeInt(container.getBytes().length);
             dao.write(container.getBytes());
+
             dao.writeInt(filename.getBytes().length);
             dao.write(filename.getBytes());
+
             dao.writeInt(className.getBytes().length);
             dao.write(className.getBytes());
+
             dao.writeInt(loglevel.toString().getBytes().length);
             dao.write(loglevel.toString().getBytes());
+
             dao.writeInt(hash.getBytes().length);
             dao.write(hash.getBytes());
+
             dao.writeInt(classLoaderIdentifier.getBytes().length);
             dao.write(classLoaderIdentifier.getBytes());
+
+            return baos.toByteArray();
 
         } catch (IOException e) {
             e.printStackTrace();

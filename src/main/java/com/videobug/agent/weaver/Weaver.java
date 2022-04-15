@@ -214,7 +214,6 @@ public class Weaver implements IErrorLogger {
             byte[] classInfoBytes = classInfo.toBytes();
 //                classIdWriter.write(str);
 //                classIdWriter.write(lineSeparator);
-            out.writeInt(classInfoBytes.length);
             out.write(classInfoBytes);
 //            System.err.println("Wrote bytes - " + str.length() + " - " + str);
 
@@ -233,7 +232,6 @@ public class Weaver implements IErrorLogger {
 //                }
             for (DataInfo dataInfo : dataInfoEntries) {
                 byte[] classWeaveBytes = dataInfo.toBytes();
-                out.writeInt(classWeaveBytes.length);
                 out.write(classWeaveBytes);
             }
 //                dataIdWriter.flush();
@@ -250,12 +248,9 @@ public class Weaver implements IErrorLogger {
             out.writeInt(methods.size());
 //                }
             for (MethodInfo method : methods) {
-                String methodString = method.toString();
                 byte[] methodBytes = method.toBytes();
 //                    methodIdWriter.write(methodString);
 //                    methodIdWriter.write(lineSeparator);
-
-                out.writeInt(methodBytes.length);
                 out.write(methodBytes);
 
             }

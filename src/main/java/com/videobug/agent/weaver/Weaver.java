@@ -1,7 +1,7 @@
 package com.videobug.agent.weaver;
 
 
-import com.insidious.common.weaver.ClassInfo;
+import com.insidious.common.parser.KaitaiInsidiousClassWeaveParser;
 import com.insidious.common.weaver.LogLevel;
 import com.insidious.common.weaver.MethodInfo;
 import com.videobug.agent.logging.IErrorLogger;
@@ -177,7 +177,8 @@ public class Weaver implements IErrorLogger {
                 }
             }
 
-            ClassInfo classIdEntry = new ClassInfo(classId, container, filename, log.getFullClassName(), level, hash, c.getClassLoaderIdentifier());
+            ClassInfo classIdEntry
+                    = new ClassInfo(classId, container, filename, log.getFullClassName(), level, hash, c.getClassLoaderIdentifier());
             finishClassProcess(classIdEntry, log);
             if (dumpOption) doSave(filename, c.getWeaveResult(), CATEGORY_WOVEN_CLASSES);
 
@@ -254,8 +255,8 @@ public class Weaver implements IErrorLogger {
 //                    methodIdWriter.write(methodString);
 //                    methodIdWriter.write(lineSeparator);
 
-                out.writeInt(methodString.length());
-                out.write(methodString.getBytes());
+                out.writeInt(methodBytes.length);
+                out.write(methodBytes);
 
             }
 //                methodIdWriter.flush();

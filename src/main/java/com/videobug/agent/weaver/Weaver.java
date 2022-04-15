@@ -207,12 +207,11 @@ public class Weaver implements IErrorLogger {
 //        System.err.println("Finish class weave");
 
         try {
-            String classToString = classInfo.toString();
+            byte[] classInfoBytes = classInfo.toBytes();
 //                classIdWriter.write(str);
 //                classIdWriter.write(lineSeparator);
-
-            out.writeInt(classToString.length());
-            out.write(classToString.getBytes());
+            out.writeInt(classInfoBytes.length);
+            out.write(classInfoBytes);
 //            System.err.println("Wrote bytes - " + str.length() + " - " + str);
 
 

@@ -3,8 +3,8 @@ package com.videobug.agent.reader;
 import java.io.File;
 import java.io.IOException;
 
+import com.insidious.common.weaver.MethodInfo;
 import com.videobug.agent.weaver.DataInfo;
-import com.videobug.agent.weaver.MethodInfo;
 
 /**
  * A main class to read log files from a specified directory and 

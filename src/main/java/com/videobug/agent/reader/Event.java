@@ -1,9 +1,8 @@
 package com.videobug.agent.reader;
 
+import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.MethodInfo;
-import com.videobug.agent.weaver.ClassInfo;
 import com.videobug.agent.weaver.DataInfo;
-import com.videobug.agent.weaver.MethodInfo;
 import com.videobug.agent.weaver.method.Descriptor;
 import com.videobug.agent.EventType;
 import org.objectweb.asm.Type;

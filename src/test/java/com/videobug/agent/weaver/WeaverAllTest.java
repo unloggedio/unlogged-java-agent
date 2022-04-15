@@ -8,6 +8,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import com.insidious.common.weaver.LogLevel;
 import com.videobug.agent.EventType;
 import com.videobug.agent.logging.Logging;
 import com.videobug.agent.logging.io.MemoryLogger;

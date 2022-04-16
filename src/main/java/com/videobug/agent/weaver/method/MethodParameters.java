@@ -2,6 +2,7 @@ package com.videobug.agent.weaver.method;
 
 import java.util.ArrayList;
 
+import com.insidious.common.weaver.Descriptor;
 import com.videobug.agent.logging.util.TypeIdMap;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;

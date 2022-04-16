@@ -2,8 +2,8 @@ package com.videobug.agent.reader.debug;
 
 import java.util.Stack;
 
+import com.insidious.common.weaver.EventType;
 import com.insidious.common.weaver.MethodInfo;
-import com.videobug.agent.EventType;
 import com.videobug.agent.reader.Event;
 
 /**

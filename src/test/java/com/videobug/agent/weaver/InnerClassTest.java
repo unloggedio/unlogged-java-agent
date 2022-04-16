@@ -4,10 +4,10 @@ import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 
-import com.videobug.agent.EventType;
+import com.insidious.common.weaver.Descriptor;
+import com.insidious.common.weaver.EventType;
 import com.videobug.agent.logging.Logging;
 import com.videobug.agent.logging.io.MemoryLogger;
-import com.videobug.agent.weaver.method.Descriptor;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;

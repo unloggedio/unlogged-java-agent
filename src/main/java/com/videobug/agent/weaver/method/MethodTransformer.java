@@ -1,6 +1,7 @@
 package com.videobug.agent.weaver.method;
 
-import com.videobug.agent.EventType;
+import com.insidious.common.weaver.Descriptor;
+import com.insidious.common.weaver.EventType;
 import com.videobug.agent.weaver.WeaveLog;
 import com.videobug.agent.weaver.WeaveConfig;
 
@@ -1058,9 +1059,9 @@ public class MethodTransformer extends LocalVariablesSorter {
 	/**
 	 * Generate logging instructions.
 	 * 
-	 * @param paramName specifies a data name.
+	 * @param eventType specifies a data name.
 	 * @param valueDesc specifies a data type.  If it has no data, use Descriptor.Void.  
-	 * @param label
+	 * @param label specifies the label for that line
 	 * @return dataId.
 	 */
 	private int generateLogging(EventType eventType, Descriptor valueDesc, String label) {
@@ -1079,7 +1080,7 @@ public class MethodTransformer extends LocalVariablesSorter {
 	 * Generate logging instructions to record a copy value on the stack top.
 	 * This call does not change a stack.
 	 * 
-	 * @param paramName
+	 * @param eventType
 	 * @param valueDesc
 	 * @param label
 	 */
@@ -1102,7 +1103,7 @@ public class MethodTransformer extends LocalVariablesSorter {
 	}
 	
 	/**
-	 * @param method specifies a method containing an instruction.
+	 * @param instructions specifies a method containing an instruction.
 	 * @param index specifies the position of an instruction in the list of instructions.
 	 * @return a string representation of an instruction.
 	 */

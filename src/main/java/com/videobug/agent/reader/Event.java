@@ -1,10 +1,10 @@
 package com.videobug.agent.reader;
 
 import com.insidious.common.parser.KaitaiInsidiousClassWeaveParser;
+import com.insidious.common.weaver.DataInfo;
+import com.insidious.common.weaver.Descriptor;
+import com.insidious.common.weaver.EventType;
 import com.insidious.common.weaver.MethodInfo;
-import com.videobug.agent.weaver.DataInfo;
-import com.videobug.agent.weaver.method.Descriptor;
-import com.videobug.agent.EventType;
 import org.objectweb.asm.Type;
 
 /**

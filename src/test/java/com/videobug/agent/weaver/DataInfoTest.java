@@ -1,7 +1,8 @@
 package com.videobug.agent.weaver;
 
-import com.videobug.agent.EventType;
-import com.videobug.agent.weaver.method.Descriptor;
+import com.insidious.common.weaver.DataInfo;
+import com.insidious.common.weaver.Descriptor;
+import com.insidious.common.weaver.EventType;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -12,7 +13,8 @@ public class DataInfoTest {
 	 */
 	@Test
 	public void testAttributes() {
-		DataInfo entry = new DataInfo(0, 1, 2, 3, 4, EventType.CALL, Descriptor.Object, "Desc=(IJ)Ljava/lang/Object;,Type=1,Empty=,Property=2");
+		DataInfo entry = new DataInfo(0, 1, 2, 3, 4, EventType.CALL,
+				Descriptor.Object, "Desc=(IJ)Ljava/lang/Object;,Type=1,Empty=,Property=2");
 		Assert.assertEquals("(IJ)Ljava/lang/Object;", entry.getAttribute("Desc", ""));
 		Assert.assertEquals("1", entry.getAttribute("Type", ""));
 		Assert.assertEquals("2", entry.getAttribute("Property", ""));

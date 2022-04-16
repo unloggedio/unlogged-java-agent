@@ -8,9 +8,9 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.ListIterator;
 
+import com.insidious.common.weaver.EventType;
 import com.videobug.agent.logging.io.EventStreamLogger;
 import com.videobug.agent.logging.util.EventDataStream;
-import com.videobug.agent.EventType;
 
 /**
  * This class is to read a sequence of events from .slg files.

@@ -1,25 +1,25 @@
 package com.videobug.agent.logging.util;
 
+import com.insidious.common.parser.KaitaiInsidiousClassWeaveParser;
+import com.insidious.common.weaver.ClassInfo;
+import com.insidious.common.weaver.Descriptor;
+import com.insidious.common.weaver.EventType;
+import com.insidious.common.weaver.LogLevel;
 import com.videobug.agent.logging.IErrorLogger;
-import com.videobug.agent.logging.perthread.*;
-import net.openhft.chronicle.bytes.MethodReader;
-import net.openhft.chronicle.core.pool.ClassAliasPool;
-import net.openhft.chronicle.queue.ChronicleQueue;
-import net.openhft.chronicle.queue.ExcerptAppender;
-import net.openhft.chronicle.queue.ExcerptTailer;
-import net.openhft.chronicle.queue.impl.single.SingleChronicleQueueBuilder;
-import orestes.bloomfilter.FilterBuilder;
+import com.videobug.agent.logging.perthread.PerThreadBinaryFileAggregatedLogger;
+import com.videobug.agent.weaver.WeaveConfig;
+import com.videobug.agent.weaver.WeaveLog;
+import com.videobug.agent.weaver.Weaver;
+import io.kaitai.struct.ByteBufferKaitaiStream;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -64,6 +64,41 @@ public class PerThreadBinaryFileAggregatedLoggerTest {
         eventLogger.shutdown();
         Thread.sleep(1000);
 
+    }
+
+    @Test
+    public void classWeaverTest() throws IOException {
+        Weaver weaver = new Weaver(new File("test-output"),
+                new WeaveConfig("", "", "", ""));
+
+        WeaveLog weaveLog = new WeaveLog(1, 1, 1);
+        ClassInfo classInfo = new ClassInfo(
+                1, "class-container", "filename",
+                "classname", LogLevel.Normal, "hash", "classLoaderIdentifier"
+        );
+
+        weaveLog.startMethod(
+                "classname", "methodname", "methoddesc", 4,
+                "sourceFileName", "methodHash"
+        );
+
+        weaveLog.nextDataId(3, 4, EventType.ARRAY_LENGTH,
+                Descriptor.Integer, "attributes");
+
+        byte[] weaveBytes = weaver.finishClassProcess(classInfo, weaveLog);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        DataOutputStream dao = new DataOutputStream(out);
+        dao.writeInt(1);
+        dao.write(weaveBytes);
+
+        KaitaiInsidiousClassWeaveParser parsedWeaveInfo
+                = new KaitaiInsidiousClassWeaveParser(new ByteBufferKaitaiStream(out.toByteArray()));
+
+        assert parsedWeaveInfo.classCount() == 1;
+        assert parsedWeaveInfo.classInfo().get(0).classId() == 1;
+        assert "classname".equals(parsedWeaveInfo.classInfo().get(0).className().value());
+        assert parsedWeaveInfo.classInfo().get(0).methodCount() == 1;
+        assert parsedWeaveInfo.classInfo().get(0).probeCount() == 1;
     }
 
 //    @Test

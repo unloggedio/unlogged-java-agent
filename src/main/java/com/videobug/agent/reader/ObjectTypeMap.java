@@ -31,29 +31,6 @@ public class ObjectTypeMap {
 		objectTypes = new ArrayList<>(1024);
 		objectTypes.add(new int[LIST_PER_ITEMS]);
 		register(0, -1); // no type information is available for null
-		File[] filenames = SequentialFileList.getSortedList(logfileDir, "LOG$ObjectTypes", ".txt");
-		try {
-			for (File f: filenames) {
-				BufferedReader reader = new BufferedReader(new FileReader(f));
-				for (String line = reader.readLine(); line != null; line = reader.readLine()) {
-					int idx = line.indexOf(',');
-					if (idx >= 0) {
-						String objIdString = line.substring(0, idx);
-						String typeIdString = line.substring(idx+1);
-						try {
-							long objId = Long.parseLong(objIdString);
-							int typeId = Integer.parseInt(typeIdString);
-							register(objId, typeId);
-						} catch (NumberFormatException e) {
-							// ignore the line
-						}
-					}
-				}
-				reader.close();
-			}
-			typeList = new TypeList(new File(logfileDir, EventStreamLogger.FILENAME_TYPEID));
-		} catch (IOException e) {
-		}
 	}
 	
 	/**
@@ -73,7 +50,7 @@ public class ObjectTypeMap {
 	}
 	
 	/**
-	 * @param specifies an object ID.
+	 * @param objectId an object ID.
 	 * @return type ID for the specified object.
 	 */
 	public int getObjectTypeId(long objectId) {
@@ -83,7 +60,7 @@ public class ObjectTypeMap {
 	}
 
 	/**
-	 * @param specifies an object ID.
+	 * @param objectId an object ID.
 	 * @return type name for the specified object.
 	 */
 	public String getObjectTypeName(long objectId) {
@@ -96,7 +73,7 @@ public class ObjectTypeMap {
 	}
 	
 	/**
-	 * @param specifies a type ID.
+	 * @param typeId a type ID.
 	 * @return type name for the specified type ID.
 	 */
 	public String getTypeName(int typeId) {

@@ -1,7 +1,8 @@
 package com.videobug.agent.weaver;
 
 
-import com.insidious.common.parser.KaitaiInsidiousClassWeaveParser;
+import com.insidious.common.weaver.ClassInfo;
+import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.LogLevel;
 import com.insidious.common.weaver.MethodInfo;
 import com.videobug.agent.logging.IErrorLogger;
@@ -178,9 +179,11 @@ public class Weaver implements IErrorLogger {
             }
 
             ClassInfo classIdEntry
-                    = new ClassInfo(classId, container, filename, log.getFullClassName(), level, hash, c.getClassLoaderIdentifier());
-            finishClassProcess(classIdEntry, log);
-            if (dumpOption) doSave(filename, c.getWeaveResult(), CATEGORY_WOVEN_CLASSES);
+                    = new ClassInfo(classId, container, filename,
+                    log.getFullClassName(), level, hash, c.getClassLoaderIdentifier());
+
+            byte[] classWeaveInfoByteArray = finishClassProcess(classIdEntry, log);
+            Logging.recordWeaveInfo(classWeaveInfoByteArray);
 
             return c.getWeaveResult();
 
@@ -203,19 +206,14 @@ public class Weaver implements IErrorLogger {
      * @param classInfo      records the class information.
      * @param result records the state after weaving.
      */
-    private void finishClassProcess(ClassInfo classInfo, WeaveLog result) {
+    public byte[] finishClassProcess(ClassInfo classInfo, WeaveLog result) {
 
         ByteArrayOutputStream boas = new ByteArrayOutputStream();
         DataOutputStream out = new DataOutputStream(boas);
 
-//        System.err.println("Finish class weave");
-
         try {
             byte[] classInfoBytes = classInfo.toBytes();
-//                classIdWriter.write(str);
-//                classIdWriter.write(lineSeparator);
             out.write(classInfoBytes);
-//            System.err.println("Wrote bytes - " + str.length() + " - " + str);
 
 
         } catch (IOException e) {
@@ -223,49 +221,33 @@ public class Weaver implements IErrorLogger {
         }
         classId++;
 
-        // Commit location IDs to the final output
         confirmedDataId = result.getNextDataId();
         try {
             ArrayList<DataInfo> dataInfoEntries = result.getDataEntries();
-//                if (out != null) {
             out.writeInt(dataInfoEntries.size());
-//                }
             for (DataInfo dataInfo : dataInfoEntries) {
                 byte[] classWeaveBytes = dataInfo.toBytes();
                 out.write(classWeaveBytes);
             }
-//                dataIdWriter.flush();
         } catch (IOException e) {
             e.printStackTrace(logger);
-//            dataIdWriter = null;
         }
 
         // Commit method IDs to the final output
         confirmedMethodId = result.getNextMethodId();
         try {
             ArrayList<MethodInfo> methods = result.getMethods();
-//                if (out != null) {
             out.writeInt(methods.size());
-//                }
             for (MethodInfo method : methods) {
                 byte[] methodBytes = method.toBytes();
-//                    methodIdWriter.write(methodString);
-//                    methodIdWriter.write(lineSeparator);
                 out.write(methodBytes);
 
             }
-//                methodIdWriter.flush();
         } catch (IOException e) {
             e.printStackTrace(logger);
-//                methodIdWriter = null;
         }
-//        }
 
-
-        byte[] array = boas.toByteArray();
-//        System.err.println("Weave info - " + new String(array));
-        Logging.recordWeaveInfo(array);
-
+        return boas.toByteArray();
     }
 
 

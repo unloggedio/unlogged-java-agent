@@ -176,7 +176,7 @@
         <dependency>
             <groupId>com.videobug</groupId>
             <artifactId>common</artifactId>
-            <version>1.0.12-SNAPSHOT</version>
+            <version>1.0.15-SNAPSHOT</version>
         </dependency>
     </dependencies>
 </project>

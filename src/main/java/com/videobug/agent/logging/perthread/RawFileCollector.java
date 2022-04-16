@@ -2,9 +2,9 @@ package com.videobug.agent.logging.perthread;
 
 import com.insidious.common.UploadFile;
 import com.videobug.agent.logging.IErrorLogger;
-import com.videobug.agent.logging.perthread.pojo.ObjectInfoDocument;
-import com.videobug.agent.logging.perthread.pojo.StringInfoDocument;
-import com.videobug.agent.logging.perthread.pojo.TypeInfoDocument;
+import com.insidious.common.cqengine.ObjectInfoDocument;
+import com.insidious.common.cqengine.StringInfoDocument;
+import com.insidious.common.cqengine.TypeInfoDocument;
 import com.videobug.agent.logging.util.FileNameGenerator;
 
 import java.io.File;

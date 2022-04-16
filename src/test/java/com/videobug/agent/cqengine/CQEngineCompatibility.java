@@ -7,7 +7,7 @@ import com.googlecode.cqengine.persistence.disk.DiskPersistence;
 import com.googlecode.cqengine.persistence.support.serialization.KryoSerializer;
 import com.googlecode.cqengine.query.Query;
 import com.googlecode.cqengine.resultset.ResultSet;
-import com.videobug.agent.logging.perthread.pojo.TypeInfoDocument;
+import com.insidious.common.cqengine.TypeInfoDocument;
 import org.junit.Test;
 
 import java.io.File;

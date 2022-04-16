@@ -6,10 +6,10 @@ import com.googlecode.cqengine.index.radixinverted.InvertedRadixTreeIndex;
 import com.googlecode.cqengine.persistence.disk.DiskPersistence;
 import com.insidious.common.BloomFilterUtil;
 import com.insidious.common.UploadFile;
+import com.insidious.common.cqengine.ObjectInfoDocument;
+import com.insidious.common.cqengine.StringInfoDocument;
+import com.insidious.common.cqengine.TypeInfoDocument;
 import com.videobug.agent.logging.IErrorLogger;
-import com.videobug.agent.logging.perthread.pojo.ObjectInfoDocument;
-import com.videobug.agent.logging.perthread.pojo.StringInfoDocument;
-import com.videobug.agent.logging.perthread.pojo.TypeInfoDocument;
 import orestes.bloomfilter.BloomFilter;
 import orestes.bloomfilter.json.BloomFilterConverter;
 
@@ -39,6 +39,7 @@ public class ArchivedIndexWriter implements IndexOutputStream {
     private final Lock indexWriterLock = new ReentrantLock();
     private final String outputDir;
     private final File currentArchiveFile;
+    private final List<byte[]> classWeaves;
     private boolean shutdown;
     private BlockingQueue<StringInfoDocument> stringsToIndex;
     private BlockingQueue<TypeInfoDocument> typesToIndex;
@@ -46,18 +47,15 @@ public class ArchivedIndexWriter implements IndexOutputStream {
     private ConcurrentIndexedCollection<TypeInfoDocument> typeInfoIndex;
     private ConcurrentIndexedCollection<StringInfoDocument> stringInfoIndex;
     private ConcurrentIndexedCollection<ObjectInfoDocument> objectInfoIndex;
-
-    private DiskPersistence<ObjectInfoDocument, Integer> objectInfoDocumentIntegerDiskPersistence;
+    private DiskPersistence<ObjectInfoDocument, Long> objectInfoDocumentIntegerDiskPersistence;
     private DiskPersistence<StringInfoDocument, Long> stringInfoDocumentStringDiskPersistence;
-    private DiskPersistence<TypeInfoDocument, String> typeInfoDocumentStringDiskPersistence;
-
+    private DiskPersistence<TypeInfoDocument, Integer> typeInfoDocumentStringDiskPersistence;
     private List<UploadFile> fileIndexBytes = new LinkedList<>();
     private BloomFilter<Long> aggregatedValueSet
             = BloomFilterUtil.newBloomFilterForValues(BloomFilterUtil.BLOOM_AGGREGATED_FILTER_BIT_SIZE);
     private BloomFilter<Integer> aggregatedProbeIdSet
             = BloomFilterUtil.newBloomFilterForProbes(BloomFilterUtil.BLOOM_AGGREGATED_FILTER_BIT_SIZE);
     private ZipOutputStream archivedIndexOutputStream;
-    private final List<byte[]> classWeaves;
 
     public ArchivedIndexWriter(File archiveFile, List<byte[]> classWeaves, IErrorLogger errorLogger) throws IOException {
         this.errorLogger = errorLogger;
@@ -95,9 +93,12 @@ public class ArchivedIndexWriter implements IndexOutputStream {
             objectIndexFile.delete();
         }
 
-        typeInfoDocumentStringDiskPersistence = DiskPersistence.onPrimaryKeyInFile(TypeInfoDocument.TYPE_NAME, typeIndexFile);
-        stringInfoDocumentStringDiskPersistence = DiskPersistence.onPrimaryKeyInFile(StringInfoDocument.STRING_ID, stringIndexFile);
-        objectInfoDocumentIntegerDiskPersistence = DiskPersistence.onPrimaryKeyInFile(ObjectInfoDocument.OBJECT_TYPE_ID, objectIndexFile);
+        typeInfoDocumentStringDiskPersistence
+                = DiskPersistence.onPrimaryKeyInFile(TypeInfoDocument.TYPE_ID, typeIndexFile);
+        stringInfoDocumentStringDiskPersistence
+                = DiskPersistence.onPrimaryKeyInFile(StringInfoDocument.STRING_ID, stringIndexFile);
+        objectInfoDocumentIntegerDiskPersistence
+                = DiskPersistence.onPrimaryKeyInFile(ObjectInfoDocument.OBJECT_ID, objectIndexFile);
 
         typeInfoIndex = new ConcurrentIndexedCollection<>(typeInfoDocumentStringDiskPersistence);
         stringInfoIndex = new ConcurrentIndexedCollection<>(stringInfoDocumentStringDiskPersistence);

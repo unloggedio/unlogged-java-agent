@@ -57,7 +57,7 @@ public class RuntimeWeaverParameters {
      */
     private boolean weaveSecurityManagerClass = false;
     private Mode mode = Mode.PerThread;
-    private int filesPerIndex = 10;
+    private int filesPerIndex = 100;
 
     public RuntimeWeaverParameters(String args) {
         if (args == null) args = "";

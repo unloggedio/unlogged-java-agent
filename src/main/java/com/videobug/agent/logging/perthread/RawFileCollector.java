@@ -67,8 +67,11 @@ public class RawFileCollector implements Runnable {
 
     public void upload() throws IOException {
         try {
-            UploadFile logFile = fileList.poll(0, TimeUnit.SECONDS);
+            UploadFile logFile = fileList.poll(1, TimeUnit.SECONDS);
             if (logFile == null) {
+                if (fileCount > 0) {
+                    prepareArchive();
+                }
                 return;
             }
 
@@ -80,6 +83,7 @@ public class RawFileCollector implements Runnable {
             for (UploadFile file : logFiles) {
                 File fileToUpload = new File(file.path);
                 archivedIndexWriter.writeFileEntry(file);
+                fileCount++;
                 fileToUpload.delete();
             }
         } catch (IOException e) {

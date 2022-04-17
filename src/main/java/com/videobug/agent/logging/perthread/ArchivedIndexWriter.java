@@ -281,10 +281,7 @@ public class ArchivedIndexWriter implements IndexOutputStream {
 
     public void close() {
         shutdown = true;
-        completeArchive(
-                stringsToIndex,
-                objectsToIndex,
-                typesToIndex);
+        completeArchive(stringsToIndex, objectsToIndex, typesToIndex);
     }
 
 

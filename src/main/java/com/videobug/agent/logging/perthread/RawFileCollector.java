@@ -21,6 +21,7 @@ public class RawFileCollector implements Runnable {
     private final BlockingQueue<UploadFile> fileList;
     private final FileNameGenerator indexFileNameGenerator;
     private final List<byte[]> classWeaves = new LinkedList<>();
+    private final List<TypeInfoDocument> typeInfoDocuments;
     public int filesPerArchive = 0;
     private boolean shutdown = false;
     private boolean skipUploads;
@@ -39,6 +40,7 @@ public class RawFileCollector implements Runnable {
         this.indexFileNameGenerator = indexFileNameGenerator;
         this.errorLogger = errorLogger;
         this.fileList = fileList;
+        this.typeInfoDocuments = new LinkedList<>();
         prepareIndexItemBuffers();
         prepareArchive();
 
@@ -53,6 +55,7 @@ public class RawFileCollector implements Runnable {
         if (archivedIndexWriterOld != null) {
             EXECUTOR_SERVICE.submit(() -> {
                 drainItemsToIndex(archivedIndexWriterOld);
+                archivedIndexWriterOld.drainQueueToIndex(List.of(), typeInfoDocuments, List.of());
                 archivedIndexWriterOld.close();
             });
         }
@@ -103,7 +106,6 @@ public class RawFileCollector implements Runnable {
 
         List<ObjectInfoDocument> objectInfoDocuments = new LinkedList<>();
         List<StringInfoDocument> stringInfoDocuments = new LinkedList<>();
-        List<TypeInfoDocument> typeInfoDocuments = new LinkedList<>();
 
         objectsToIndex.drainTo(objectInfoDocuments);
         typesToIndex.drainTo(typeInfoDocuments);
@@ -114,7 +116,7 @@ public class RawFileCollector implements Runnable {
         }
 
         prepareIndexItemBuffers();
-        writer.drainQueueToIndex(objectInfoDocuments, typeInfoDocuments, stringInfoDocuments);
+        writer.drainQueueToIndex(objectInfoDocuments, List.of(), stringInfoDocuments);
 
 
     }

@@ -128,9 +128,6 @@ public class ArchivedIndexWriter implements IndexOutputStream {
 
         long end = System.currentTimeMillis();
 
-        stringInfoIndex.retrieve(
-                com.googlecode.cqengine.query.QueryFactory.equal(StringInfoDocument.STRING_VALUE, "hello-string-13332"));
-
         errorLogger.log("Took [" + (end - start) / 1000 + "] seconds to index [" + itemCount + "] items");
     }
 

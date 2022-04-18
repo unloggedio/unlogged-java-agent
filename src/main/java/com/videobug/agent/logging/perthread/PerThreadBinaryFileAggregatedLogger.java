@@ -56,7 +56,7 @@ public class PerThreadBinaryFileAggregatedLogger implements
     private final Map<Integer, BloomFilter<Long>> valueIdFilterSet = new HashMap<>();
     private final Map<Integer, BloomFilter<Integer>> probeIdFilterSet = new HashMap<>();
 
-    private final long currentTimestamp = System.currentTimeMillis();
+    private long currentTimestamp = System.currentTimeMillis();
 
     ScheduledExecutorService threadPoolExecutor5Seconds = Executors.newScheduledThreadPool(1);
     ExecutorService threadPoolExecutor = Executors.newFixedThreadPool(4);
@@ -112,6 +112,7 @@ public class PerThreadBinaryFileAggregatedLogger implements
                 threadFileMap, this,
                 (theThreadId) -> {
                     try {
+                        currentTimestamp = System.currentTimeMillis();
                         prepareNextFile(theThreadId);
                     } catch (IOException e) {
                         errorLogger.log(e);
@@ -119,7 +120,7 @@ public class PerThreadBinaryFileAggregatedLogger implements
                     return null;
                 }, errorLogger);
         threadPoolExecutor5Seconds.
-                scheduleAtFixedRate(logFileTimeAgeChecker, 0, 200, TimeUnit.MILLISECONDS);
+                scheduleAtFixedRate(logFileTimeAgeChecker, 0, 731, TimeUnit.MILLISECONDS);
     }
 
 

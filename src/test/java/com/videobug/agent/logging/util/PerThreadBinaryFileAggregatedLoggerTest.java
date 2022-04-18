@@ -67,6 +67,39 @@ public class PerThreadBinaryFileAggregatedLoggerTest {
     }
 
     @Test
+    public void testLoggerIndex2() throws InterruptedException, IOException {
+        IErrorLogger errorLogger = new IErrorLogger() {
+            @Override
+            public void log(Throwable t) {
+                logger.error("", t);
+
+            }
+
+            @Override
+            public void log(String msg) {
+                logger.info(msg);
+            }
+
+            @Override
+            public void close() {
+
+            }
+        };
+        PerThreadBinaryFileAggregatedLogger eventLogger = new PerThreadBinaryFileAggregatedLogger(
+                "test-output-" + new Date().getTime(), errorLogger,
+                "token", "sessionId", "serverAddress", 64);
+
+        long start = System.currentTimeMillis();
+        ExecutorService executorService = Executors.newFixedThreadPool(12);
+
+        eventLogger.writeEvent(1, 1);
+
+//        eventLogger.shutdown();
+        Thread.sleep(5000);
+
+    }
+
+    @Test
     public void classWeaverTest() throws IOException {
         Weaver weaver = new Weaver(new File("test-output"),
                 new WeaveConfig("", "", "", ""));

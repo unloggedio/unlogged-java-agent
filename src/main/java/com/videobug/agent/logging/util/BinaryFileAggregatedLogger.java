@@ -410,6 +410,11 @@ public class BinaryFileAggregatedLogger implements Runnable, AggregatedFileLogge
         }
     }
 
+    @Override
+    public void shutdown() {
+
+    }
+
     class LogFileTimeExpiry implements Runnable {
 
         @Override

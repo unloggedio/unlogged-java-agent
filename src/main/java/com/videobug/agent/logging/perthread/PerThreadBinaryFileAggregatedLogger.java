@@ -9,6 +9,7 @@ import com.videobug.agent.logging.util.NetworkClient;
 import orestes.bloomfilter.BloomFilter;
 
 import java.io.*;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.*;
@@ -29,7 +30,7 @@ public class PerThreadBinaryFileAggregatedLogger implements
     /**
      * The number of events stored in a single file.
      */
-    public static final int MAX_EVENTS_PER_FILE = 10000 * 3;
+    public static final int MAX_EVENTS_PER_FILE = 10000 * 5;
     public static final int WRITE_BYTE_BUFFER_SIZE = 1024 * 1024;
     /**
      * This object records the number of threads observed by SELogger.
@@ -107,20 +108,18 @@ public class PerThreadBinaryFileAggregatedLogger implements
 
         threadPoolExecutor.submit(fileCollector);
 
-        if (serverAddress != null && serverAddress.length() > 5) {
-            logFileTimeAgeChecker = new FileEventCountThresholdChecker(
-                    threadFileMap, this,
-                    (theThreadId) -> {
-                        try {
-                            prepareNextFile(theThreadId);
-                        } catch (IOException e) {
-                            errorLogger.log(e);
-                        }
-                        return null;
-                    });
-            threadPoolExecutor5Seconds.
-                    scheduleAtFixedRate(logFileTimeAgeChecker, 0, 200, TimeUnit.MILLISECONDS);
-        }
+        logFileTimeAgeChecker = new FileEventCountThresholdChecker(
+                threadFileMap, this,
+                (theThreadId) -> {
+                    try {
+                        prepareNextFile(theThreadId);
+                    } catch (IOException e) {
+                        errorLogger.log(e);
+                    }
+                    return null;
+                }, errorLogger);
+        threadPoolExecutor5Seconds.
+                scheduleAtFixedRate(logFileTimeAgeChecker, 0, 200, TimeUnit.MILLISECONDS);
     }
 
 
@@ -138,6 +137,7 @@ public class PerThreadBinaryFileAggregatedLogger implements
 
     private synchronized void prepareNextFile(int currentThreadId) throws IOException {
 
+//        errorLogger.log("prepare next file [" + currentThreadId + "] " + Arrays.toString(new Exception().getStackTrace()));
 
         if (count.containsKey(currentThreadId) && threadFileMap.get(currentThreadId) != null) {
             int eventCount = count.get(currentThreadId).get();
@@ -149,7 +149,7 @@ public class PerThreadBinaryFileAggregatedLogger implements
         OutputStream out = threadFileMap.get(currentThreadId);
         if (out != null) {
             String currentFile = currentFileMap.get(currentThreadId);
-            errorLogger.log("flush existing file for thread [" + currentThreadId + "] -> " + currentFile);
+//            errorLogger.log("flush existing file for thread [" + currentThreadId + "] -> " + currentFile);
             out.flush();
             out.close();
 
@@ -328,6 +328,7 @@ public class PerThreadBinaryFileAggregatedLogger implements
 
     public void writeEvent(int probeId, long valueId) {
         if (skipUploads) {
+//            errorLogger.log("skip upload is true, skipping events");
             return;
         }
 
@@ -379,10 +380,10 @@ public class PerThreadBinaryFileAggregatedLogger implements
 
 
             getStreamForThread(currentThreadId).write(buffer);
-            int threadEventCount = getThreadEventCount(currentThreadId).addAndGet(1);
-//            if (threadEventCount > MAX_EVENTS_PER_FILE) {
-//                prepareNextFile(currentThreadId);
-//            }
+//            getStreamForThread(currentThreadId).flush();
+//            errorLogger.log("Wrote to buffer: [" + buffer.length + "] bytes");
+            getThreadEventCount(currentThreadId).addAndGet(1);
+
 
             valueIdFilterSet.get(currentThreadId).add(valueId);
             fileCollector.addValueId(valueId);

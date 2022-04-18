@@ -1,10 +1,10 @@
 package com.videobug.agent.logging.perthread;
 
 import com.insidious.common.UploadFile;
-import com.videobug.agent.logging.IErrorLogger;
 import com.insidious.common.cqengine.ObjectInfoDocument;
 import com.insidious.common.cqengine.StringInfoDocument;
 import com.insidious.common.cqengine.TypeInfoDocument;
+import com.videobug.agent.logging.IErrorLogger;
 import com.videobug.agent.logging.util.FileNameGenerator;
 
 import java.io.File;
@@ -20,6 +20,7 @@ public class RawFileCollector implements Runnable {
     private final IErrorLogger errorLogger;
     private final BlockingQueue<UploadFile> fileList;
     private final FileNameGenerator indexFileNameGenerator;
+    private final List<byte[]> classWeaves = new LinkedList<>();
     public int filesPerArchive = 0;
     private boolean shutdown = false;
     private boolean skipUploads;
@@ -28,7 +29,6 @@ public class RawFileCollector implements Runnable {
     private BlockingQueue<StringInfoDocument> stringsToIndex;
     private BlockingQueue<TypeInfoDocument> typesToIndex;
     private BlockingQueue<ObjectInfoDocument> objectsToIndex;
-    private final List<byte[]> classWeaves = new LinkedList<>();
 
     public RawFileCollector(int filesPerArchive,
                             FileNameGenerator indexFileNameGenerator,
@@ -70,6 +70,7 @@ public class RawFileCollector implements Runnable {
             UploadFile logFile = fileList.poll(1, TimeUnit.SECONDS);
             if (logFile == null) {
                 if (fileCount > 0) {
+                    errorLogger.log("files from queue, currently [" + fileCount + "] files in list");
                     prepareArchive();
                 }
                 return;

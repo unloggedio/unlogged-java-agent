@@ -6,6 +6,7 @@ import com.videobug.agent.logging.util.AggregatedFileLogger;
 import com.videobug.agent.logging.util.ObjectIdAggregatedStream;
 import com.videobug.agent.logging.util.TypeIdAggregatedStreamMap;
 
+import java.io.IOException;
 import java.util.Date;
 
 /**
@@ -42,6 +43,11 @@ public class EventStreamAggregatedLogger implements IEventLogger {
     public void close() {
         System.out.printf("Close event stream aggregated logger\n");
         objectIdMap.close();
+        try {
+            aggregatedLogger.shutdown();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     /**

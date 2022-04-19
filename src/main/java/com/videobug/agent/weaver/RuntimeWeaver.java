@@ -2,8 +2,8 @@ package com.videobug.agent.weaver;
 
 import com.videobug.agent.logging.IEventLogger;
 import com.videobug.agent.logging.Logging;
-import com.videobug.agent.logging.util.BinaryFileAggregatedLogger;
 import com.videobug.agent.logging.perthread.PerThreadBinaryFileAggregatedLogger;
+import com.videobug.agent.logging.util.BinaryFileAggregatedLogger;
 import org.objectweb.asm.ClassReader;
 
 import java.io.File;
@@ -108,8 +108,8 @@ public class RuntimeWeaver implements ClassFileTransformer {
      * @param inst
      */
     public static void premain(String agentArgs, Instrumentation inst) throws IOException {
-        System.err.println("Premain: " + agentArgs + " - " + inst.getAllLoadedClasses());
-
+        String agentVersion = RuntimeWeaver.class.getPackage().getImplementationVersion();
+        System.err.println("Starting VideoBug Agent: [" + agentVersion + "] with arguments [" + agentArgs + "]");
 
         final RuntimeWeaver runtimeWeaver = new RuntimeWeaver(agentArgs);
         Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {

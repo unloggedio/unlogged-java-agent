@@ -114,6 +114,7 @@ public class ClassTransformer extends ClassVisitor {
 	@Override
 	public void visit(int version, int access, String name, String signature,
 			String superName, String[] interfaces) {
+//		System.err.println("Visit class ["+ name + "]");
 		this.fullClassName = name;
 		this.weavingInfo.setFullClassName(fullClassName);
 		int index = name.lastIndexOf(PACKAGE_SEPARATOR);
@@ -131,10 +132,15 @@ public class ClassTransformer extends ClassVisitor {
 	 */
 	@Override
 	public void visitSource(String source, String debug) {
+//		System.err.println("Visit source ["+ source + "] + [" + debug + "]");
 		super.visitSource(source, debug);
 		sourceFileName = source;
 	}
-	
+
+	public String getSourceFileName() {
+		return sourceFileName;
+	}
+
 	/**
 	 * A call back from the ClassVisitor.
 	 * Record the outer class name if this class is an inner class.
@@ -142,6 +148,7 @@ public class ClassTransformer extends ClassVisitor {
 	@Override
 	public void visitInnerClass(String name, String outerName,
 			String innerName, int access) {
+//		System.err.println("Visit innerClass ["+ name + "] + [" + outerName + "] + [" + innerName + "]");
 		super.visitInnerClass(name, outerName, innerName, access);
 		if (name.equals(fullClassName)) {
 			outerClassName = outerName;

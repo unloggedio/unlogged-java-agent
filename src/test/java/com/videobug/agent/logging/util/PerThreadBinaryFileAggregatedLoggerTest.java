@@ -73,9 +73,9 @@ public class PerThreadBinaryFileAggregatedLoggerTest {
         long end = System.currentTimeMillis();
         logger.info("wrote [{}] events in [{}] ms, [{}] write/ms", eventCount, end - start, eventCount / (end - start));
 
-        Thread.sleep(500);
-        eventLogger.shutdown();
-        Thread.sleep(500);
+//        Thread.sleep(500);
+//        eventLogger.shutdown();
+//        Thread.sleep(500);
 
     }
 
@@ -119,7 +119,7 @@ public class PerThreadBinaryFileAggregatedLoggerTest {
         eventLogger.writeEvent(1, 1);
 
 //        eventLogger.shutdown();
-        Thread.sleep(5000);
+//        Thread.sleep(100);
 
     }
 

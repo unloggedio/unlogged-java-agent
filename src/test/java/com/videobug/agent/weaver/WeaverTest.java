@@ -662,7 +662,6 @@ public class WeaverTest {
 //		Assert.assertFalse(it.next());
 //
 //	}
-
 	/**
 	 * Test an instance method "invokeVirtual"
 	 */

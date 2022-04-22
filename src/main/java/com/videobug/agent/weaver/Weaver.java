@@ -215,7 +215,7 @@ public class Weaver implements IErrorLogger {
 
         try {
             byte[] classInfoBytes = classInfo.toBytes();
-            System.err.println("ClassBytes: " + new String(classInfoBytes));
+//            System.err.println("ClassBytes: " + new String(classInfoBytes));
             out.write(classInfoBytes);
 
 

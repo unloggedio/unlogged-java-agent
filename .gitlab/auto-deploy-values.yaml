@@ -1,0 +1,15 @@
+nameOverride: testbed
+releaseOverride: prod
+
+service:
+  externalPort: 9000
+  internalPort: 9000
+
+
+resources:
+  limits:
+    cpu: 1
+    memory: 2G
+  requests:
+    cpu: 1
+    memory: 1G

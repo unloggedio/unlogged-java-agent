@@ -43,6 +43,14 @@ cache:
   stage: test
   script:
     - 'mvn $MAVEN_CLI_OPTS test -s ci_settings.xml'
+  artifacts:
+    expose_as: 'code coverage'
+    paths:
+      - target/surefire-reports/
+      - target/site/jacoco/index.html
+    reports:
+      junit:
+        - target/surefire-reports/TEST-*.xml
 
 # Verify merge requests using JDK8
 verify:jdk8:

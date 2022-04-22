@@ -125,7 +125,10 @@ public class PerThreadBinaryFileAggregatedLoggerTest {
 
     @Test
     public void classWeaverTest() throws IOException {
-        Weaver weaver = new Weaver(new File("test-output"),
+        String strTmp = System.getProperty("java.io.tmpdir")  + "/videobug-test-output";
+        File outputDir = new File(strTmp);
+        outputDir.mkdirs();
+        Weaver weaver = new Weaver(outputDir,
                 new WeaveConfig("", "", "", ""));
 
         WeaveLog weaveLog = new WeaveLog(1, 1, 1);

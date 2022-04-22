@@ -91,7 +91,7 @@ public class SimpleTarget {
 	}
 	
 	public void sort(ArrayList<String> items) {
-		Collections.sort(items, new StringComparator());
+		items.sort(new StringComparator());
 	}
 	
 	public long invokeVirtual() {

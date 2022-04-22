@@ -1,10 +1,10 @@
 package com.videobug.agent.reader;
 
-import com.videobug.agent.weaver.ClassInfo;
-import com.videobug.agent.weaver.DataInfo;
-import com.videobug.agent.weaver.MethodInfo;
-import com.videobug.agent.weaver.method.Descriptor;
-import com.videobug.agent.EventType;
+import com.insidious.common.parser.KaitaiInsidiousClassWeaveParser;
+import com.insidious.common.weaver.DataInfo;
+import com.insidious.common.weaver.Descriptor;
+import com.insidious.common.weaver.EventType;
+import com.insidious.common.weaver.MethodInfo;
 import org.objectweb.asm.Type;
 
 /**
@@ -224,7 +224,7 @@ public class Event {
 	/**
 	 * @return ClassInfo object of the event.
 	 */
-	public ClassInfo getClassEntry() {
+	public KaitaiInsidiousClassWeaveParser.ClassInfo getClassEntry() {
 		return map.getClassEntry(getMethodEntry().getClassId());
 	}
 

@@ -1,8 +1,8 @@
 package com.videobug.agent.weaver;
 
-import com.videobug.agent.EventType;
+import com.insidious.common.weaver.Descriptor;
+import com.insidious.common.weaver.EventType;
 import com.videobug.agent.logging.io.MemoryLogger;
-import com.videobug.agent.weaver.method.Descriptor;
 
 /**
  * An iterator object to read events from MemoryLogger.

@@ -327,7 +327,7 @@ public class BinaryFileAggregatedLogger implements Runnable, AggregatedFileLogge
     }
 
     @Override
-    public void writeNewTypeRecord(String toString) {
+    public void writeNewTypeRecord(int typeId, String typeName, String toString) {
 
         int bytesToWrite = 1 + 4 + toString.length();
 
@@ -408,6 +408,11 @@ public class BinaryFileAggregatedLogger implements Runnable, AggregatedFileLogge
         } finally {
             lock.unlock();
         }
+    }
+
+    @Override
+    public void shutdown() {
+
     }
 
     class LogFileTimeExpiry implements Runnable {

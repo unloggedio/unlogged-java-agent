@@ -1,5 +1,7 @@
 package com.videobug.agent.logging.util;
 
+import java.io.IOException;
+
 public interface AggregatedFileLogger {
     void writeNewObjectType(long id, long typeId);
 
@@ -13,7 +15,9 @@ public interface AggregatedFileLogger {
 
     void writeTimestamp();
 
-    void writeNewTypeRecord(String toString);
+    void writeNewTypeRecord(int typeId, String typeName, String toString);
 
     void writeWeaveInfo(byte[] byteArray);
+
+    void shutdown() throws IOException;
 }

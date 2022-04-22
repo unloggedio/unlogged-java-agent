@@ -3,7 +3,7 @@ package com.videobug.agent.reader.debug;
 import java.util.ArrayList;
 import java.util.Iterator;
 
-import com.videobug.agent.weaver.MethodInfo;
+import com.insidious.common.weaver.MethodInfo;
 
 
 /**

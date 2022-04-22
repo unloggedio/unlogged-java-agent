@@ -147,7 +147,7 @@ Each line includes the following attributes.
 
 - Event ID
 - Event Type
-- Thread ID
+- Thread ID 
 - DataID (to refer dataids.txt to its static information)
 - Value associated with the event (in case of CALL, it is an object ID)
 - objectType is the class name represented by an object ID (if the value points to an object)

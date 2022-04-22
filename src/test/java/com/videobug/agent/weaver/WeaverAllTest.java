@@ -8,7 +8,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import com.videobug.agent.EventType;
+import com.insidious.common.weaver.EventType;
+import com.insidious.common.weaver.LogLevel;
 import com.videobug.agent.logging.Logging;
 import com.videobug.agent.logging.io.MemoryLogger;
 import org.junit.Assert;
@@ -76,8 +77,8 @@ public class WeaverAllTest {
 		// Weave the classes
 		MemoryLogger memoryLogger = Logging.initializeForTest();
 		WeaveClassLoader loader = new WeaveClassLoader(config);
-		Class<?> wovenClass = loader.loadAndWeaveClass("SimpleTarget");
-		loader.loadAndWeaveClass("SimpleTarget$StringComparator");
+		Class<?> wovenClass = loader.loadAndWeaveClass("com.videobug.agent.testdata.SimpleTarget");
+		loader.loadAndWeaveClass("com.videobug.agent.testdata.SimpleTarget$StringComparator");
 		
 		try {
 			// Execute the testAll method

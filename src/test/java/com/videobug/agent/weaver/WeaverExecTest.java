@@ -5,10 +5,10 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 
-import com.videobug.agent.EventType;
+import com.insidious.common.weaver.Descriptor;
+import com.insidious.common.weaver.EventType;
 import com.videobug.agent.logging.Logging;
 import com.videobug.agent.logging.io.MemoryLogger;
-import com.videobug.agent.weaver.method.Descriptor;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -31,8 +31,8 @@ public class WeaverExecTest {
 	public void setup() throws IOException {
 		WeaveConfig config = new WeaveConfig(WeaveConfig.KEY_RECORD_EXEC, "localhost:9921", "username", "password");
 		WeaveClassLoader loader = new WeaveClassLoader(config);
-		wovenClass = loader.loadAndWeaveClass("SimpleTarget");
-		innerClass = loader.loadClassFromResource("SimpleTarget$StringComparator", "com/insidious/agent/testdata/SimpleTarget$StringComparator.class");
+		wovenClass = loader.loadAndWeaveClass("com.videobug.agent.testdata.SimpleTarget");
+//		innerClass = loader.loadClassFromResource("com.videobug.agent.testdata.SimpleTarget$StringComparator", "com/videobug/agent/testdata/SimpleTarget$StringComparator.class");
 
 		memoryLogger = Logging.initializeForTest();
 		it = new EventIterator(memoryLogger, loader.getWeaveLog());
@@ -57,7 +57,7 @@ public class WeaverExecTest {
 		Assert.assertTrue(it.next());
 		Assert.assertEquals(EventType.METHOD_ENTRY, it.getEventType());
 		Assert.assertEquals("<init>", it.getMethodName());
-		Assert.assertEquals("com/insidious/agent/testdata/SimpleTarget", it.getClassName());
+		Assert.assertEquals("com/videobug/agent/testdata/SimpleTarget", it.getClassName());
 		
 		Assert.assertTrue(it.next());
 		Assert.assertEquals(EventType.METHOD_OBJECT_INITIALIZED, it.getEventType());
@@ -84,7 +84,7 @@ public class WeaverExecTest {
 		Assert.assertTrue(it.next());
 		Assert.assertEquals(EventType.METHOD_ENTRY, it.getEventType());
 		Assert.assertEquals("getField", it.getMethodName());
-		Assert.assertEquals("com/insidious/agent/testdata/SimpleTarget", it.getClassName());
+		Assert.assertEquals("com/videobug/agent/testdata/SimpleTarget", it.getClassName());
 		
 		Assert.assertTrue(it.next());
 		Assert.assertEquals(EventType.METHOD_NORMAL_EXIT, it.getEventType());
@@ -109,7 +109,7 @@ public class WeaverExecTest {
 		Assert.assertTrue(it.next());
 		Assert.assertEquals(EventType.METHOD_ENTRY, it.getEventType());
 		Assert.assertEquals("createArray", it.getMethodName());
-		Assert.assertEquals("com/insidious/agent/testdata/SimpleTarget", it.getClassName());
+		Assert.assertEquals("com/videobug/agent/testdata/SimpleTarget", it.getClassName());
 		
 		Assert.assertTrue(it.next());
 		Assert.assertEquals(EventType.METHOD_NORMAL_EXIT, it.getEventType());
@@ -139,7 +139,7 @@ public class WeaverExecTest {
 		Assert.assertTrue(it.next());
 		Assert.assertEquals(EventType.METHOD_ENTRY, it.getEventType());
 		Assert.assertEquals("exception", it.getMethodName());
-		Assert.assertEquals("com/insidious/agent/testdata/SimpleTarget", it.getClassName());
+		Assert.assertEquals("com/videobug/agent/testdata/SimpleTarget", it.getClassName());
 
 //		Assert.assertTrue(it.next());
 //		int throwDataId = it.getDataId();
@@ -177,7 +177,7 @@ public class WeaverExecTest {
 		Assert.assertTrue(it.next());
 		Assert.assertEquals(EventType.METHOD_ENTRY, it.getEventType());
 		Assert.assertEquals("synchronization", it.getMethodName());
-		Assert.assertEquals("com/insidious/agent/testdata/SimpleTarget", it.getClassName());
+		Assert.assertEquals("com/videobug/agent/testdata/SimpleTarget", it.getClassName());
 		Assert.assertSame(o, it.getObjectValue());
 
 		Assert.assertTrue(it.next());
@@ -203,7 +203,7 @@ public class WeaverExecTest {
 		Assert.assertTrue(it.next());
 		Assert.assertEquals(EventType.METHOD_ENTRY, it.getEventType());
 		Assert.assertEquals("read", it.getMethodName());
-		Assert.assertEquals("com/insidious/agent/testdata/SimpleTarget", it.getClassName());
+		Assert.assertEquals("com/videobug/agent/testdata/SimpleTarget", it.getClassName());
 		Assert.assertSame(o, it.getObjectValue());
 
 		Assert.assertTrue(it.next());
@@ -228,7 +228,7 @@ public class WeaverExecTest {
 		Assert.assertTrue(it.next());
 		Assert.assertEquals(EventType.METHOD_ENTRY, it.getEventType());
 		Assert.assertEquals("multiarray", it.getMethodName());
-		Assert.assertEquals("com/insidious/agent/testdata/SimpleTarget", it.getClassName());
+		Assert.assertEquals("com/videobug/agent/testdata/SimpleTarget", it.getClassName());
 		Assert.assertSame(o, it.getObjectValue());
 
 
@@ -256,7 +256,7 @@ public class WeaverExecTest {
 		Assert.assertTrue(it.next());
 		Assert.assertEquals(EventType.METHOD_ENTRY, it.getEventType());
 		Assert.assertEquals("constString", it.getMethodName());
-		Assert.assertEquals("com/insidious/agent/testdata/SimpleTarget", it.getClassName());
+		Assert.assertEquals("com/videobug/agent/testdata/SimpleTarget", it.getClassName());
 		Assert.assertSame(o, it.getObjectValue());
 
 		Assert.assertTrue(it.next());
@@ -286,7 +286,7 @@ public class WeaverExecTest {
 		Assert.assertTrue(it.next());
 		Assert.assertEquals(EventType.METHOD_ENTRY, it.getEventType());
 		Assert.assertEquals("typeCheck", it.getMethodName());
-		Assert.assertEquals("com/insidious/agent/testdata/SimpleTarget", it.getClassName());
+		Assert.assertEquals("com/videobug/agent/testdata/SimpleTarget", it.getClassName());
 		Assert.assertSame(o, it.getObjectValue());
 
 		Assert.assertTrue(it.next());
@@ -296,7 +296,7 @@ public class WeaverExecTest {
 		Assert.assertTrue(it.next());
 		Assert.assertEquals(EventType.METHOD_ENTRY, it.getEventType());
 		Assert.assertEquals("typeCheck", it.getMethodName());
-		Assert.assertEquals("com/insidious/agent/testdata/SimpleTarget", it.getClassName());
+		Assert.assertEquals("com/videobug/agent/testdata/SimpleTarget", it.getClassName());
 		Assert.assertSame(o, it.getObjectValue());
 
 		Assert.assertTrue(it.next());
@@ -328,7 +328,7 @@ public class WeaverExecTest {
 		Assert.assertTrue(it.next());
 		Assert.assertEquals(EventType.METHOD_ENTRY, it.getEventType());
 		Assert.assertEquals("sort", it.getMethodName());
-		Assert.assertEquals("com/insidious/agent/testdata/SimpleTarget", it.getClassName());
+		Assert.assertEquals("com/videobug/agent/testdata/SimpleTarget", it.getClassName());
 		Assert.assertSame(o, it.getObjectValue());
 
 		Assert.assertTrue(it.next());
@@ -356,7 +356,7 @@ public class WeaverExecTest {
 		Assert.assertTrue(it.next());
 		Assert.assertEquals(EventType.METHOD_ENTRY, it.getEventType());
 		Assert.assertEquals("invokeVirtual", it.getMethodName());
-		Assert.assertEquals("com/insidious/agent/testdata/SimpleTarget", it.getClassName());
+		Assert.assertEquals("com/videobug/agent/testdata/SimpleTarget", it.getClassName());
 		Assert.assertSame(o, it.getObjectValue());
 
 		Assert.assertTrue(it.next());
@@ -372,7 +372,7 @@ public class WeaverExecTest {
 		Assert.assertTrue(it.next());
 		Assert.assertEquals(EventType.METHOD_ENTRY, it.getEventType());
 		Assert.assertEquals("getLong", it.getMethodName());
-		Assert.assertEquals("com/insidious/agent/testdata/SimpleTarget", it.getClassName());
+		Assert.assertEquals("com/videobug/agent/testdata/SimpleTarget", it.getClassName());
 		Assert.assertSame(o, it.getObjectValue());
 
 		Assert.assertTrue(it.next());
@@ -404,13 +404,13 @@ public class WeaverExecTest {
 		Assert.assertTrue(it.next());
 		Assert.assertEquals(EventType.METHOD_ENTRY, it.getEventType());
 		Assert.assertEquals("invokeDynamic", it.getMethodName());
-		Assert.assertEquals("com/insidious/agent/testdata/SimpleTarget", it.getClassName());
+		Assert.assertEquals("com/videobug/agent/testdata/SimpleTarget", it.getClassName());
 		Assert.assertSame(o, it.getObjectValue());
 
 		Assert.assertTrue(it.next());
 		Assert.assertEquals(EventType.METHOD_ENTRY, it.getEventType());
 		Assert.assertTrue(it.getMethodName().contains("lambda"));
-		Assert.assertEquals("com/insidious/agent/testdata/SimpleTarget", it.getClassName());
+		Assert.assertEquals("com/videobug/agent/testdata/SimpleTarget", it.getClassName());
 		Assert.assertTrue(it.getAttributes().contains("Receiver=false"));
 
 		Assert.assertTrue(it.next());
@@ -442,13 +442,13 @@ public class WeaverExecTest {
 		Assert.assertTrue(it.next());
 		Assert.assertEquals(EventType.METHOD_ENTRY, it.getEventType());
 		Assert.assertEquals("invokeDynamic2", it.getMethodName());
-		Assert.assertEquals("com/insidious/agent/testdata/SimpleTarget", it.getClassName());
+		Assert.assertEquals("com/videobug/agent/testdata/SimpleTarget", it.getClassName());
 		Assert.assertSame(o, it.getObjectValue());
 
 		Assert.assertTrue(it.next());
 		Assert.assertEquals(EventType.METHOD_ENTRY, it.getEventType());
 		Assert.assertTrue(it.getMethodName().contains("lambda"));
-		Assert.assertEquals("com/insidious/agent/testdata/SimpleTarget", it.getClassName());
+		Assert.assertEquals("com/videobug/agent/testdata/SimpleTarget", it.getClassName());
 		Assert.assertTrue(it.getAttributes().contains("Receiver=true"));
 		Assert.assertSame(o, it.getObjectValue());
 
@@ -479,7 +479,7 @@ public class WeaverExecTest {
 		Assert.assertTrue(it.next());
 		Assert.assertEquals(EventType.METHOD_ENTRY, it.getEventType());
 		Assert.assertEquals("getFloat", it.getMethodName());
-		Assert.assertEquals("com/insidious/agent/testdata/SimpleTarget", it.getClassName());
+		Assert.assertEquals("com/videobug/agent/testdata/SimpleTarget", it.getClassName());
 		Assert.assertSame(o, it.getObjectValue());
 
 		Assert.assertTrue(it.next());
@@ -510,13 +510,13 @@ public class WeaverExecTest {
 		Assert.assertTrue(it.next());
 		Assert.assertEquals(EventType.METHOD_ENTRY, it.getEventType());
 		Assert.assertEquals("exceptionInCall", it.getMethodName());
-		Assert.assertEquals("com/insidious/agent/testdata/SimpleTarget", it.getClassName());
+		Assert.assertEquals("com/videobug/agent/testdata/SimpleTarget", it.getClassName());
 		Assert.assertSame(o, it.getObjectValue());
 
 		Assert.assertTrue(it.next());
 		Assert.assertEquals(EventType.METHOD_ENTRY, it.getEventType());
 		Assert.assertEquals("exception", it.getMethodName());
-		Assert.assertEquals("com/insidious/agent/testdata/SimpleTarget", it.getClassName());
+		Assert.assertEquals("com/videobug/agent/testdata/SimpleTarget", it.getClassName());
 		Assert.assertSame(o, it.getObjectValue());
 
 		Assert.assertTrue(it.next());

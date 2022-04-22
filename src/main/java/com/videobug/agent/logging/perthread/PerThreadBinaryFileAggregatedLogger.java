@@ -9,7 +9,6 @@ import com.videobug.agent.logging.util.NetworkClient;
 import orestes.bloomfilter.BloomFilter;
 
 import java.io.*;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.*;
@@ -42,24 +41,21 @@ public class PerThreadBinaryFileAggregatedLogger implements
      */
     private final ThreadLocal<Integer> threadId = ThreadLocal.withInitial(nextThreadId::getAndIncrement);
 
-    private final BlockingQueue<UploadFile> fileList = new ArrayBlockingQueue<UploadFile>(1024);
+    private final BlockingQueue<UploadFile> fileList;
 
     private final Map<Integer, OutputStream> threadFileMap = new HashMap<>();
 
     private final Map<Integer, String> currentFileMap = new HashMap<>();
     private final Map<Integer, AtomicInteger> count = new HashMap<>();
-    private final NetworkClient networkClient;
     private final String hostname;
     private final FileNameGenerator fileNameGenerator;
     private final IErrorLogger errorLogger;
     private final ThreadLocal<byte[]> threadLocalByteBuffer = ThreadLocal.withInitial(() -> new byte[29]);
     private final Map<Integer, BloomFilter<Long>> valueIdFilterSet = new HashMap<>();
     private final Map<Integer, BloomFilter<Integer>> probeIdFilterSet = new HashMap<>();
-
-    private long currentTimestamp = System.currentTimeMillis();
-
     ScheduledExecutorService threadPoolExecutor5Seconds = Executors.newScheduledThreadPool(1);
     ExecutorService threadPoolExecutor = Executors.newFixedThreadPool(4);
+    private long currentTimestamp = System.currentTimeMillis();
     private RawFileCollector fileCollector = null;
     private FileEventCountThresholdChecker logFileTimeAgeChecker = null;
     private long eventId = 0;
@@ -79,30 +75,19 @@ public class PerThreadBinaryFileAggregatedLogger implements
      *
      * @param outputDirName location for generated files
      * @param logger        is to report errors that occur in this class.
-     * @param token         to used to authentication for uploading logs
-     * @param serverAddress endpoint for uploading logs
-     * @param filesPerIndex number of files to store in one archive
+     * @param fileCollector collects the dataEvent log files, creates indexes,
      */
     public PerThreadBinaryFileAggregatedLogger(
-            String outputDirName, IErrorLogger logger,
-            String token, String sessionId, String serverAddress, int filesPerIndex) throws IOException {
+            FileNameGenerator  fileNameGenerator, IErrorLogger logger,
+            RawFileCollector fileCollector) {
 //        this.sessionId = sessionId;
         this.hostname = NetworkClient.getHostname();
-        this.networkClient = new NetworkClient(serverAddress, sessionId, token, logger);
-        System.err.println("Session Id: [" + sessionId + "] on hostname [" + hostname + "]");
         this.errorLogger = logger;
 
-        File outputDir = new File(outputDirName);
-        outputDir.mkdirs();
-        this.fileNameGenerator = new FileNameGenerator(outputDir, "log-", ".selog");
+        this.fileNameGenerator = fileNameGenerator;
 
-
-        fileCollector = new RawFileCollector(filesPerIndex,
-                new FileNameGenerator(outputDir, "index-", ".zip"), fileList, errorLogger);
-
-        writeHostname();
-        writeTimestamp();
-
+        this.fileCollector = fileCollector;
+        this.fileList = fileCollector.getFileQueue();
 
         System.out.printf("Create aggregated logger -> %s\n", currentFileMap.get(-1));
 
@@ -121,6 +106,7 @@ public class PerThreadBinaryFileAggregatedLogger implements
                 }, errorLogger);
         threadPoolExecutor5Seconds.
                 scheduleAtFixedRate(logFileTimeAgeChecker, 0, 731, TimeUnit.MILLISECONDS);
+        // 731 because it
     }
 
 
@@ -184,6 +170,7 @@ public class PerThreadBinaryFileAggregatedLogger implements
         probeIdFilterSet.put(currentThreadId,
                 BloomFilterUtil.newBloomFilterForProbes(BloomFilterUtil.BLOOM_FILTER_BIT_SIZE));
 
+        writeHostname();
         writeTimestamp();
     }
 

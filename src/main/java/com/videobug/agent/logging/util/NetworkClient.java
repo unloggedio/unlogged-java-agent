@@ -91,6 +91,23 @@ public class NetworkClient {
         return charWriter.toCharArray();
     }
 
+    public void sendPOSTRequest(String url, String attachmentFilePath) throws IOException {
+
+        String charset = "UTF-8";
+        Map<String, String> headers = new HashMap<>();
+        headers.put("User-Agent", "insidious/1.0.0");
+        headers.put("Authorization", "Bearer " + this.token);
+
+        MultipartUtility form = new MultipartUtility(url, charset, headers);
+
+        File binaryFile = new File(attachmentFilePath);
+        form.addFilePart("file", binaryFile);
+        form.addFormField("sessionId", sessionId);
+
+        String response = form.finish();
+
+    }
+
     public void sendPOSTRequest(String url, String attachmentFilePath, Long threadId) throws IOException {
 
         String charset = "UTF-8";
@@ -114,6 +131,17 @@ public class NetworkClient {
 
     public String getServerUrl() {
         return serverUrl;
+    }
+
+    public void uploadFile(String filePath) throws IOException {
+        System.err.println("File to upload: " + filePath);
+        long start = System.currentTimeMillis();
+        sendPOSTRequest(serverUrl + "/checkpoint/uploadArchive", filePath);
+        long end = System.currentTimeMillis();
+        long seconds = (end - start) / 1000;
+        if (seconds > 2) {
+            System.err.println("Upload took " + seconds + " seconds, deleting file " + filePath);
+        }
     }
 
     public void uploadFile(String filePath, long threadId) throws IOException {

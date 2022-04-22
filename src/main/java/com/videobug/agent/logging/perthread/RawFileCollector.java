@@ -6,6 +6,7 @@ import com.insidious.common.cqengine.StringInfoDocument;
 import com.insidious.common.cqengine.TypeInfoDocument;
 import com.videobug.agent.logging.IErrorLogger;
 import com.videobug.agent.logging.util.FileNameGenerator;
+import com.videobug.agent.logging.util.NetworkClient;
 
 import java.io.File;
 import java.io.IOException;
@@ -22,10 +23,11 @@ public class RawFileCollector implements Runnable {
     private final FileNameGenerator indexFileNameGenerator;
     private final List<byte[]> classWeaves = new LinkedList<>();
     private final List<TypeInfoDocument> typeInfoDocuments;
+    private final NetworkClient networkClient;
     public int filesPerArchive = 0;
     private boolean shutdown = false;
     private boolean skipUploads;
-    private IndexOutputStream archivedIndexWriter;
+    private ArchivedIndexWriter archivedIndexWriter;
     private int fileCount = 0;
     private BlockingQueue<StringInfoDocument> stringsToIndex;
     private BlockingQueue<TypeInfoDocument> typesToIndex;
@@ -33,13 +35,13 @@ public class RawFileCollector implements Runnable {
 
     public RawFileCollector(int filesPerArchive,
                             FileNameGenerator indexFileNameGenerator,
-                            BlockingQueue<UploadFile> fileList,
-                            IErrorLogger errorLogger
+                            NetworkClient networkClient, IErrorLogger errorLogger
     ) throws IOException {
         this.filesPerArchive = filesPerArchive;
+        this.networkClient = networkClient;
         this.indexFileNameGenerator = indexFileNameGenerator;
         this.errorLogger = errorLogger;
-        this.fileList = fileList;
+        this.fileList = new ArrayBlockingQueue<>(1024 * 128);
         this.typeInfoDocuments = new LinkedList<>();
         prepareIndexItemBuffers();
         prepareArchive();
@@ -48,7 +50,7 @@ public class RawFileCollector implements Runnable {
 
     private void prepareArchive() throws IOException {
 
-        IndexOutputStream archivedIndexWriterOld = archivedIndexWriter;
+        ArchivedIndexWriter archivedIndexWriterOld = archivedIndexWriter;
 
         archivedIndexWriter = new ArchivedIndexWriter(indexFileNameGenerator.getNextFile(), this.classWeaves, errorLogger);
         fileCount = 0;
@@ -57,9 +59,18 @@ public class RawFileCollector implements Runnable {
                 drainItemsToIndex(archivedIndexWriterOld);
                 archivedIndexWriterOld.drainQueueToIndex(List.of(), typeInfoDocuments, List.of());
                 archivedIndexWriterOld.close();
+                if (networkClient != null) {
+                    File archiveFile = archivedIndexWriterOld.getArchiveFile();
+                    try {
+                        errorLogger.log("uploading file: " + archiveFile.getAbsolutePath());
+                        networkClient.uploadFile(archiveFile.getAbsolutePath());
+                    } catch (IOException e) {
+                        errorLogger.log("failed to upload archive file: " + e.getMessage());
+                        archiveFile.delete();
+                    }
+                }
             });
         }
-
     }
 
     public void shutdown() throws IOException {
@@ -162,7 +173,6 @@ public class RawFileCollector implements Runnable {
 
     public void addProbeId(int probeId) {
         archivedIndexWriter.addProbeId(probeId);
-
     }
 
     public void indexTypeEntry(int typeId, String typeName) {
@@ -171,5 +181,9 @@ public class RawFileCollector implements Runnable {
 
     public void addClassWeaveInfo(byte[] byteArray) {
         classWeaves.add(byteArray);
+    }
+
+    public BlockingQueue<UploadFile> getFileQueue() {
+        return this.fileList;
     }
 }

@@ -7,6 +7,7 @@ import com.insidious.common.weaver.EventType;
 import com.insidious.common.weaver.LogLevel;
 import com.videobug.agent.logging.IErrorLogger;
 import com.videobug.agent.logging.perthread.PerThreadBinaryFileAggregatedLogger;
+import com.videobug.agent.logging.perthread.RawFileCollector;
 import com.videobug.agent.weaver.WeaveConfig;
 import com.videobug.agent.weaver.WeaveLog;
 import com.videobug.agent.weaver.Weaver;
@@ -47,22 +48,34 @@ public class PerThreadBinaryFileAggregatedLoggerTest {
 
             }
         };
+
+        NetworkClient networkClient = new NetworkClient("serverAddress",
+                "sessionId", "token", errorLogger);
+
+        String outputDirName = "test-output-" + new Date().getTime();
+
+        File outputDir = new File(outputDirName);
+        outputDir.mkdirs();
+        RawFileCollector fileCollector = new RawFileCollector(64,
+                new FileNameGenerator(outputDir, "index-", ".zip"), networkClient, errorLogger);
+
+        FileNameGenerator fileNameGenerator1 = new FileNameGenerator(outputDir, "index-", ".zip");
+
         PerThreadBinaryFileAggregatedLogger eventLogger = new PerThreadBinaryFileAggregatedLogger(
-                "test-output-" + new Date().getTime(), errorLogger,
-                "token", "sessionId", "serverAddress", 64);
+                fileNameGenerator1, errorLogger, fileCollector);
 
         long start = System.currentTimeMillis();
         ExecutorService executorService = Executors.newFixedThreadPool(12);
-        int eventCount = 2000000;
+        int eventCount = 2000;
         for (int i = 0; i < eventCount; i++) {
             executorService.submit(new DummyRunnable(i, eventLogger));
         }
         long end = System.currentTimeMillis();
         logger.info("wrote [{}] events in [{}] ms, [{}] write/ms", eventCount, end - start, eventCount / (end - start));
 
-        Thread.sleep(20000);
+        Thread.sleep(500);
         eventLogger.shutdown();
-        Thread.sleep(1000);
+        Thread.sleep(500);
 
     }
 
@@ -85,9 +98,20 @@ public class PerThreadBinaryFileAggregatedLoggerTest {
 
             }
         };
+
+        NetworkClient networkClient = new NetworkClient("serverAddress",
+                "sessionId", "token", errorLogger);
+
+        String outputDirName = "test-output-" + new Date().getTime();
+        File outputDir = new File(outputDirName);
+        outputDir.mkdirs();
+        RawFileCollector fileCollector = new RawFileCollector(64,
+                new FileNameGenerator(outputDir, "index-", ".zip"), networkClient, errorLogger);
+
+        FileNameGenerator fileNameGenerator1 = new FileNameGenerator(outputDir, "index-", ".zip");
+
         PerThreadBinaryFileAggregatedLogger eventLogger = new PerThreadBinaryFileAggregatedLogger(
-                "test-output-" + new Date().getTime(), errorLogger,
-                "token", "sessionId", "serverAddress", 64);
+                fileNameGenerator1, errorLogger, fileCollector);
 
         long start = System.currentTimeMillis();
         ExecutorService executorService = Executors.newFixedThreadPool(12);

@@ -3,7 +3,10 @@ package com.videobug.agent.weaver;
 import com.videobug.agent.logging.IEventLogger;
 import com.videobug.agent.logging.Logging;
 import com.videobug.agent.logging.perthread.PerThreadBinaryFileAggregatedLogger;
+import com.videobug.agent.logging.perthread.RawFileCollector;
 import com.videobug.agent.logging.util.BinaryFileAggregatedLogger;
+import com.videobug.agent.logging.util.FileNameGenerator;
+import com.videobug.agent.logging.util.NetworkClient;
 import org.objectweb.asm.ClassReader;
 
 import java.io.File;
@@ -51,6 +54,8 @@ public class RuntimeWeaver implements ClassFileTransformer {
             if (config.isValid()) {
                 weaver = new Weaver(outputDir, config);
                 weaver.setDumpEnabled(params.isDumpClassEnabled());
+                System.err.println("Session Id: [" + config.getSessionId()
+                        + "] on hostname [" + NetworkClient.getHostname() + "]");
 
                 switch (params.getMode()) {
                     case FixedSize:
@@ -70,10 +75,18 @@ public class RuntimeWeaver implements ClassFileTransformer {
                         break;
 
                     case PerThread:
+
+                        NetworkClient networkClient = new NetworkClient(params.getServerAddress(),
+                                config.getSessionId(), params.getAuthToken(), weaver);
+
+                        FileNameGenerator fileNameGenerator1 = new FileNameGenerator(outputDir, "index-", ".zip");
+                        RawFileCollector fileCollector = new RawFileCollector(params.getFilesPerIndex(), fileNameGenerator1, networkClient, weaver);
+
+                        outputDir.mkdirs();
+                        FileNameGenerator fileNameGenerator = new FileNameGenerator(outputDir, "log-", ".selog");
                         PerThreadBinaryFileAggregatedLogger perThreadBinaryFileAggregatedLogger
-                                = new PerThreadBinaryFileAggregatedLogger(
-                                params.getOutputDirname(), weaver, params.getAuthToken(),
-                                config.getSessionId(), params.getServerAddress(), params.getFilesPerIndex());
+                                = new PerThreadBinaryFileAggregatedLogger(fileNameGenerator, weaver, fileCollector);
+
                         logger = Logging.initialiseAggregatedLogger(weaver, perThreadBinaryFileAggregatedLogger);
                         break;
 

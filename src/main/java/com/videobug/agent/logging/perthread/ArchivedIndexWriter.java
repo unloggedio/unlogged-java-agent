@@ -69,6 +69,10 @@ public class ArchivedIndexWriter implements IndexOutputStream {
 
     }
 
+    public File getArchiveFile() {
+        return currentArchiveFile;
+    }
+
     private void initIndexQueues() {
         typesToIndex = new ArrayBlockingQueue<>(1024 * 1024);
         objectsToIndex = new ArrayBlockingQueue<>(1024 * 1024);

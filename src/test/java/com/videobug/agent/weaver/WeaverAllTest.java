@@ -77,8 +77,8 @@ public class WeaverAllTest {
 		// Weave the classes
 		MemoryLogger memoryLogger = Logging.initializeForTest();
 		WeaveClassLoader loader = new WeaveClassLoader(config);
-		Class<?> wovenClass = loader.loadAndWeaveClass("SimpleTarget");
-		loader.loadAndWeaveClass("SimpleTarget$StringComparator");
+		Class<?> wovenClass = loader.loadAndWeaveClass("com.videobug.agent.testdata.SimpleTarget");
+		loader.loadAndWeaveClass("com.videobug.agent.testdata.SimpleTarget$StringComparator");
 		
 		try {
 			// Execute the testAll method

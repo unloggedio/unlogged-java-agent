@@ -15,7 +15,7 @@ public class WeaverNoneTest {
 		// Execute a weaving 
 		WeaveConfig config = new WeaveConfig(WeaveConfig.KEY_RECORD_NONE, "localhost:9921", "username", "password");
 		WeaveClassLoader loader = new WeaveClassLoader(config);
-		Class<?> wovenClass = loader.loadAndWeaveClass("DivideClass");
+		Class<?> wovenClass = loader.loadAndWeaveClass("com.videobug.agent.testdata.DivideClass");
 		try {
 			wovenClass.getConstructors()[0].newInstance(null);
 		} catch (InvocationTargetException|IllegalAccessException|InstantiationException e) {

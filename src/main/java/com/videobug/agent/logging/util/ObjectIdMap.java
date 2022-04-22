@@ -16,6 +16,7 @@ public class ObjectIdMap {
 	private int andKey;
 	private int size;
 	private int INT_MAX_BIT = 30;
+	private int idCount = 0;
 
 
 	/**
@@ -51,6 +52,7 @@ public class ObjectIdMap {
 		if (o == null) {
 			return 0L;
 		}
+		idCount++;
 		int id = System.identityHashCode(o);
 
 		int val = objectMap.get(id);
@@ -60,29 +62,6 @@ public class ObjectIdMap {
 		}
 		return id;
 
-//
-//		// Search the object.  If found, return the registered ID.
-//        int index = hash & andKey;
-//        Entry e = entries[index];
-//        while (e != null) {
-//            if (o == e.reference.get()) {
-//            	return e.objectId;
-//            }
-//            e = e.next;
-//        }
-//
-//		Entry oldEntry = entries[index];
-//       	long id = nextId;
-//       	nextId++;
-//       	e = new Entry(o, id, oldEntry, hash);
-//       	entries[index] = e;
-//       	size++;
-//       	onNewObjectId(o, id);
-//
-//        if (size >= threshold) {
-//        	resize();
-//        }
-//        return id;
 	}
 
 	/**
@@ -143,7 +122,7 @@ public class ObjectIdMap {
 	 * @return the number of objects stored in the map.
 	 */
 	public int size() {
-		return size;
+		return idCount;
 	}
 
 	/**

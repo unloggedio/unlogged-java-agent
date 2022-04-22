@@ -302,8 +302,8 @@ public class ArchivedIndexWriter implements IndexOutputStream {
         InputStream fileInputStream = new BufferedInputStream(fis);
         fileInputStream.transferTo(archivedIndexOutputStream);
         fis.close();
-        archivedIndexOutputStream.closeEntry();
         archivedIndexOutputStream.flush();
+        archivedIndexOutputStream.closeEntry();
         long end = System.currentTimeMillis();
 
         errorLogger.log("Add files to archive: " + logFile.path + " took - " + (end - start) / 1000 + " ms");

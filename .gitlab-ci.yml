@@ -25,6 +25,12 @@ variables:
 # This template uses jdk8 for verifying and deploying images
 image: maven:3.8.4-openjdk-17
 
+stages:
+  - test
+  - build
+  - deploy
+
+
 # Cache downloaded dependencies and plugins between builds.
 # To keep cache across branches add 'key: "$CI_JOB_NAME"'
 cache:
@@ -36,10 +42,7 @@ cache:
 .verify: &verify
   stage: test
   script:
-    - 'mvn $MAVEN_CLI_OPTS verify'
-  except:
-    variables:
-      - $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - 'mvn $MAVEN_CLI_OPTS test'
 
 # Verify merge requests using JDK8
 verify:jdk8:

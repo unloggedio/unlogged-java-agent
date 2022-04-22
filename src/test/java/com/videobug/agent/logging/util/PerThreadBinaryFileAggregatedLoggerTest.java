@@ -74,7 +74,7 @@ public class PerThreadBinaryFileAggregatedLoggerTest {
         logger.info("wrote [{}] events in [{}] ms, [{}] write/ms", eventCount, end - start, eventCount / (end - start));
 
 //        Thread.sleep(500);
-//        eventLogger.shutdown();
+        eventLogger.shutdown();
 //        Thread.sleep(500);
 
     }

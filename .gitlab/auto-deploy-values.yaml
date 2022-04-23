@@ -2,8 +2,8 @@ nameOverride: testbed
 releaseOverride: prod
 
 service:
-  externalPort: 9000
-  internalPort: 9000
+  externalPort: 5000
+  internalPort: 5000
 
 
 resources:

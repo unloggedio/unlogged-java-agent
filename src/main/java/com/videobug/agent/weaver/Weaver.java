@@ -182,8 +182,8 @@ public class Weaver implements IErrorLogger {
                     = new ClassInfo(classId, container, classTransformer.getSourceFileName(),
                     log.getFullClassName(), level, hash, classTransformer.getClassLoaderIdentifier());
 
-            System.err.println("New Class [" + classIdEntry.getClassId() + "] in file ["
-                    + classIdEntry.getFilename() + "] => [" + classIdEntry.getClassName() + "]");
+//            System.err.println("New Class [" + classIdEntry.getClassId() + "] in file ["
+//                    + classIdEntry.getFilename() + "] => [" + classIdEntry.getClassName() + "]");
             byte[] classWeaveInfoByteArray = finishClassProcess(classIdEntry, log);
             Logging.recordWeaveInfo(classWeaveInfoByteArray);
 

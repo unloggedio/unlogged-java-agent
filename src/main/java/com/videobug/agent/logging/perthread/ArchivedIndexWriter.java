@@ -40,7 +40,6 @@ public class ArchivedIndexWriter implements IndexOutputStream {
     private final String outputDir;
     private final File currentArchiveFile;
     private final List<byte[]> classWeaves;
-    private boolean shutdown;
     private BlockingQueue<StringInfoDocument> stringsToIndex;
     private BlockingQueue<TypeInfoDocument> typesToIndex;
     private BlockingQueue<ObjectInfoDocument> objectsToIndex;
@@ -122,12 +121,14 @@ public class ArchivedIndexWriter implements IndexOutputStream {
         int itemCount = 0;
 
         itemCount += objectsToIndex.size();
-        objectInfoIndex.addAll(objectsToIndex);
-
         itemCount += typesToIndex.size();
-        typeInfoIndex.addAll(typesToIndex);
-
         itemCount += stringsToIndex.size();
+        if (itemCount == 0) {
+            return;
+        }
+
+        objectInfoIndex.addAll(objectsToIndex);
+        typeInfoIndex.addAll(typesToIndex);
         stringInfoIndex.addAll(stringsToIndex);
 
         long end = System.currentTimeMillis();
@@ -144,8 +145,8 @@ public class ArchivedIndexWriter implements IndexOutputStream {
         objectsToIndex.offer(new ObjectInfoDocument(objectId, typeId));
     }
 
-    public void indexTypeEntry(int id, String typeName) {
-        typesToIndex.offer(new TypeInfoDocument(id, typeName));
+    public void indexTypeEntry(int id, String typeName, byte[] typeInfoBytes) {
+        typesToIndex.offer(new TypeInfoDocument(id, typeName, typeInfoBytes));
     }
 
     public void indexStringEntry(long id, String string) {
@@ -281,7 +282,7 @@ public class ArchivedIndexWriter implements IndexOutputStream {
     }
 
     public void close() {
-        shutdown = true;
+//        shutdown = true;
         completeArchive(stringsToIndex, objectsToIndex, typesToIndex);
     }
 

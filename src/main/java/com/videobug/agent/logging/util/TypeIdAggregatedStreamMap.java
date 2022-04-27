@@ -1,6 +1,10 @@
 package com.videobug.agent.logging.util;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.net.URL;
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 
 
@@ -41,11 +45,11 @@ public class TypeIdAggregatedStreamMap {
      */
     private static final String SEPARATOR = ",";
     private final AggregatedFileLogger aggregatedLogger;
-    private int nextId;
     /**
      * Mapping from a Class object to String type ID.
      */
     private final HashMap<Class<?>, Integer> classToIdMap;
+    private int nextId;
 
     /**
      * Create an initial map containing only basic types.
@@ -95,23 +99,34 @@ public class TypeIdAggregatedStreamMap {
         // Getting a class location may load other types (if a custom class loader is working with selogger)
         String classLocation = getClassLocation(type);
 
-        int newId = nextId++;
-        String id = Integer.toString(newId);
-        classToIdMap.put(type, newId);
-        StringBuilder record = new StringBuilder(512);
-        record.append(id);
-        record.append(SEPARATOR);
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        DataOutputStream record = new DataOutputStream(byteArrayOutputStream);
         String typeNameFromClass = getTypeNameFromClass(type);
-        record.append(typeNameFromClass);
-        record.append(SEPARATOR);
-        record.append(classLocation);
-        record.append(SEPARATOR);
-        record.append(superClass);
-        record.append(SEPARATOR);
-        record.append(componentType);
-        record.append(SEPARATOR);
-        record.append(TypeIdUtil.getClassLoaderIdentifier(type.getClassLoader(), type.getName()));
-        this.aggregatedLogger.writeNewTypeRecord(newId, typeNameFromClass, record.toString());
+        String classLoaderIdentifier = TypeIdUtil.getClassLoaderIdentifier(type.getClassLoader(), type.getName());
+
+
+        int newId = nextId++;
+        classToIdMap.put(type, newId);
+//        StringBuilder record = new StringBuilder(512);
+
+        try {
+            record.writeInt(newId);
+            record.writeInt(typeNameFromClass.getBytes().length);
+            record.write(typeNameFromClass.getBytes());
+
+            record.writeInt(classLocation.getBytes().length);
+            record.write(classLocation.getBytes());
+
+            record.writeInt(superClass);
+            record.writeInt(componentType);
+
+            record.writeInt(classLoaderIdentifier.getBytes().length);
+            record.write(classLoaderIdentifier.getBytes());
+
+        } catch (IOException e) {
+            /// should never happen
+        }
+        this.aggregatedLogger.writeNewTypeRecord(newId, typeNameFromClass, byteArrayOutputStream.toByteArray());
         return newId;
     }
 

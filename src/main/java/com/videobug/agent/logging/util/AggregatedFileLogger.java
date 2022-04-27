@@ -11,11 +11,8 @@ public interface AggregatedFileLogger {
 
     void writeEvent(int id, long value);
 
-    void writeHostname();
 
-    void writeTimestamp();
-
-    void writeNewTypeRecord(int typeId, String typeName, String toString);
+    void writeNewTypeRecord(int typeId, String typeName, byte[] toString);
 
     void writeWeaveInfo(byte[] byteArray);
 

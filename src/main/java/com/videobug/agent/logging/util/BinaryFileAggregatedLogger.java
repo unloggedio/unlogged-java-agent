@@ -79,8 +79,8 @@ public class BinaryFileAggregatedLogger implements Runnable, AggregatedFileLogge
             files = new FileNameGenerator(new File(outputDirName), "log-", ".selog");
             err = logger;
             prepareNextFile();
-            writeHostname();
-            writeTimestamp();
+//            writeHostname();
+//            writeTimestamp();
             System.out.printf("Create aggregated logger -> %s\n", currentFile);
             if (serverAddress != null) {
                 new Thread(this).start();
@@ -268,68 +268,9 @@ public class BinaryFileAggregatedLogger implements Runnable, AggregatedFileLogge
     }
 
     @Override
-    public void writeHostname() {
-        try {
-            int bytesToWrite = 1 + 4 + hostname.length();
-            if (bytesToWrite + bytesWritten > WRITE_BYTE_BUFFER_SIZE) {
-                out.flush();
-                this.bytesWritten = 0;
-            }
-            this.bytesWritten += bytesToWrite;
+    public void writeNewTypeRecord(int typeId, String typeName, byte[] toString) {
 
-            ByteArrayOutputStream baos = new ByteArrayOutputStream(bytesToWrite);
-            DataOutputStream tempOut = new DataOutputStream(baos);
-
-
-            tempOut.writeByte(8);
-            tempOut.writeInt(hostname.length());
-            tempOut.writeBytes(hostname);
-            out.write(baos.toByteArray());
-            count++;
-
-        } catch (IOException e) {
-            err.log(e);
-        }
-    }
-
-    @Override
-    public void writeTimestamp() {
-        int bytesToWrite = 1 + 8;
-        long timeStamp = System.currentTimeMillis();
-        if (count < 0) {
-            return;
-        }
-
-
-        try {
-            lock.lock();
-            if (count >= MAX_EVENTS_PER_FILE) {
-                prepareNextFile();
-            }
-        } catch (IOException e) {
-            err.log(e);
-        } finally {
-            lock.unlock();
-        }
-
-        this.bytesWritten += bytesToWrite;
-
-        try {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream(bytesToWrite);
-            DataOutputStream tempOut = new DataOutputStream(baos);
-            tempOut.writeByte(7);      // 1
-            tempOut.writeLong(timeStamp); // 8
-            out.write(baos.toByteArray());
-        } catch (IOException e) {
-            err.log(e);
-        }
-
-    }
-
-    @Override
-    public void writeNewTypeRecord(int typeId, String typeName, String toString) {
-
-        int bytesToWrite = 1 + 4 + toString.length();
+        int bytesToWrite = 1 + 4 + toString.length;
 
         try {
             lock.lock();
@@ -347,8 +288,8 @@ public class BinaryFileAggregatedLogger implements Runnable, AggregatedFileLogge
             ByteArrayOutputStream baos = new ByteArrayOutputStream(bytesToWrite);
             DataOutputStream tempOut = new DataOutputStream(baos);
             tempOut.writeByte(5);              // 1
-            tempOut.writeInt(toString.length());  // 4
-            tempOut.write(toString.getBytes());   // length
+            tempOut.writeInt(toString.length);  // 4
+            tempOut.write(toString);   // length
             out.write(baos.toByteArray());
         } catch (IOException e) {
             err.log(e);
@@ -424,7 +365,7 @@ public class BinaryFileAggregatedLogger implements Runnable, AggregatedFileLogge
                     Thread.sleep(1 * 1000);
 //                    System.err.println("30 seconds log file checker");
                     timestamp = System.currentTimeMillis();
-                    writeTimestamp();
+//                    writeTimestamp();
                     lock.lock();
                     if (count > 0) {
 //                        System.err.println("1 seconds log file checker: " + count + " events in file");

@@ -21,7 +21,7 @@ public interface IndexOutputStream {
 
     void addProbeId(int probeId);
 
-    void indexTypeEntry(int typeId, String typeName);
+    void indexTypeEntry(int typeId, String typeName, byte[] typeInfoBytes);
 
     void drainQueueToIndex(
             List<ObjectInfoDocument> objectInfoDocuments,

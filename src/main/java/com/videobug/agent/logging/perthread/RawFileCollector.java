@@ -94,7 +94,7 @@ public class RawFileCollector implements Runnable {
             fileList.drainTo(logFiles, filesPerArchive - archivedIndexWriter.fileCount());
             logFiles.add(logFile);
 
-            errorLogger.log("add [" + logFiles.size() + "] files");
+//            errorLogger.log("add [" + logFiles.size() + "] files");
             for (UploadFile file : logFiles) {
                 File fileToUpload = new File(file.path);
                 archivedIndexWriter.writeFileEntry(file);
@@ -175,8 +175,8 @@ public class RawFileCollector implements Runnable {
         archivedIndexWriter.addProbeId(probeId);
     }
 
-    public void indexTypeEntry(int typeId, String typeName) {
-        typesToIndex.offer(new TypeInfoDocument(typeId, typeName));
+    public void indexTypeEntry(int typeId, String typeName, byte[] typeInfoBytes) {
+        typesToIndex.offer(new TypeInfoDocument(typeId, typeName, typeInfoBytes));
     }
 
     public void addClassWeaveInfo(byte[] byteArray) {

@@ -17,7 +17,7 @@ public class WeaverNoneTest {
 		WeaveClassLoader loader = new WeaveClassLoader(config);
 		Class<?> wovenClass = loader.loadAndWeaveClass("com.videobug.agent.testdata.DivideClass");
 		try {
-			wovenClass.getConstructors()[0].newInstance(null);
+			wovenClass.getConstructors()[0].newInstance((Object) null);
 		} catch (InvocationTargetException|IllegalAccessException|InstantiationException e) {
 			Assert.fail();
 		}

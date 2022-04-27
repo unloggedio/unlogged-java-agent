@@ -73,12 +73,12 @@ public class PerThreadBinaryFileAggregatedLogger implements
     /**
      * Create an instance of stream.
      *
-     * @param outputDirName location for generated files
-     * @param logger        is to report errors that occur in this class.
-     * @param fileCollector collects the dataEvent log files, creates indexes,
+     * @param fileNameGenerator file generator for output data
+     * @param logger            is to report errors that occur in this class.
+     * @param fileCollector     collects the dataEvent log files, creates indexes,
      */
     public PerThreadBinaryFileAggregatedLogger(
-            FileNameGenerator  fileNameGenerator, IErrorLogger logger,
+            FileNameGenerator fileNameGenerator, IErrorLogger logger,
             RawFileCollector fileCollector) {
 //        this.sessionId = sessionId;
         this.hostname = NetworkClient.getHostname();
@@ -169,9 +169,6 @@ public class PerThreadBinaryFileAggregatedLogger implements
                 BloomFilterUtil.newBloomFilterForValues(BloomFilterUtil.BLOOM_FILTER_BIT_SIZE));
         probeIdFilterSet.put(currentThreadId,
                 BloomFilterUtil.newBloomFilterForProbes(BloomFilterUtil.BLOOM_FILTER_BIT_SIZE));
-
-        writeHostname();
-        writeTimestamp();
     }
 
     /**
@@ -201,7 +198,6 @@ public class PerThreadBinaryFileAggregatedLogger implements
         int currentThreadId = threadId.get();
 
         OutputStream out = getStreamForThread(currentThreadId);
-        int bytesToWrite = 1 + 8 + 8;
 
         try {
 
@@ -261,23 +257,23 @@ public class PerThreadBinaryFileAggregatedLogger implements
         }
 
 
-        try {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream(bytesToWrite);
-            DataOutputStream tempOut = new DataOutputStream(baos);
-//            err.log("Write string [" + id + "] -> [" + stringObject.length() + "] -> [" + stringObject + "]");
-            tempOut.writeByte(2);
-            tempOut.writeLong(id);
-            byte[] bytes = stringObject.getBytes();
-            tempOut.writeInt(bytes.length);
-            tempOut.write(bytes);
-            getStreamForThread(threadId.get()).write(baos.toByteArray());
-            getThreadEventCount(currentThreadId).addAndGet(1);
-            if (stringLength > 0) {
-                fileCollector.indexStringEntry(id, stringObject);
-            }
-        } catch (IOException e) {
-            errorLogger.log(e);
+//        try {
+//            ByteArrayOutputStream baos = new ByteArrayOutputStream(bytesToWrite);
+//            DataOutputStream tempOut = new DataOutputStream(baos);
+////            err.log("Write string [" + id + "] -> [" + stringObject.length() + "] -> [" + stringObject + "]");
+//            tempOut.writeByte(2);
+//            tempOut.writeLong(id);
+//            byte[] bytes = stringObject.getBytes();
+//            tempOut.writeInt(bytes.length);
+//            tempOut.write(bytes);
+//            getStreamForThread(threadId.get()).write(baos.toByteArray());
+//            getThreadEventCount(currentThreadId).addAndGet(1);
+        if (stringLength > 0) {
+            fileCollector.indexStringEntry(id, stringObject);
         }
+//        } catch (IOException e) {
+//            errorLogger.log(e);
+//        }
 //        writeString(stringObject);
 
         // System.err.println("Write new string - 2," + id + "," + stringObject.length() + " - " + stringObject + " = " + this.bytesWritten);
@@ -386,72 +382,36 @@ public class PerThreadBinaryFileAggregatedLogger implements
 
     }
 
-    public void writeHostname() {
+    public void writeNewTypeRecord(int typeId, String typeName, byte[] toString) {
 
-        try {
-            int bytesToWrite = 1 + 4 + hostname.length();
-
-            ByteArrayOutputStream baos = new ByteArrayOutputStream(bytesToWrite);
-            DataOutputStream tempOut = new DataOutputStream(baos);
-
-
-            tempOut.writeByte(8);
-            tempOut.writeInt(hostname.length());
-            tempOut.writeBytes(hostname);
-            getStreamForThread(threadId.get()).write(baos.toByteArray());
-
-        } catch (IOException e) {
-            errorLogger.log(e);
-        }
-    }
-
-    public void writeTimestamp() {
-        int bytesToWrite = 1 + 8;
-        long timeStamp = currentTimestamp;
+//        int bytesToWrite = 1 + 4 + toString.length;
+//        int currentThreadId = threadId.get();
+//
+//        try {
+//
+//            if (getThreadEventCount(currentThreadId).get() >= MAX_EVENTS_PER_FILE) {
+//                prepareNextFile(currentThreadId);
+//            }
+//        } catch (IOException e) {
+//            errorLogger.log(e);
+//        }
 
 
-        try {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream(bytesToWrite);
-            DataOutputStream tempOut = new DataOutputStream(baos);
-            tempOut.writeByte(7);      // 1
-            tempOut.writeLong(timeStamp); // 8
-            getStreamForThread(threadId.get()).write(baos.toByteArray());
-        } catch (IOException e) {
-            errorLogger.log(e);
-        }
+//        try {
+//            ByteArrayOutputStream baos = new ByteArrayOutputStream(bytesToWrite);
+//            DataOutputStream tempOut = new DataOutputStream(baos);
+//            tempOut.writeByte(5);              // 1
+//            tempOut.writeInt(toString.length);  // 4
+//            tempOut.write(toString);   // length
+//
+//            getStreamForThread(currentThreadId).write(baos.toByteArray());
+//            getThreadEventCount(currentThreadId).addAndGet(1);
+        fileCollector.indexTypeEntry(typeId, typeName, toString);
 
-    }
-
-    public void writeNewTypeRecord(int typeId, String typeName, String toString) {
-
-        int bytesToWrite = 1 + 4 + toString.length();
-        int currentThreadId = threadId.get();
-
-        try {
-
-            if (getThreadEventCount(currentThreadId).get() >= MAX_EVENTS_PER_FILE) {
-                prepareNextFile(currentThreadId);
-            }
-        } catch (IOException e) {
-            errorLogger.log(e);
-        }
-
-
-        try {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream(bytesToWrite);
-            DataOutputStream tempOut = new DataOutputStream(baos);
-            tempOut.writeByte(5);              // 1
-            tempOut.writeInt(toString.length());  // 4
-            tempOut.write(toString.getBytes());   // length
-
-            getStreamForThread(currentThreadId).write(baos.toByteArray());
-            getThreadEventCount(currentThreadId).addAndGet(1);
-            fileCollector.indexTypeEntry(typeId, typeName);
-
-        } catch (IOException e) {
-            errorLogger.log(e);
-            e.printStackTrace();
-        }
+//        } catch (IOException e) {
+//            errorLogger.log(e);
+//            e.printStackTrace();
+//        }
 //        writeString(toString);
         // System.err.println("Write type record - 5," + toString.length() + " - " + toString + " = " + this.bytesWritten);
     }

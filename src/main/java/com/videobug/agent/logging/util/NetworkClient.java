@@ -103,6 +103,7 @@ public class NetworkClient {
         File binaryFile = new File(attachmentFilePath);
         form.addFilePart("file", binaryFile);
         form.addFormField("sessionId", sessionId);
+        form.addFormField("hostname", getHostname());
 
         String response = form.finish();
 
@@ -134,7 +135,7 @@ public class NetworkClient {
     }
 
     public void uploadFile(String filePath) throws IOException {
-        System.err.println("File to upload: " + filePath);
+        System.err.println("File to upload to [" + serverUrl + "]: " + filePath);
         long start = System.currentTimeMillis();
         sendPOSTRequest(serverUrl + "/checkpoint/uploadArchive", filePath);
         long end = System.currentTimeMillis();
@@ -144,17 +145,17 @@ public class NetworkClient {
         }
     }
 
-    public void uploadFile(String filePath, long threadId) throws IOException {
-        System.err.println("File to upload: " + filePath);
-        long start = System.currentTimeMillis();
-        sendPOSTRequest(serverUrl + "/checkpoint/upload", filePath, threadId);
-        long end = System.currentTimeMillis();
-        long seconds = (end - start) / 1000;
-        if (seconds > 2) {
-            System.err.println("Upload took " + seconds + " seconds, deleting file " + filePath);
-        }
-
-    }
+//    public void uploadFile(String filePath, long threadId) throws IOException {
+//        System.err.println("File to upload: " + filePath);
+//        long start = System.currentTimeMillis();
+//        sendPOSTRequest(serverUrl + "/checkpoint/upload", filePath, threadId);
+//        long end = System.currentTimeMillis();
+//        long seconds = (end - start) / 1000;
+//        if (seconds > 2) {
+//            System.err.println("Upload took " + seconds + " seconds, deleting file " + filePath);
+//        }
+//
+//    }
 
     private void sendPOSTRequest(String url, String attachmentFilePath, Integer threadId) throws IOException {
         String charset = "UTF-8";

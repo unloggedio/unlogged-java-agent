@@ -62,30 +62,4 @@ public class DataIdMap {
 	public String getObjectType(long objectId) {
 		return objects.getObjectTypeName(objectId);
 	}
-
-
-	/**
-	 * Create an instance from a string representation created by
-	 * ClassInfo.toString.
-	 *
-	 * @param s is the string representation.
-	 * @return an instance.
-	 */
-	public static KaitaiInsidiousClassWeaveParser.ClassInfo parse(String s) {
-		Scanner sc = new Scanner(s);
-		sc.useDelimiter(SEPARATOR);
-		int classId = sc.nextInt();
-		String container = sc.next();
-		String filename = sc.next();
-		String className = sc.next();
-		LogLevel level = LogLevel.valueOf(sc.next());
-		String hash = sc.next();
-		String id = sc.next();
-		sc.close();
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-
-		KaitaiInsidiousClassWeaveParser.ClassInfo classInfo
-				= new KaitaiInsidiousClassWeaveParser.ClassInfo(new ByteBufferKaitaiStream(baos.toByteArray()));
-		return classInfo;
-	}
 }

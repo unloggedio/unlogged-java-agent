@@ -5,7 +5,7 @@ package com.videobug.agent.testdata;
  */
 public class DivideClass {
 
-	private int x;
+	private int x = 0;
 	
 	public void c(int row, boolean[] list) {
 		int r = row / 2;

@@ -6,8 +6,8 @@
             <configuration>
                 <httpHeaders>
                     <property>
-                        <name>Private-Token</name>
-                        <value>glpat-j6H5Qd5KyyF7wLDm_P8e</value>
+                        <name>Job-Token</name>
+                        <value>${CI_JOB_TOKEN}</value>
                     </property>
                 </httpHeaders>
             </configuration>

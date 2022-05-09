@@ -300,14 +300,21 @@ public class ArchivedIndexWriter implements IndexOutputStream {
         ZipEntry eventsFileZipEntry = new ZipEntry(fileName);
         archivedIndexOutputStream.putNextEntry(eventsFileZipEntry);
         FileInputStream fis = new FileInputStream(fileToUpload);
-        InputStream fileInputStream = new BufferedInputStream(fis);
-        fileInputStream.transferTo(archivedIndexOutputStream);
+        copy(fis, archivedIndexOutputStream);
         fis.close();
         archivedIndexOutputStream.flush();
         archivedIndexOutputStream.closeEntry();
         long end = System.currentTimeMillis();
 
         errorLogger.log("Add files to archive: " + logFile.path + " took - " + (end - start) / 1000 + " ms");
+    }
+
+    void copy(InputStream source, OutputStream target) throws IOException {
+        byte[] buf = new byte[8192];
+        int length;
+        while ((length = source.read(buf)) > 0) {
+            target.write(buf, 0, length);
+        }
     }
 
     public void addValueId(long value) {

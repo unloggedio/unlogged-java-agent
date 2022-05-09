@@ -57,7 +57,7 @@ public class RawFileCollector implements Runnable {
         if (archivedIndexWriterOld != null) {
             EXECUTOR_SERVICE.submit(() -> {
                 drainItemsToIndex(archivedIndexWriterOld);
-                archivedIndexWriterOld.drainQueueToIndex(List.of(), typeInfoDocuments, List.of());
+                archivedIndexWriterOld.drainQueueToIndex(new LinkedList<>(), typeInfoDocuments, new LinkedList<>());
                 archivedIndexWriterOld.close();
                 if (networkClient != null) {
                     File archiveFile = archivedIndexWriterOld.getArchiveFile();
@@ -127,7 +127,7 @@ public class RawFileCollector implements Runnable {
         }
 
         prepareIndexItemBuffers();
-        writer.drainQueueToIndex(objectInfoDocuments, List.of(), stringInfoDocuments);
+        writer.drainQueueToIndex(objectInfoDocuments, new LinkedList<>(), stringInfoDocuments);
 
 
     }

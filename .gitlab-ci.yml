@@ -70,3 +70,6 @@ deploy:jdk8:
   only:
     variables:
       - $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  artifacts:
+    paths:
+      - target/*.jar

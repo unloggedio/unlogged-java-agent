@@ -3,7 +3,6 @@ package com.videobug.agent.logging;
 import com.videobug.agent.logging.io.*;
 import com.videobug.agent.logging.io.LatestEventLogger.ObjectRecordingStrategy;
 import com.videobug.agent.logging.util.AggregatedFileLogger;
-import io.rsocket.RSocket;
 
 import java.io.File;
 import java.lang.management.ManagementFactory;
@@ -38,28 +37,6 @@ public class Logging {
     public static IEventLogger initializeStreamLogger(File outputDir, boolean recordString, IErrorLogger errorLogger) {
         try {
             INSTANCE = new EventStreamLogger(errorLogger, outputDir, recordString);
-            return INSTANCE;
-        } catch (Throwable e) {
-            e.printStackTrace();
-            throw e;
-        }
-    }
-
-
-    /**
-     * Create a com.videobug.plugin.network stream logger and stores it to the INSTANCE field.
-     * The stream logger stores a sequence of events into files.
-     *
-     * @param outputDir    specifies a directory where files are created.
-     * @param recordString If this flag is true, the logger records string objects into files.
-     * @param errorLogger  specifies a logger to record error messages reported by the logger.
-     * @return the created logger instance.
-     */
-    public static IEventLogger initializeStreamNetworkLogger(File outputDir, boolean recordString, RSocket rSocket, IErrorLogger errorLogger) {
-        try {
-
-
-            INSTANCE = new EventStreamNetworkLogger(errorLogger, outputDir, rSocket, recordString, getProcessId(new Random().nextInt()));
             return INSTANCE;
         } catch (Throwable e) {
             e.printStackTrace();
@@ -107,7 +84,6 @@ public class Logging {
      *
      * @param outputDir  specifies a directory where files are created.
      * @param bufferSize specifies the buffer size k.
-     * @param keepObj    enables the logger to directly keep event-related objects in order to avoid GC.
      * @param outputJson generates a data file in a JSON format
      * @return the created logger instance.
      */
@@ -249,8 +225,7 @@ public class Logging {
     /**
      * A method to record an event without a data value.
      *
-     * @param value
-     * @param dataId
+     * @param dataId dataId of the probe which generated the event
      */
     public static void recordEvent(int dataId) {
         INSTANCE.recordEvent(dataId, 0);

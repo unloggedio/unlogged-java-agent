@@ -1,17 +1,6 @@
 package com.videobug.agent.weaver;
 
 import com.insidious.common.weaver.LogLevel;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufAllocator;
-import io.netty.buffer.CompositeByteBuf;
-import io.rsocket.RSocket;
-import io.rsocket.core.RSocketConnector;
-import io.rsocket.frame.decoder.PayloadDecoder;
-import io.rsocket.metadata.AuthMetadataCodec;
-import io.rsocket.metadata.CompositeMetadataCodec;
-import io.rsocket.metadata.WellKnownMimeType;
-import io.rsocket.transport.netty.client.TcpClientTransport;
-import io.rsocket.util.DefaultPayload;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -44,7 +33,6 @@ public class WeaveConfig {
     private static final String KEY_RECORD_SEPARATOR = ",";
     private Integer processId;
     private String sessionId;
-    private RSocket rSocket;
     private boolean weaveExec = true;
     private boolean weaveMethodCall = true;
     private boolean weaveFieldAccess = true;
@@ -163,47 +151,6 @@ public class WeaveConfig {
 
         this.sessionId = UUID.randomUUID().toString();
         this.processId = getProcessId(new Random().nextInt());
-
-        if (params.getServerAddress() != null && params.getPassword() != null) {
-            String[] addressParts = params.getServerAddress().split(":");
-
-            int addressPort = 80;
-            if (addressParts.length > 1) {
-                addressPort = Integer.parseInt(addressParts[1]);
-            }
-
-            System.out.printf("Creating com.videobug.plugin.network logger at [%s]: %s:%s\n\n", params.getServerAddress(), addressParts[0], addressPort);
-
-
-            RSocketConnector connector = RSocketConnector.create();
-
-            connector.metadataMimeType(WellKnownMimeType.MESSAGE_RSOCKET_COMPOSITE_METADATA.getString());
-            connector.dataMimeType(WellKnownMimeType.MESSAGE_RSOCKET_COMPOSITE_METADATA.getString());
-            connector.payloadDecoder(PayloadDecoder.DEFAULT);
-
-
-            String user = this.username + ":" + this.sessionId;
-
-            ByteBuf byteBuf = AuthMetadataCodec.encodeSimpleMetadata(ByteBufAllocator.DEFAULT, user.toCharArray(), params.getPassword().toCharArray());
-
-            CompositeByteBuf metadata = ByteBufAllocator.DEFAULT.compositeBuffer();
-
-            CompositeMetadataCodec.encodeAndAddMetadata(metadata,
-                    ByteBufAllocator.DEFAULT,
-                    WellKnownMimeType.MESSAGE_RSOCKET_AUTHENTICATION,
-                    byteBuf
-            );
-
-            connector.setupPayload(DefaultPayload.create(DefaultPayload.EMPTY_BUFFER, metadata.nioBuffer()));
-
-            rSocket = connector.connect(TcpClientTransport.create(addressParts[0], addressPort)).block();
-            metadata.release();
-
-            System.out.printf("Connected to: [%s] Session Id [%s] Process Id [%s]\n", params.getServerAddress(), this.sessionId, this.processId);
-
-
-        }
-
     }
 
     private static Integer getProcessId(final Integer fallback) {
@@ -361,10 +308,6 @@ public class WeaveConfig {
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    public RSocket getRsocket() {
-        return rSocket;
     }
 
     public String getAuthToken() {

@@ -38,7 +38,7 @@ public class RuntimeWeaver implements ClassFileTransformer {
     /**
      * Process command line arguments and prepare an output directory
      *
-     * @param params
+     * @param args string arguments for weaver
      */
     public RuntimeWeaver(String args) throws IOException {
 
@@ -93,11 +93,6 @@ public class RuntimeWeaver implements ClassFileTransformer {
                     case Stream:
                         logger = Logging.initializeStreamLogger(outputDir, true, weaver);
                         break;
-
-                    case Network:
-                        logger = Logging.initializeStreamNetworkLogger(outputDir, true, config.getRsocket(), weaver);
-                        break;
-
                     case Discard:
                         logger = Logging.initializeDiscardLogger();
                         break;

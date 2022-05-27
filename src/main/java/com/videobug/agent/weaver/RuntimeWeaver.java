@@ -18,6 +18,7 @@ import java.lang.instrument.Instrumentation;
 import java.security.CodeSource;
 import java.security.ProtectionDomain;
 import java.util.ArrayList;
+import java.util.regex.Pattern;
 
 /**
  * This class is the main program of SELogger as a javaagent.
@@ -157,18 +158,20 @@ public class RuntimeWeaver implements ClassFileTransformer {
         if (className.startsWith("com/videobug/agent/") && !className.startsWith("com/videobug/agent/testdata/"))
             return true;
         ArrayList<String> includedNames = params.getIncludedNames();
-        if (includedNames.size() > 0) {
-            for (String ex : includedNames) {
-                if (className.startsWith(ex)) {
-                    return false;
-                }
-            }
-            return true;
-        }
         for (String ex : params.getExcludedNames()) {
             if (className.startsWith(ex)) {
                 return true;
             }
+        }
+        if (includedNames.size() > 0) {
+            for (String ex : includedNames) {
+                if (className.startsWith(ex) ||
+                                "*".equals(ex) ||
+                                Pattern.compile(ex).matcher(className).matches()) {
+                    return false;
+                }
+            }
+            return true;
         }
         return false;
     }

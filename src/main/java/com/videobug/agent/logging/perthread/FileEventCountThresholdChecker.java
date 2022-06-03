@@ -39,4 +39,13 @@ class FileEventCountThresholdChecker implements Runnable {
         }
     }
 
+    public void shutdown() {
+        Integer[] keySet = threadFileMap.keySet().toArray(new Integer[0]);
+//        errorLogger.log("started event count checker cron for threads: " + Arrays.toString(keySet));
+        for (Integer theThreadId : keySet) {
+            int eventCount = threadEventCountProvider.getThreadEventCount(theThreadId).get();
+            onExpiryRunner.apply(theThreadId);
+        }
+    }
+
 }

@@ -199,6 +199,7 @@ public class ArchivedIndexWriter implements IndexOutputStream {
                     outputStream.writeBytes(fileToUpload.path);
                     outputStream.writeLong(fileToUpload.threadId);
 
+
                     byte[] valueByteArray = BloomFilterConverter.toJson(fileToUpload.valueIdBloomFilter).toString().getBytes();
                     byte[] probeByteArray = BloomFilterConverter.toJson(fileToUpload.probeIdBloomFilter).toString().getBytes();
 

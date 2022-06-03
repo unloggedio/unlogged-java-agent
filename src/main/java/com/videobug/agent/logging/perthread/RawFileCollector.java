@@ -64,7 +64,7 @@ public class RawFileCollector implements Runnable {
                     try {
                         errorLogger.log("uploading file: " + archiveFile.getAbsolutePath());
                         networkClient.uploadFile(archiveFile.getAbsolutePath());
-                        archiveFile.delete();
+//                        archiveFile.delete();
                     } catch (IOException e) {
                         errorLogger.log("failed to upload archive file: " + e.getMessage());
                     }
@@ -75,8 +75,8 @@ public class RawFileCollector implements Runnable {
 
     public void shutdown() throws IOException {
         shutdown = true;
-        EXECUTOR_SERVICE.shutdownNow().forEach(Runnable::run);
         upload();
+        EXECUTOR_SERVICE.shutdownNow().forEach(Runnable::run);
     }
 
     public void upload() throws IOException {

@@ -9,6 +9,7 @@ import com.videobug.agent.logging.util.NetworkClient;
 import orestes.bloomfilter.BloomFilter;
 
 import java.io.*;
+import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.*;
@@ -161,7 +162,7 @@ public class PerThreadBinaryFileAggregatedLogger implements
         }
         File nextFile = fileNameGenerator.getNextFile(String.valueOf(currentThreadId));
         currentFileMap.put(currentThreadId, nextFile.getPath());
-        out = new BufferedOutputStream(new FileOutputStream(nextFile), WRITE_BYTE_BUFFER_SIZE);
+        out = new BufferedOutputStream(Files.newOutputStream(nextFile.toPath()), WRITE_BYTE_BUFFER_SIZE);
         threadFileMap.put(currentThreadId, out);
 
         count.put(currentThreadId, new AtomicInteger(0));
@@ -421,18 +422,14 @@ public class PerThreadBinaryFileAggregatedLogger implements
     }
 
     public void shutdown() throws IOException {
+        System.err.println("shutdown logger");
         skipUploads = true;
         shutdown = true;
 
+        logFileTimeAgeChecker.shutdown();
         fileCollector.shutdown();
         threadPoolExecutor5Seconds.shutdown();
         threadPoolExecutor.shutdown();
-
-
-        if (logFileTimeAgeChecker != null) {
-            logFileTimeAgeChecker.run();
-        }
-
     }
 
     @Override

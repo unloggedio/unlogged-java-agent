@@ -124,7 +124,9 @@ public class RuntimeWeaver implements ClassFileTransformer {
         Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
             @Override
             public void run() {
+                System.err.println("shutting down videobug");
                 runtimeWeaver.close();
+                System.err.println("shut down complete");
             }
         }));
 
@@ -155,7 +157,10 @@ public class RuntimeWeaver implements ClassFileTransformer {
      * @return true if it is excluded from logging.
      */
     public boolean isExcludedFromLogging(String className) {
-        if (className.startsWith("com/videobug/agent/") && !className.startsWith("com/videobug/agent/testdata/"))
+        if (
+                className.startsWith("com/videobug/agent/")
+                        && !className.startsWith("com/videobug/agent/testdata/")
+        )
             return true;
         ArrayList<String> includedNames = params.getIncludedNames();
         for (String ex : params.getExcludedNames()) {
@@ -166,8 +171,8 @@ public class RuntimeWeaver implements ClassFileTransformer {
         if (includedNames.size() > 0) {
             for (String ex : includedNames) {
                 if (className.startsWith(ex) ||
-                                "*".equals(ex) ||
-                                Pattern.compile(ex).matcher(className).matches()) {
+                        "*".equals(ex) ||
+                        Pattern.compile(ex).matcher(className).matches()) {
                     return false;
                 }
             }

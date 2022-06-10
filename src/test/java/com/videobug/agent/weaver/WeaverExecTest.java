@@ -29,10 +29,11 @@ public class WeaverExecTest {
 	
 	@Before
 	public void setup() throws IOException {
-		WeaveConfig config = new WeaveConfig(WeaveConfig.KEY_RECORD_EXEC, "localhost:9921", "username", "password");
+		WeaveConfig config = new WeaveConfig(WeaveConfig.KEY_RECORD_EXEC,
+				"localhost:9921", "username", "password");
 		WeaveClassLoader loader = new WeaveClassLoader(config);
 		wovenClass = loader.loadAndWeaveClass("com.videobug.agent.testdata.SimpleTarget");
-//		innerClass = loader.loadClassFromResource("com.videobug.agent.testdata.SimpleTarget$StringComparator", "com/videobug/agent/testdata/SimpleTarget$StringComparator.class");
+		innerClass = loader.loadClassFromResource("com.videobug.agent.testdata.SimpleTarget$StringComparator", "com/videobug/agent/testdata/SimpleTarget$StringComparator.class");
 
 		memoryLogger = Logging.initializeForTest();
 		it = new EventIterator(memoryLogger, loader.getWeaveLog());

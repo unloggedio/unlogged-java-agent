@@ -11,25 +11,17 @@ import java.util.UUID;
 
 public class NetworkClient {
 
-    private final static String CRLF = "\r\n"; // Line separator required by multipart/form-data.
     private static String hostname = null;
-    private static String boundary;
     private final String serverUrl;
     private final String sessionId;
     private final String token;
     private final IErrorLogger err;
-    private final char[] fixedPostMetadata;
 
     public NetworkClient(String serverUrl, String sessionId, String token, IErrorLogger err) {
         this.serverUrl = serverUrl;
         this.token = token;
         this.sessionId = sessionId;
         this.err = err;
-
-
-        fixedPostMetadata = preparePostMetadata(sessionId);
-
-
     }
 
     public static String getHostname() {
@@ -60,37 +52,6 @@ public class NetworkClient {
         return hostname;
     }
 
-    private static char[] preparePostMetadata(String sessionId) {
-
-        CharArrayWriter charWriter = new CharArrayWriter();
-        PrintWriter writer = new PrintWriter(charWriter);
-
-
-        // Just generate some unique random value.
-        boundary = "------------------------" + Long.toHexString(System.currentTimeMillis());
-
-
-        // start entry
-
-        writer.append("--").append(boundary).append(CRLF);
-        writer.append("Content-Disposition: form-data; name=\"sessionId\"").append(CRLF).append(CRLF);
-        writer.append(sessionId).append(CRLF); // + URLConnection.guessContentTypeFromName(binaryFile.getName())).append(CRLF);
-        // end entry
-
-
-        // start entry
-        writer.append("--").append(boundary).append(CRLF);
-        writer.append("Content-Disposition: form-data; name=\"hostname\"").append(CRLF).append(CRLF);
-        writer.append(getHostname()).write(CRLF); // + URLConnection.guessContentTypeFromName(binaryFile.getName())).append(CRLF);
-
-
-        // end
-        writer.append("--").append(boundary).append("--").flush();
-
-//        writer.flush();
-        return charWriter.toCharArray();
-    }
-
     public void sendPOSTRequest(String url, String attachmentFilePath) throws IOException {
 
         String charset = "UTF-8";
@@ -98,14 +59,20 @@ public class NetworkClient {
         headers.put("User-Agent", "insidious/1.0.0");
         headers.put("Authorization", "Bearer " + this.token);
 
-        MultipartUtility form = new MultipartUtility(url, charset, headers);
+        MultipartUtility form = null;
+        try {
+            form = new MultipartUtility(url, charset, headers);
 
-        File binaryFile = new File(attachmentFilePath);
-        form.addFilePart("file", binaryFile);
-        form.addFormField("sessionId", sessionId);
-        form.addFormField("hostname", getHostname());
+            File binaryFile = new File(attachmentFilePath);
+            form.addFilePart("file", binaryFile);
+            form.addFormField("sessionId", sessionId);
+            form.addFormField("hostname", getHostname());
 
-        String response = form.finish();
+            String response = form.finish();
+        } catch (IOException e) {
+            err.log("failed to upload - " + e.getMessage());
+            throw e;
+        }
 
     }
 

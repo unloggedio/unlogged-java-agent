@@ -65,7 +65,11 @@ public class Weaver implements IErrorLogger {
             logger.println("Failed to open " + ERROR_LOG_FILE + " in " + outputDir.getAbsolutePath());
             logger.println("Use System.err instead.");
         }
-        logger.printf("Java version: %s", System.getProperty("java.version"));
+
+        String agentVersion = RuntimeWeaver.class.getPackage().getImplementationVersion();
+
+        logger.printf("Java version: %s%n", System.getProperty("java.version"));
+        logger.printf("Agent version: %s%n", agentVersion);
 
         try {
             this.digest = MessageDigest.getInstance("SHA-1");

@@ -65,14 +65,7 @@ public class Weaver implements IErrorLogger {
             logger.println("Failed to open " + ERROR_LOG_FILE + " in " + outputDir.getAbsolutePath());
             logger.println("Use System.err instead.");
         }
-
-        try {
-//            classIdWriter = new BufferedWriter(new FileWriter(new File(outputDir, CLASS_ID_FILE)), 32 * 1024);
-            methodIdWriter = new BufferedWriter(new FileWriter(new File(outputDir, METHOD_ID_FILE)), 32 * 1024);
-            dataIdWriter = new BufferedWriter(new FileWriter(new File(outputDir, DATA_ID_FILE)), 32 * 1024);
-        } catch (IOException e) {
-            e.printStackTrace(logger);
-        }
+        logger.printf("Java version: %s", System.getProperty("java.version"));
 
         try {
             this.digest = MessageDigest.getInstance("SHA-1");
@@ -102,21 +95,7 @@ public class Weaver implements IErrorLogger {
      * Close files written by the weaver.
      */
     public void close() {
-//        try {
-//            if (classIdWriter != null) classIdWriter.close();
-//        } catch (IOException e) {
-//            e.printStackTrace(logger);
-//        }
-        try {
-            if (methodIdWriter != null) methodIdWriter.close();
-        } catch (IOException e) {
-            e.printStackTrace(logger);
-        }
-        try {
-            if (dataIdWriter != null) dataIdWriter.close();
-        } catch (IOException e) {
-            e.printStackTrace(logger);
-        }
+
         config.save(new File(outputDir, PROPERTY_FILE));
     }
 

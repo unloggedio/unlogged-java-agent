@@ -55,8 +55,9 @@ public class RuntimeWeaver implements ClassFileTransformer {
             if (config.isValid()) {
                 weaver = new Weaver(outputDir, config);
                 weaver.setDumpEnabled(params.isDumpClassEnabled());
-                System.err.println("Session Id: [" + config.getSessionId()
-                        + "] on hostname [" + NetworkClient.getHostname() + "]");
+                System.err.println("Session Id: [" + config.getSessionId() +
+                        "] on hostname [" + NetworkClient.getHostname() + "]");
+                weaver.log("Params: " + args);
 
                 switch (params.getMode()) {
                     case FixedSize:
@@ -114,7 +115,7 @@ public class RuntimeWeaver implements ClassFileTransformer {
      * for releasing resources on the termination of a target program.
      *
      * @param agentArgs comes from command line.
-     * @param inst
+     * @param inst is provided by the jvm
      */
     public static void premain(String agentArgs, Instrumentation inst) throws IOException {
         String agentVersion = RuntimeWeaver.class.getPackage().getImplementationVersion();

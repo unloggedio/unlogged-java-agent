@@ -1,18 +1,8 @@
-# To contribute improvements to CI/CD templates, please follow the Development guide at:
-# https://docs.gitlab.com/ee/development/cicd/templates.html
-# This specific template is located at:
-# https://gitlab.com/gitlab-org/gitlab/-/blob/master/lib/gitlab/ci/templates/Maven.gitlab-ci.yml
-
-# Build JAVA applications using Apache Maven (http://maven.apache.org)
-# For docker image tags see https://hub.docker.com/_/maven/
-#
-# For general lifecycle information see https://maven.apache.org/guides/introduction/introduction-to-the-lifecycle.html
-
-# This template will build and test your projects
-# * Caches downloaded dependencies and plugins between invocation.
-# * Verify but don't deploy merge requests.
-# * Deploy built artifacts from master branch only.
-
+cache:
+  paths:
+    - .m2/repository
+    - /.m2/repository
+    - node_modules
 variables:
   # This will suppress any download for dependencies and plugins or upload messages which would clutter the console log.
   # `showDateTime` will show the passed time in milliseconds. You need to specify `--batch-mode` to make this work.
@@ -20,56 +10,155 @@ variables:
   # As of Maven 3.3.0 instead of this you may define these options in `.mvn/maven.config` so the same config is used
   # when running from the command line.
   # `installAtEnd` and `deployAtEnd` are only effective with recent version of the corresponding plugins.
-  MAVEN_CLI_OPTS: "--batch-mode --errors --fail-at-end --show-version -DinstallAtEnd=true -DdeployAtEnd=true"
-
-# This template uses jdk8 for verifying and deploying images
-image: maven:3.8.5-eclipse-temurin-8-alpine
-
-stages:
-  - test
-  - build
-  - deploy
-
-
-# Cache downloaded dependencies and plugins between builds.
-# To keep cache across branches add 'key: "$CI_JOB_NAME"'
-cache:
-  paths:
-    - .m2/repository
-
-# For merge requests do not `deploy` but only run `verify`.
-# See https://maven.apache.org/guides/introduction/introduction-to-the-lifecycle.html
-.verify: &verify
-  stage: test
+  MAVEN_CLI_OPTS: "--batch-mode -s ci_settings.xml --errors --fail-at-end --show-version -DinstallAtEnd=true -DdeployAtEnd=true"
+  K8S_SECRET_INSIDIOUS_AWS_ACCESS_KEY: AKIAXTWM2SYLC427L3V4
+  K8S_SECRET_INSIDIOUS_AWS_SECRET_KEY: 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
+  K8S_SECRET_VIDEOBUG_AEROSPIKE_HOST: aerospike-1655134518-aerospike:3000
+  K8S_SECRET_VIDEOBUG_AEROSPIKE_NAMESPACE: videobug
+  K8S_SECRET_INSIDIOUS_JAVAAGENT_URL: https://videobug-dev.s3.ap-south-1.amazonaws.com/java-agent-1.6.9.jar
+  K8S_SECRET_INSIDIOUS_AUTHENTICATION_ENABLE: "true"
+  PRODUCTION_ADDITIONAL_HOSTS: cloud.bug.video
+build:
+  stage: build
+  image: 'maven:3.8.5-eclipse-temurin-16'
   script:
-    - 'mvn $MAVEN_CLI_OPTS test -s ci_settings.xml'
-  artifacts:
-    expose_as: 'code coverage'
-    paths:
-      - target/surefire-reports/
-      - target/site/jacoco/index.html
-    reports:
-      junit:
-        - target/surefire-reports/TEST-*.xml
-
-# Verify merge requests using JDK8
-verify:jdk8:
-  <<: *verify
-
-# To deploy packages from CI, create a ci_settings.xml file
-# For deploying packages to GitLab's Maven Repository: See https://docs.gitlab.com/ee/user/packages/maven_repository/index.html#create-maven-packages-with-gitlab-cicd for more details.
-# Please note: The GitLab Maven Repository is currently only available in GitLab Premium / Ultimate.
-# For `master` branch run `mvn deploy` automatically.
-deploy:jdk8:
-  stage: deploy
-  script:
-    - if [ ! -f ci_settings.xml ];
-      then echo "CI settings missing\! If deploying to GitLab Maven Repository, please see https://docs.gitlab.com/ee/user/packages/maven_repository/index.html#create-maven-packages-with-gitlab-cicd for instructions.";
-      fi
-    - 'mvn $MAVEN_CLI_OPTS -DskipTests deploy -s ci_settings.xml'
-  only:
-    variables:
-      - $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - mvn $MAVEN_CLI_OPTS install -DskipTests && mvn $MAVEN_CLI_OPTS package -DskipTests
   artifacts:
     paths:
       - target/*.jar
+      - target/*.deb
+
+#build_snap:
+#  image: 'artpar/snap-builder'
+#  stage: build
+#  script:
+#    - snap install multipass
+#    - echo $SNAPCRAFT_LOGIN | base64 --decode --ignore-garbage > snapcraft.login
+#    - snapcraft login --with snapcraft.login
+#    - snapcraft
+#    - snapcraft upload  snap/snapcraft.yaml --release edge
+#  needs:
+#    - build
+#  dependencies:
+#    - build
+#  only:
+#    - master
+
+build_docker:
+  stage: build
+  image: 'registry.gitlab.com/gitlab-org/cluster-integration/auto-build-image:${AUTO_BUILD_IMAGE_VERSION}'
+  needs:
+    - build
+  dependencies:
+    - build
+  variables:
+    DOCKER_TLS_CERTDIR: ''
+  services:
+    - name: 'docker:20.10.12-dind'
+      command: [ '--tls=false', '--host=tcp://0.0.0.0:2375' ]
+  script:
+    - |
+      if [[ -z "$CI_COMMIT_TAG" ]]; then
+        export CI_APPLICATION_REPOSITORY=${CI_APPLICATION_REPOSITORY:-$CI_REGISTRY_IMAGE/$CI_COMMIT_REF_SLUG}
+        export CI_APPLICATION_TAG=${CI_APPLICATION_TAG:-$CI_COMMIT_SHA}
+      else
+        export CI_APPLICATION_REPOSITORY=${CI_APPLICATION_REPOSITORY:-$CI_REGISTRY_IMAGE}
+        export CI_APPLICATION_TAG=${CI_APPLICATION_TAG:-$CI_COMMIT_TAG}
+      fi
+
+      set -o pipefail
+
+      filter_docker_warning() {
+        grep -E -v "^WARNING! Your password will be stored unencrypted in |^Configure a credential helper to remove this warning. See|^https://docs.docker.com/engine/reference/commandline/login/#credentials-store" || true
+      }
+
+      docker_login_filtered() {
+        # $1 - username, $2 - password, $3 - registry
+        # this filters the stderr of the `docker login`, without merging stdout and stderr together
+        { echo "$2" | docker login -u "$1" --password-stdin "$3" 2>&1 1>&3 | filter_docker_warning 1>&2; } 3>&1
+      }
+
+
+      if ! docker info &>/dev/null; then
+        if [ -z "$DOCKER_HOST" ] && [ "$KUBERNETES_PORT" ]; then
+          export DOCKER_HOST='tcp://localhost:2375'
+        fi
+      fi
+
+      if [[ -n "$CI_REGISTRY" && -n "$CI_REGISTRY_USER" ]]; then
+        echo "Logging in to GitLab Container Registry with CI credentials..."
+        docker_login_filtered "$CI_REGISTRY_USER" "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+      fi
+
+      image_previous="$CI_APPLICATION_REPOSITORY:$CI_COMMIT_BEFORE_SHA"
+      image_tagged="$CI_APPLICATION_REPOSITORY:$CI_APPLICATION_TAG"
+      image_latest="$CI_APPLICATION_REPOSITORY:latest"
+
+      function gl_write_auto_build_variables_file() {
+        echo "CI_APPLICATION_TAG=$CI_APPLICATION_TAG@$(docker image inspect --format='{{ index (split (index .RepoDigests 0) "@") 1 }}' "$image_tagged")" > gl-auto-build-variables.env
+      }
+    - ls -lah
+    - ls -lah target
+    - docker build --tag "$image_tagged" --tag "$image_latest" .
+    - docker push "$image_tagged"
+    - docker push "$image_latest"
+
+  artifacts:
+    reports:
+      dotenv: gl-auto-build-variables.env
+  rules:
+    - if: '$BUILD_DISABLED'
+      when: never
+    - if: '$AUTO_DEVOPS_PLATFORM_TARGET == "EC2"'
+      when: never
+    - if: '$CI_COMMIT_TAG || $CI_COMMIT_BRANCH'
+
+
+
+test:
+  variables:
+    AEROSPIKE_DB: test
+    VIDEOBUG_AEROSPIKE_HOST: aerospike:3000
+    VIDEOBUG_AEROSPIKE_NAMESPACE: test
+    AEROSPIKE_USER: user
+    AEROSPIKE_PASSWORD: testing-password
+    INSIDIOUS_AWS_S3_ENDPOINT: minio:9000
+    INSIDIOUS_AWS_ACCESS_KEY: minioadmin
+    INSIDIOUS_AWS_SECRET_KEY: minioadmin
+    # This will suppress any download for dependencies and plugins or upload messages which would clutter the console log.
+    # `showDateTime` will show the passed time in milliseconds. You need to specify `--batch-mode` to make this work.
+    MAVEN_OPTS: "--add-opens=java.base/java.util=ALL-UNNAMED -Dhttps.protocols=TLSv1.2 -Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=WARN -Dorg.slf4j.simpleLogger.showDateTime=true -Djava.awt.headless=true"
+    # As of Maven 3.3.0 instead of this you may define these options in `.mvn/maven.config` so the same config is used
+    # when running from the command line.
+    # `installAtEnd` and `deployAtEnd` are only effective with recent version of the corresponding plugins.
+    MAVEN_CLI_OPTS: "--batch-mode -s ci_settings.xml --errors --fail-at-end --show-version -DinstallAtEnd=true -DdeployAtEnd=true"
+
+  services:
+    - name: aerospike/aerospike-server
+      alias: aerospike
+  stage: test
+  image: maven:3.8.5-eclipse-temurin-17
+  needs: [ ]
+  script:
+    - cp -R . /tmp/app
+  #    - mvn  $MAVEN_CLI_OPTS clean org.jacoco:jacoco-maven-plugin:prepare-agent test jacoco:report
+  rules:
+    - if: '$TEST_DISABLED'
+      when: never
+    - if: '$CI_COMMIT_TAG || $CI_COMMIT_BRANCH'
+  artifacts:
+    paths:
+      - target/site/jacoco/jacoco.xml
+
+deploy_review:
+  stage: deploy
+  script:
+    - echo "Deploy a review app"
+  environment:
+    name: review/$CI_COMMIT_REF_NAME
+    url: https://$CI_ENVIRONMENT_SLUG.k8s.bug.video
+  only:
+    - branches
+
+include:
+  - template: Auto-DevOps.gitlab-ci.yml

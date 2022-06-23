@@ -4,7 +4,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.URL;
-import java.nio.ByteBuffer;
 import java.util.HashMap;
 
 
@@ -94,8 +93,8 @@ public class TypeIdAggregatedStreamMap {
      */
     private int createTypeRecord(Class<?> type) {
         // Assign type IDs to dependent classes first.
-        Integer superClass = getTypeIdString(type.getSuperclass());
-        Integer componentType = getTypeIdString(type.getComponentType());
+        int superClass = getTypeIdString(type.getSuperclass());
+        int componentType = getTypeIdString(type.getComponentType());
         // Getting a class location may load other types (if a custom class loader is working with selogger)
         String classLocation = getClassLocation(type);
 

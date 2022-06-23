@@ -6,8 +6,11 @@ import com.insidious.common.weaver.Descriptor;
 import com.insidious.common.weaver.EventType;
 import com.insidious.common.weaver.LogLevel;
 import com.videobug.agent.logging.IErrorLogger;
+import com.videobug.agent.logging.Logging;
+import com.videobug.agent.logging.io.EventStreamAggregatedLogger;
 import com.videobug.agent.logging.perthread.PerThreadBinaryFileAggregatedLogger;
 import com.videobug.agent.logging.perthread.RawFileCollector;
+import com.videobug.agent.weaver.RuntimeWeaverParameters;
 import com.videobug.agent.weaver.WeaveConfig;
 import com.videobug.agent.weaver.WeaveLog;
 import com.videobug.agent.weaver.Weaver;
@@ -21,6 +24,7 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -125,7 +129,7 @@ public class PerThreadBinaryFileAggregatedLoggerTest {
 
     @Test
     public void classWeaverTest() throws IOException {
-        String strTmp = System.getProperty("java.io.tmpdir")  + "/videobug-test-output";
+        String strTmp = System.getProperty("java.io.tmpdir") + "/videobug-test-output";
         File outputDir = new File(strTmp);
         outputDir.mkdirs();
         Weaver weaver = new Weaver(outputDir,
@@ -161,79 +165,94 @@ public class PerThreadBinaryFileAggregatedLoggerTest {
         assert parsedWeaveInfo.classInfo().get(0).probeCount() == 1;
     }
 
-//    @Test
-//    public void chronicleQueueTest() throws IOException {
-//        try (ChronicleQueue queue = SingleChronicleQueueBuilder.single("queue-dir").build()) {
-//            // Obtain an ExcerptAppender
-//            ExcerptAppender appender = queue.acquireAppender();
-//
-//            ClassAliasPool.CLASS_ALIASES.addAlias(UploadFile.class);
-//            UploadFileQueue uploadFileQueue = queue.acquireAppender().methodWriter(UploadFileQueue.class);
-//            ExcerptTailer tailer = queue.createTailer();
-//
-//            IErrorLogger logger = new IErrorLogger() {
-//                @Override
-//                public void log(Throwable t) {
-//                    PerThreadBinaryFileAggregatedLoggerTest.this.logger.info("throwable ", t);
-//                }
-//
-//                @Override
-//                public void log(String msg) {
-//                    PerThreadBinaryFileAggregatedLoggerTest.this.logger.info("message: {}", msg);
-//                }
-//
-//                @Override
-//                public void close() {
-//
-//                }
-//            };
-//            List<byte[]> classWeavesList = new LinkedList<>();
-//            ArchivedIndexWriter archivedIndexWriter = new ArchivedIndexWriter(
-//                    new File("Archive.zip"), classWeavesList, logger);
-//            FileNameGenerator indexFileNameGenerator = new FileNameGenerator(new File("test"), "index", ".zip");
-//            BlockingQueue<UploadFile> fileList = new ArrayBlockingQueue<>(1024);
-//            RawFileCollector rawFileCollector = new RawFileCollector(50, indexFileNameGenerator, fileList, logger);
-//            UploadFileQueueImpl fileQueue = new UploadFileQueueImpl(rawFileCollector);
-//            MethodReader reader = queue.createTailer().methodReader(fileQueue);
-//
-//            uploadFileQueue.add(new UploadFile("1", 1,
-//                            new FilterBuilder(10, 0.01).buildBloomFilter(),
-//                            new FilterBuilder(10, 0.01).buildBloomFilter()
-//                    )
-//            );
-//            reader.readOne();
-//
-////            appender.writeDocument(w -> w.writeBytes(e -> {
-////                e.write(new byte[]{1,2,3,4});
-////            }));
-//
-//            // Writes: TestMessage
-////            appender.writeText("TestMessage");
-//
-//
-////            ByteBuffer baos = ByteBuffer.allocate(1024);
-////            byte[] bytes = new byte[64];
-////            tailer.readBytes(b -> {
-////                try {
-////                    b.copyTo(bytes);
-////                } catch (IOException e) {
-////                    e.printStackTrace();
-////                }
-////            });
-////            assertEquals(4, bytes[0]);
-//
-////            byte[] bytes1 = new byte[64];
-////            tailer.readBytes(b -> {
-////                try {
-////                    b.copyTo(bytes1);
-////                } catch (IOException e) {
-////                    e.printStackTrace();
-////                }
-////            });
-////            assertEquals(5, bytes1[0]);
-//
-////            assertEquals("TestMessage", tailer.readText());
+    @Test
+    public void objectIdGeneratorTest() throws IOException {
+
+        RuntimeWeaverParameters params = new RuntimeWeaverParameters("");
+
+        File outputDir = new File(params.getOutputDirname());
+        if (!outputDir.exists()) {
+            outputDir.mkdirs();
+        }
+        WeaveConfig config = new WeaveConfig(params);
+        Weaver weaver = new Weaver(outputDir, config);
+
+        NetworkClient networkClient = new NetworkClient(params.getServerAddress(),
+                config.getSessionId(), params.getAuthToken(), weaver);
+
+        FileNameGenerator fileNameGenerator1 = new FileNameGenerator(outputDir, "index-", ".zip");
+        RawFileCollector fileCollector = new RawFileCollector(params.getFilesPerIndex(), fileNameGenerator1, networkClient, weaver);
+
+        outputDir.mkdirs();
+        FileNameGenerator fileNameGenerator = new FileNameGenerator(outputDir, "log-", ".selog");
+        PerThreadBinaryFileAggregatedLogger perThreadBinaryFileAggregatedLogger
+                = new PerThreadBinaryFileAggregatedLogger(fileNameGenerator, weaver, fileCollector);
+
+        perThreadBinaryFileAggregatedLogger.writeEvent(1, 2);
+        EventStreamAggregatedLogger aggergatedLogger =
+                Logging.initialiseAggregatedLogger(weaver, perThreadBinaryFileAggregatedLogger, outputDir);
+
+        int iterationCount = 1024 * 1024;
+        long start = System.nanoTime();
+        long end = 0, totalTimeSeconds = 0, iterationsPerSecond = 0;
+        for (int i = 0; i < iterationCount; i++) {
+            aggergatedLogger.recordEvent(i, new PerThreadBinaryFileAggregatedLoggerTest());
+        }
+        end = System.nanoTime();
+        totalTimeSeconds = (end - start) / (1000 * 1000);
+        iterationsPerSecond = iterationCount / totalTimeSeconds;
+        System.out.println("getId: [" + iterationsPerSecond + "] iter/second");
+
+//        start = System.nanoTime();
+//        for (int i = 0; i < iterationCount; i++) {
+//            aggergatedLogger.recordEventSynchronized(i, new PerThreadBinaryFileAggregatedLoggerTest());
 //        }
-//    }
+//        end = System.nanoTime();
+//        totalTimeSeconds = (end - start) / (1000 * 1000);
+//        iterationsPerSecond = iterationCount / totalTimeSeconds;
+//        System.out.println("getId: [" + iterationsPerSecond + "] iter/second");
+
+        ObjectIdAggregatedStream objectIdMap = aggergatedLogger.getObjectIdMap();
+        assert objectIdMap.size() > 0;
+        assert objectIdMap.capacity() > 0;
+
+    }
+
+    @Test
+    public void testObjectIdMap() throws IOException {
+        int iterationCount = 1024 * 1024;
+        ObjectIdMap objectIdMap = new ObjectIdMap(1024 * 10, new File("."));
+        long start = 0;
+        long end = 0, totalTimeSeconds = 0, iterationsPerSecond = 0;
+
+
+        start = System.nanoTime();
+        HashMap<Long, Boolean> idMap = new HashMap<Long, Boolean>();
+        int clashCount = 0;
+        for (int i = 0; i < iterationCount; i++) {
+            long newId = objectIdMap.getId(new Object());
+            if (idMap.containsKey(newId)) {
+                clashCount++;
+            }
+            idMap.put(newId, true);
+        }
+        end = System.nanoTime();
+        totalTimeSeconds = (end - start) / (1000 * 1000);
+        iterationsPerSecond = iterationCount / totalTimeSeconds;
+        System.out.println("getIdChronicle: [" + iterationsPerSecond + "] iter/second - had " + clashCount + " clashes");
+
+
+//        start = System.nanoTime();
+//        for (int i = 0; i < iterationCount; i++) {
+//            long newId = objectIdMap.getId(new PerThreadBinaryFileAggregatedLoggerTest());
+//        }
+//        end = System.nanoTime();
+//        totalTimeSeconds = (end - start) / (1000 * 1000);
+//        iterationsPerSecond = iterationCount / totalTimeSeconds;
+//        System.out.println("getId: [" + iterationsPerSecond + "] iter/second");
+
+
+    }
+
 
 }

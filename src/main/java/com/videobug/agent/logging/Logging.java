@@ -5,9 +5,9 @@ import com.videobug.agent.logging.io.LatestEventLogger.ObjectRecordingStrategy;
 import com.videobug.agent.logging.util.AggregatedFileLogger;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.util.LinkedList;
-import java.util.Random;
 
 
 /**
@@ -104,9 +104,13 @@ public class Logging {
     }
 
 
-    public static IEventLogger initialiseAggregatedLogger(IErrorLogger errorLogger, AggregatedFileLogger aggregatedLogger) {
-        INSTANCE = new EventStreamAggregatedLogger(errorLogger, aggregatedLogger);
-        return INSTANCE;
+    public static EventStreamAggregatedLogger initialiseAggregatedLogger(
+            IErrorLogger errorLogger,
+            AggregatedFileLogger aggregatedLogger,
+            File outputDir) throws IOException {
+        EventStreamAggregatedLogger instance = new EventStreamAggregatedLogger(outputDir, aggregatedLogger);
+        INSTANCE = instance;
+        return instance;
     }
 
     /**

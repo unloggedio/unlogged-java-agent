@@ -33,7 +33,7 @@ public class ObjectIdFile extends ObjectIdMap {
      * @throws IOException
      */
     public ObjectIdFile(File outputDir, boolean recordString, TypeIdMap typeToId) throws IOException {
-        super(64 * 1024 * 1024);
+        super(64 * 1024 * 1024, outputDir);
         this.typeToId = typeToId;
 
         filenames = new FileNameGenerator(outputDir, "LOG$ObjectTypes", ".txt");

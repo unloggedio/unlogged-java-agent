@@ -2,6 +2,7 @@ package com.videobug.agent.logging.util;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
+import java.io.File;
 import java.io.IOException;
 
 
@@ -17,12 +18,15 @@ public class ObjectIdAggregatedStream extends ObjectIdMap {
     /**
      * Create an instance to record object types.
      *
-     * @param typeToId         is an object to translate a type into an integer representing a type.
      * @param aggregatedLogger
+     * @param typeToId         is an object to translate a type into an integer representing a type.
+     * @param outputDir
      * @throws IOException
      */
-    public ObjectIdAggregatedStream(AggregatedFileLogger aggregatedLogger, TypeIdAggregatedStreamMap typeToId) {
-        super(16 * 1024 * 1024);
+    public ObjectIdAggregatedStream(
+            AggregatedFileLogger aggregatedLogger,
+            TypeIdAggregatedStreamMap typeToId, File outputDir) throws IOException {
+        super(8 * 1024 * 1024, outputDir);
         this.typeToId = typeToId;
         this.aggregatedLogger = aggregatedLogger;
     }

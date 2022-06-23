@@ -1,11 +1,11 @@
 package com.videobug.agent.logging.io;
 
-import com.videobug.agent.logging.IErrorLogger;
 import com.videobug.agent.logging.IEventLogger;
 import com.videobug.agent.logging.util.AggregatedFileLogger;
 import com.videobug.agent.logging.util.ObjectIdAggregatedStream;
 import com.videobug.agent.logging.util.TypeIdAggregatedStreamMap;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Date;
 
@@ -30,11 +30,17 @@ public class EventStreamAggregatedLogger implements IEventLogger {
      * @param logger           specifies an object to record errors that occur in this class
      * @param aggregatedLogger writer
      */
-    public EventStreamAggregatedLogger(IErrorLogger logger, AggregatedFileLogger aggregatedLogger) {
+    public EventStreamAggregatedLogger(File outputDir,
+                                       AggregatedFileLogger aggregatedLogger
+    ) throws IOException {
         System.out.printf("New event stream aggregated logger\n");
         this.aggregatedLogger = aggregatedLogger;
         typeToId = new TypeIdAggregatedStreamMap(this.aggregatedLogger);
-        objectIdMap = new ObjectIdAggregatedStream(this.aggregatedLogger, typeToId);
+        objectIdMap = new ObjectIdAggregatedStream(this.aggregatedLogger, typeToId, outputDir);
+    }
+
+    public ObjectIdAggregatedStream getObjectIdMap() {
+        return objectIdMap;
     }
 
     /**
@@ -63,8 +69,17 @@ public class EventStreamAggregatedLogger implements IEventLogger {
      * Record an event and an object.
      * The object is translated into an object ID.
      */
+    public void recordEventSynchronized(int dataId, Object value) {
+        long objectId = objectIdMap.getSynchronizedId(value);
+        aggregatedLogger.writeEvent(dataId, objectId);
+    }
+
+    /**
+     * Record an event and an object.
+     * The object is translated into an object ID.
+     */
     public void recordEvent(int dataId, Integer value) {
-        aggregatedLogger.writeEvent(dataId, value);
+        aggregatedLogger.writeEvent(dataId, value.longValue());
     }
 
     /**
@@ -72,7 +87,7 @@ public class EventStreamAggregatedLogger implements IEventLogger {
      * The object is translated into an object ID.
      */
     public void recordEvent(int dataId, Long value) {
-        aggregatedLogger.writeEvent(dataId, value);
+        aggregatedLogger.writeEvent(dataId, value.longValue());
     }
 
     /**

@@ -33,7 +33,7 @@ public class RuntimeWeaverParameters {
      * Location names (substring) excluded from logging
      */
     private final ArrayList<String> excludedLocations;
-    private String authToken;
+    private String authToken = "localhost-token";
     private String output_dirname = SELOGGER_DEFAULT_OUTPUT_DIR;
     private String serverAddress;
     private String username;
@@ -139,8 +139,8 @@ public class RuntimeWeaverParameters {
                     mode = Mode.Discard;
                 } else if (opt.startsWith("omni") || opt.startsWith("stream")) {
                     mode = Mode.Stream;
-                } else if (opt.startsWith("single")) {
-                    mode = Mode.Single;
+//                } else if (opt.startsWith("single")) {
+//                    mode = Mode.Single;
                 } else if (opt.startsWith("perthread")) {
                     mode = Mode.PerThread;
                 } else if (opt.startsWith("network")) {

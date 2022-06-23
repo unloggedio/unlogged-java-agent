@@ -4,7 +4,6 @@ import com.videobug.agent.logging.IEventLogger;
 import com.videobug.agent.logging.Logging;
 import com.videobug.agent.logging.perthread.PerThreadBinaryFileAggregatedLogger;
 import com.videobug.agent.logging.perthread.RawFileCollector;
-import com.videobug.agent.logging.util.BinaryFileAggregatedLogger;
 import com.videobug.agent.logging.util.FileNameGenerator;
 import com.videobug.agent.logging.util.NetworkClient;
 import org.objectweb.asm.ClassReader;
@@ -28,8 +27,8 @@ public class RuntimeWeaver implements ClassFileTransformer {
     /**
      * The weaver injects logging instructions into target classes.
      */
-    private final Weaver weaver;
-    private final RuntimeWeaverParameters params;
+    private Weaver weaver;
+    private RuntimeWeaverParameters params;
     /**
      * The logger receives method calls from injected instructions via selogger.logging.Logging class.
      */
@@ -41,71 +40,76 @@ public class RuntimeWeaver implements ClassFileTransformer {
      *
      * @param args string arguments for weaver
      */
-    public RuntimeWeaver(String args) throws IOException {
+    public RuntimeWeaver(String args) {
 
-        params = new RuntimeWeaverParameters(args);
+        try {
+            params = new RuntimeWeaverParameters(args);
 
-        File outputDir = new File(params.getOutputDirname());
-        if (!outputDir.exists()) {
-            outputDir.mkdirs();
-        }
+            File outputDir = new File(params.getOutputDirname());
+            if (!outputDir.exists()) {
+                outputDir.mkdirs();
+            }
 
-        if (outputDir.isDirectory() && outputDir.canWrite()) {
-            WeaveConfig config = new WeaveConfig(params);
-            if (config.isValid()) {
-                weaver = new Weaver(outputDir, config);
-                weaver.setDumpEnabled(params.isDumpClassEnabled());
-                System.err.println("Session Id: [" + config.getSessionId() +
-                        "] on hostname [" + NetworkClient.getHostname() + "]");
-                weaver.log("Params: " + args);
+            if (outputDir.isDirectory() && outputDir.canWrite()) {
+                WeaveConfig config = new WeaveConfig(params);
+                if (config.isValid()) {
+                    weaver = new Weaver(outputDir, config);
+                    weaver.setDumpEnabled(params.isDumpClassEnabled());
+                    System.err.println("Session Id: [" + config.getSessionId() +
+                            "] on hostname [" + NetworkClient.getHostname() + "]");
+                    weaver.log("Params: " + args);
 
-                switch (params.getMode()) {
-                    case FixedSize:
-                        logger = Logging.initializeLatestEventTimeLogger(outputDir,
-                                params.getBufferSize(), params.getObjectRecordingStrategy(), params.isOutputJsonEnabled());
-                        break;
+                    switch (params.getMode()) {
+                        case FixedSize:
+                            logger = Logging.initializeLatestEventTimeLogger(outputDir,
+                                    params.getBufferSize(), params.getObjectRecordingStrategy(), params.isOutputJsonEnabled());
+                            break;
 
-                    case Frequency:
-                        logger = Logging.initializeFrequencyLogger(outputDir);
-                        break;
+                        case Frequency:
+                            logger = Logging.initializeFrequencyLogger(outputDir);
+                            break;
 
-                    case Single:
-                        BinaryFileAggregatedLogger aggregateLogger = new BinaryFileAggregatedLogger(
-                                params.getOutputDirname(),
-                                weaver, params.getAuthToken(), config.getSessionId(), params.getServerAddress());
-                        logger = Logging.initialiseAggregatedLogger(weaver, aggregateLogger);
-                        break;
+//                    case Single:
+//                        BinaryFileAggregatedLogger aggregateLogger = new BinaryFileAggregatedLogger(
+//                                params.getOutputDirname(),
+//                                weaver, params.getAuthToken(), config.getSessionId(), params.getServerAddress());
+//                        logger = Logging.initialiseAggregatedLogger(weaver, aggregateLogger);
+//                        break;
 
-                    case PerThread:
+                        case PerThread:
 
-                        NetworkClient networkClient = new NetworkClient(params.getServerAddress(),
-                                config.getSessionId(), params.getAuthToken(), weaver);
+                            NetworkClient networkClient = new NetworkClient(params.getServerAddress(),
+                                    config.getSessionId(), params.getAuthToken(), weaver);
 
-                        FileNameGenerator fileNameGenerator1 = new FileNameGenerator(outputDir, "index-", ".zip");
-                        RawFileCollector fileCollector = new RawFileCollector(params.getFilesPerIndex(), fileNameGenerator1, networkClient, weaver);
+                            FileNameGenerator fileNameGenerator1 = new FileNameGenerator(outputDir, "index-", ".zip");
+                            RawFileCollector fileCollector = new RawFileCollector(params.getFilesPerIndex(), fileNameGenerator1, networkClient, weaver);
 
-                        outputDir.mkdirs();
-                        FileNameGenerator fileNameGenerator = new FileNameGenerator(outputDir, "log-", ".selog");
-                        PerThreadBinaryFileAggregatedLogger perThreadBinaryFileAggregatedLogger
-                                = new PerThreadBinaryFileAggregatedLogger(fileNameGenerator, weaver, fileCollector);
+                            outputDir.mkdirs();
+                            FileNameGenerator fileNameGenerator = new FileNameGenerator(outputDir, "log-", ".selog");
+                            PerThreadBinaryFileAggregatedLogger perThreadBinaryFileAggregatedLogger
+                                    = new PerThreadBinaryFileAggregatedLogger(fileNameGenerator, weaver, fileCollector);
 
-                        logger = Logging.initialiseAggregatedLogger(weaver, perThreadBinaryFileAggregatedLogger);
-                        break;
+                            logger = Logging.initialiseAggregatedLogger(weaver, perThreadBinaryFileAggregatedLogger, outputDir);
+                            break;
 
-                    case Stream:
-                        logger = Logging.initializeStreamLogger(outputDir, true, weaver);
-                        break;
-                    case Discard:
-                        logger = Logging.initializeDiscardLogger();
-                        break;
+                        case Stream:
+                            logger = Logging.initializeStreamLogger(outputDir, true, weaver);
+                            break;
+                        case Discard:
+                            logger = Logging.initializeDiscardLogger();
+                            break;
+                    }
+                } else {
+                    System.err.println("No weaving option is specified.");
+                    weaver = null;
                 }
             } else {
-                System.out.println("No weaving option is specified.");
+                System.err.println("ERROR: " + outputDir.getAbsolutePath() + " is not writable.");
                 weaver = null;
             }
-        } else {
-            System.out.println("ERROR: " + outputDir.getAbsolutePath() + " is not writable.");
-            weaver = null;
+        } catch (Throwable thx) {
+            System.err.println("VideobugAgent failed, this session will not be recorded => " + thx.getMessage());
+            thx.printStackTrace();
         }
     }
 
@@ -115,7 +119,7 @@ public class RuntimeWeaver implements ClassFileTransformer {
      * for releasing resources on the termination of a target program.
      *
      * @param agentArgs comes from command line.
-     * @param inst is provided by the jvm
+     * @param inst      is provided by the jvm
      */
     public static void premain(String agentArgs, Instrumentation inst) throws IOException {
         String agentVersion = RuntimeWeaver.class.getPackage().getImplementationVersion();
@@ -288,6 +292,6 @@ public class RuntimeWeaver implements ClassFileTransformer {
         return null;
     }
 
-    public enum Mode {Stream, Frequency, FixedSize, Discard, Network, Single, PerThread}
+    public enum Mode {Stream, Frequency, FixedSize, Discard, Network, PerThread}
 
 }

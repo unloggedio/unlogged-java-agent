@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.videobug</groupId>
     <artifactId>java-agent</artifactId>
-    <version>1.6.10-SNAPSHOT</version>
+    <version>1.6.11-SNAPSHOT</version>
     <build>
         <plugins>
             <plugin>
@@ -116,16 +116,16 @@
             <artifactId>chronicle-queue</artifactId>
             <version>5.22.18</version>
         </dependency>
-        <dependency>
-            <groupId>commons-collections</groupId>
-            <artifactId>commons-collections</artifactId>
-            <version>3.2.2</version>
-        </dependency>
-        <dependency>
-            <groupId>net.openhft</groupId>
-            <artifactId>chronicle-map</artifactId>
-            <version>3.22.7</version>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>commons-collections</groupId>-->
+<!--            <artifactId>commons-collections</artifactId>-->
+<!--            <version>3.2.2</version>-->
+<!--        </dependency>-->
+<!--        <dependency>-->
+<!--            <groupId>net.openhft</groupId>-->
+<!--            <artifactId>chronicle-map</artifactId>-->
+<!--            <version>3.22.7</version>-->
+<!--        </dependency>-->
         <dependency>
             <groupId>com.baqend</groupId>
             <artifactId>bloom-filter</artifactId>

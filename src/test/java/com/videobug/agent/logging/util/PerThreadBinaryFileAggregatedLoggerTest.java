@@ -212,23 +212,41 @@ public class PerThreadBinaryFileAggregatedLoggerTest {
 //        iterationsPerSecond = iterationCount / totalTimeSeconds;
 //        System.out.println("getId: [" + iterationsPerSecond + "] iter/second");
 
-        ObjectIdAggregatedStream objectIdMap = aggergatedLogger.getObjectIdMap();
-        assert objectIdMap.size() > 0;
-        assert objectIdMap.capacity() > 0;
+//        ObjectIdAggregatedStream objectIdMap = aggergatedLogger.getObjectIdMap();
+//        assert objectIdMap.size() > 0;
+//        assert objectIdMap.capacity() > 0;
 
     }
 
     @Test
     public void testObjectIdMap() throws IOException {
-        int iterationCount = 1024 * 1024;
-        ObjectIdMap objectIdMap = new ObjectIdMap(1024 * 10, new File("."));
+        int iterationCount = 1024 * 1024 * 10;
+        ObjectIdMap objectIdMap = new ObjectIdMap(1024 * 1024 * 1, new File("."));
         long start = 0;
         long end = 0, totalTimeSeconds = 0, iterationsPerSecond = 0;
 
-
-        start = System.nanoTime();
         HashMap<Long, Boolean> idMap = new HashMap<Long, Boolean>();
         int clashCount = 0;
+
+//        start = System.nanoTime();
+//        for (int i = 0; i < iterationCount; i++) {
+//            long newId = objectIdMap.getId(new Object());
+//            if (idMap.containsKey(newId)) {
+//                clashCount++;
+//            }
+//            idMap.put(newId, true);
+//        }
+//        end = System.nanoTime();
+//        totalTimeSeconds = (end - start) / (1000 * 1000);
+//        iterationsPerSecond = iterationCount / totalTimeSeconds;
+//        System.out.println("getIdChronicle: [" + iterationsPerSecond + "] iter/second - had " + clashCount + " clashes");
+
+        objectIdMap.close();
+
+        objectIdMap = new ObjectIdMap(1024 * 1024 * 10, new File("."));
+        start = System.nanoTime();
+        idMap = new HashMap<>();
+        clashCount = 0;
         for (int i = 0; i < iterationCount; i++) {
             long newId = objectIdMap.getId(new Object());
             if (idMap.containsKey(newId)) {
@@ -240,16 +258,6 @@ public class PerThreadBinaryFileAggregatedLoggerTest {
         totalTimeSeconds = (end - start) / (1000 * 1000);
         iterationsPerSecond = iterationCount / totalTimeSeconds;
         System.out.println("getIdChronicle: [" + iterationsPerSecond + "] iter/second - had " + clashCount + " clashes");
-
-
-//        start = System.nanoTime();
-//        for (int i = 0; i < iterationCount; i++) {
-//            long newId = objectIdMap.getId(new PerThreadBinaryFileAggregatedLoggerTest());
-//        }
-//        end = System.nanoTime();
-//        totalTimeSeconds = (end - start) / (1000 * 1000);
-//        iterationsPerSecond = iterationCount / totalTimeSeconds;
-//        System.out.println("getId: [" + iterationsPerSecond + "] iter/second");
 
 
     }

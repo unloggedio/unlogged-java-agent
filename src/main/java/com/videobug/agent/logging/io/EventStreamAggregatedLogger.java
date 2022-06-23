@@ -69,15 +69,6 @@ public class EventStreamAggregatedLogger implements IEventLogger {
      * Record an event and an object.
      * The object is translated into an object ID.
      */
-    public void recordEventSynchronized(int dataId, Object value) {
-        long objectId = objectIdMap.getSynchronizedId(value);
-        aggregatedLogger.writeEvent(dataId, objectId);
-    }
-
-    /**
-     * Record an event and an object.
-     * The object is translated into an object ID.
-     */
     public void recordEvent(int dataId, Integer value) {
         aggregatedLogger.writeEvent(dataId, value.longValue());
     }

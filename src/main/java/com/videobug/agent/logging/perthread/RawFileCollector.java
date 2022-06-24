@@ -44,11 +44,11 @@ public class RawFileCollector implements Runnable {
         this.fileList = new ArrayBlockingQueue<>(1024 * 128);
         this.typeInfoDocuments = new LinkedList<>();
         prepareIndexItemBuffers();
-        prepareArchive();
+        finalizeArchiveAndUpload();
 
     }
 
-    private void prepareArchive() throws IOException {
+    private void finalizeArchiveAndUpload() throws IOException {
 
         ArchivedIndexWriter archivedIndexWriterOld = archivedIndexWriter;
 
@@ -64,9 +64,10 @@ public class RawFileCollector implements Runnable {
                     try {
                         errorLogger.log("uploading file: " + archiveFile.getAbsolutePath());
                         networkClient.uploadFile(archiveFile.getAbsolutePath());
-//                        archiveFile.delete();
                     } catch (IOException e) {
                         errorLogger.log("failed to upload archive file: " + e.getMessage());
+                    } finally {
+                        archiveFile.delete();
                     }
                 }
             });
@@ -85,7 +86,7 @@ public class RawFileCollector implements Runnable {
             if (logFile == null) {
                 if (fileCount > 0) {
                     errorLogger.log("files from queue, currently [" + fileCount + "] files in list");
-                    prepareArchive();
+                    finalizeArchiveAndUpload();
                 }
                 return;
             }
@@ -96,10 +97,10 @@ public class RawFileCollector implements Runnable {
 
 //            errorLogger.log("add [" + logFiles.size() + "] files");
             for (UploadFile file : logFiles) {
-                File fileToUpload = new File(file.path);
+                File fileToAddToArchive = new File(file.path);
                 archivedIndexWriter.writeFileEntry(file);
                 fileCount++;
-                fileToUpload.delete();
+                fileToAddToArchive.delete();
             }
         } catch (IOException e) {
             System.err.println("Failed to upload file: " + e.getMessage());
@@ -108,7 +109,7 @@ public class RawFileCollector implements Runnable {
             errorLogger.log("file upload cron interrupted, shutting down");
         } finally {
             if (archivedIndexWriter.fileCount() >= filesPerArchive) {
-                prepareArchive();
+                finalizeArchiveAndUpload();
             }
         }
     }
@@ -147,7 +148,7 @@ public class RawFileCollector implements Runnable {
                 return;
             }
             try {
-                new Thread(() -> drainItemsToIndex(archivedIndexWriter)).start();
+                EXECUTOR_SERVICE.submit(() -> drainItemsToIndex(archivedIndexWriter));
                 upload();
             } catch (IOException e) {
                 errorLogger.log(e);

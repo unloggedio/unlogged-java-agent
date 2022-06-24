@@ -49,7 +49,7 @@ public class ArchivedIndexWriter implements IndexOutputStream {
     private DiskPersistence<ObjectInfoDocument, Long> objectInfoDocumentIntegerDiskPersistence;
     private DiskPersistence<StringInfoDocument, Long> stringInfoDocumentStringDiskPersistence;
     private DiskPersistence<TypeInfoDocument, Integer> typeInfoDocumentStringDiskPersistence;
-    private List<UploadFile> fileIndexBytes = new LinkedList<>();
+    private List<UploadFile> fileListToUpload = new LinkedList<>();
     private BloomFilter<Long> aggregatedValueSet
             = BloomFilterUtil.newBloomFilterForValues(BloomFilterUtil.BLOOM_AGGREGATED_FILTER_BIT_SIZE);
     private BloomFilter<Integer> aggregatedProbeIdSet
@@ -138,7 +138,7 @@ public class ArchivedIndexWriter implements IndexOutputStream {
 
     @Override
     public int fileCount() {
-        return fileIndexBytes.size();
+        return fileListToUpload.size();
     }
 
     public void indexObjectTypeEntry(long objectId, int typeId) {
@@ -190,8 +190,8 @@ public class ArchivedIndexWriter implements IndexOutputStream {
                 archivedIndexOutputStream.putNextEntry(indexEntry);
                 DataOutputStream outputStream = new DataOutputStream(archivedIndexOutputStream);
 
-                List<UploadFile> fileIndexBytesCopy = fileIndexBytes;
-                fileIndexBytes = new LinkedList<>();
+                List<UploadFile> fileIndexBytesCopy = fileListToUpload;
+                fileListToUpload = new LinkedList<>();
 
                 outputStream.writeInt(fileIndexBytesCopy.size());
                 for (UploadFile fileToUpload : fileIndexBytesCopy) {
@@ -291,11 +291,10 @@ public class ArchivedIndexWriter implements IndexOutputStream {
     @Override
     public void writeFileEntry(UploadFile logFile) throws IOException {
 
-        long start = System.currentTimeMillis();
-        File fileToUpload = new File(logFile.path);
-        fileIndexBytes.add(logFile);
-
         long currentTimestamp = System.currentTimeMillis();
+        File fileToUpload = new File(logFile.path);
+        fileListToUpload.add(logFile);
+
         String fileName = currentTimestamp + "@" + fileToUpload.getName();
 
         ZipEntry eventsFileZipEntry = new ZipEntry(fileName);
@@ -307,7 +306,7 @@ public class ArchivedIndexWriter implements IndexOutputStream {
         archivedIndexOutputStream.closeEntry();
         long end = System.currentTimeMillis();
 
-        errorLogger.log("Add files to archive: " + logFile.path + " took - " + (end - start) / 1000 + " ms");
+        errorLogger.log("Add files to archive: " + logFile.path + " took - " + (end - currentTimestamp) / 1000 + " ms");
     }
 
     void copy(InputStream source, OutputStream target) throws IOException {

@@ -110,6 +110,9 @@ public class RuntimeWeaver implements ClassFileTransformer {
         } catch (Throwable thx) {
             System.err.println("VideobugAgent failed, this session will not be recorded => " + thx.getMessage());
             thx.printStackTrace();
+            if (thx.getCause() != null) {
+                thx.getCause().printStackTrace();
+            }
         }
     }
 

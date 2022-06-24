@@ -15,13 +15,13 @@ public class NetworkClient {
     private final String serverUrl;
     private final String sessionId;
     private final String token;
-    private final IErrorLogger err;
+    private final IErrorLogger errorLogger;
 
-    public NetworkClient(String serverUrl, String sessionId, String token, IErrorLogger err) {
+    public NetworkClient(String serverUrl, String sessionId, String token, IErrorLogger errorLogger) {
         this.serverUrl = serverUrl;
         this.token = token;
         this.sessionId = sessionId;
-        this.err = err;
+        this.errorLogger = errorLogger;
     }
 
     public static String getHostname() {
@@ -70,35 +70,10 @@ public class NetworkClient {
 
             String response = form.finish();
         } catch (IOException e) {
-            err.log("failed to upload - " + e.getMessage());
+            errorLogger.log("failed to upload - " + e.getMessage());
             throw e;
         }
 
-    }
-
-    public void sendPOSTRequest(String url, String attachmentFilePath, Long threadId) throws IOException {
-
-        String charset = "UTF-8";
-        Map<String, String> headers = new HashMap<>();
-        headers.put("User-Agent", "insidious/1.0.0");
-        headers.put("Authorization", "Bearer " + this.token);
-
-        MultipartUtility form = new MultipartUtility(url, charset, headers);
-
-        File binaryFile = new File(attachmentFilePath);
-        form.addFilePart("file", binaryFile);
-        form.addFormField("sessionId", sessionId);
-        form.addFormField("hostname", getHostname());
-        form.addFormField("threadId", String.valueOf(threadId));
-
-
-        String response = form.finish();
-
-    }
-
-
-    public String getServerUrl() {
-        return serverUrl;
     }
 
     public void uploadFile(String filePath) throws IOException {
@@ -108,35 +83,8 @@ public class NetworkClient {
         long end = System.currentTimeMillis();
         long seconds = (end - start) / 1000;
         if (seconds > 2) {
-            System.err.println("Upload took " + seconds + " seconds, deleting file " + filePath);
+            System.err.println("Upload took " + seconds + " seconds: " + filePath);
         }
     }
 
-//    public void uploadFile(String filePath, long threadId) throws IOException {
-//        System.err.println("File to upload: " + filePath);
-//        long start = System.currentTimeMillis();
-//        sendPOSTRequest(serverUrl + "/checkpoint/upload", filePath, threadId);
-//        long end = System.currentTimeMillis();
-//        long seconds = (end - start) / 1000;
-//        if (seconds > 2) {
-//            System.err.println("Upload took " + seconds + " seconds, deleting file " + filePath);
-//        }
-//
-//    }
-
-    private void sendPOSTRequest(String url, String attachmentFilePath, Integer threadId) throws IOException {
-        String charset = "UTF-8";
-        Map<String, String> headers = new HashMap<>();
-        headers.put("User-Agent", "insidious/1.0.0");
-        headers.put("Authorization", "Bearer " + this.token);
-
-        MultipartUtility form = new MultipartUtility(url, charset, headers);
-
-        File binaryFile = new File(attachmentFilePath);
-        form.addFilePart("file", binaryFile);
-        form.addFormField("sessionId", sessionId);
-        form.addFormField("hostname", getHostname());
-        form.addFormField("threadId", String.valueOf(threadId));
-        String response = form.finish();
-    }
 }

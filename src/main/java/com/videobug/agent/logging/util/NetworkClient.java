@@ -24,6 +24,10 @@ public class NetworkClient {
         this.errorLogger = errorLogger;
     }
 
+    public String getToken() {
+        return token;
+    }
+
     public static String getHostname() {
         if (hostname != null) {
             return hostname;

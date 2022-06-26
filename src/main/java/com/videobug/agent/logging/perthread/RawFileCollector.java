@@ -67,7 +67,9 @@ public class RawFileCollector implements Runnable {
                     } catch (IOException e) {
                         errorLogger.log("failed to upload archive file: " + e.getMessage());
                     } finally {
-                        archiveFile.delete();
+                        if (!"localhost-token".equals(networkClient.getToken())) {
+                            archiveFile.delete();
+                        }
                     }
                 }
             });

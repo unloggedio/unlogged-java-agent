@@ -14,3 +14,8 @@ target/
 hs_err_pid*
 dependency-reduced-pom.xml
 .mvn/
+selogger-*
+test-*
+*.iml
+*~
+release.properties

@@ -56,7 +56,8 @@ public class PerThreadBinaryFileAggregatedLoggerTest {
         NetworkClient networkClient = new NetworkClient("serverAddress",
                 "sessionId", "token", errorLogger);
 
-        String outputDirName = "test-output-" + new Date().getTime();
+        String outputDirName = "" +
+                "test-output-" + new Date().getTime();
 
         File outputDir = new File(outputDirName);
         outputDir.mkdirs();
@@ -80,6 +81,13 @@ public class PerThreadBinaryFileAggregatedLoggerTest {
 //        Thread.sleep(500);
         eventLogger.shutdown();
 //        Thread.sleep(500);
+
+        File[] fileToDelete = outputDir.listFiles();
+        for (File file : fileToDelete) {
+            file.delete();
+        }
+        outputDir.delete();
+
 
     }
 
@@ -124,6 +132,12 @@ public class PerThreadBinaryFileAggregatedLoggerTest {
 
 //        eventLogger.shutdown();
 //        Thread.sleep(100);
+        File[] files = outputDir.listFiles();
+        for (File file : files) {
+            file.delete();
+        }
+        outputDir.delete();
+
 
     }
 
@@ -163,6 +177,12 @@ public class PerThreadBinaryFileAggregatedLoggerTest {
         assert "classname".equals(parsedWeaveInfo.classInfo().get(0).className().value());
         assert parsedWeaveInfo.classInfo().get(0).methodCount() == 1;
         assert parsedWeaveInfo.classInfo().get(0).probeCount() == 1;
+        File[] files = outputDir.listFiles();
+        for (File file : files) {
+            file.delete();
+        }
+        outputDir.delete();
+
     }
 
     @Test
@@ -215,6 +235,13 @@ public class PerThreadBinaryFileAggregatedLoggerTest {
 //        ObjectIdAggregatedStream objectIdMap = aggergatedLogger.getObjectIdMap();
 //        assert objectIdMap.size() > 0;
 //        assert objectIdMap.capacity() > 0;
+
+        File[] files = outputDir.listFiles();
+        for (File file : files) {
+            file.delete();
+        }
+        outputDir.delete();
+
 
     }
 

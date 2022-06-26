@@ -1,9 +1,8 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>video.bug</groupId>
     <artifactId>java-agent</artifactId>
-    <version>1.6.13-SNAPSHOT</version>
+    <version>1.6.13</version>
     <distributionManagement>
         <snapshotRepository>
             <id>ossrh</id>
@@ -26,7 +25,8 @@
         <developerConnection>
             scm:git:git@gitlab.com:insidious1/java-agent.git
         </developerConnection>
-    </scm>
+      <tag>java-agent-1.6.13</tag>
+  </scm>
 
     <build>
         <plugins>
@@ -58,8 +58,7 @@
                 <version>3.3.0</version>
                 <configuration>
                     <transformers>
-                        <transformer
-                                implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                        <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                             <manifestEntries>
                                 <Premain-Class>com.videobug.agent.weaver.RuntimeWeaver</Premain-Class>
                                 <Implementation-Version>${project.version}</Implementation-Version>

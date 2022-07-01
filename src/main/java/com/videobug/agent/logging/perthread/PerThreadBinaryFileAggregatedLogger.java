@@ -90,7 +90,7 @@ public class PerThreadBinaryFileAggregatedLogger implements
         this.fileCollector = fileCollector;
         this.fileList = fileCollector.getFileQueue();
 
-        System.out.printf("Create aggregated logger -> %s\n", currentFileMap.get(-1));
+        System.out.printf("[videobug] create aggregated logger -> %s\n", currentFileMap.get(-1));
 
         threadPoolExecutor.submit(fileCollector);
 
@@ -179,7 +179,7 @@ public class PerThreadBinaryFileAggregatedLogger implements
         for (Map.Entry<Integer, OutputStream> threadStreamEntrySet : threadFileMap.entrySet()) {
             OutputStream out = threadStreamEntrySet.getValue();
             int streamTheadId = threadStreamEntrySet.getKey();
-            System.out.print("Close file for thread [" + streamTheadId + "]\n");
+            System.out.print("[videobug] close file for thread [" + streamTheadId + "]\n");
             try {
                 out.close();
             } catch (IOException e) {
@@ -422,7 +422,7 @@ public class PerThreadBinaryFileAggregatedLogger implements
     }
 
     public void shutdown() throws IOException {
-        System.err.println("shutdown logger");
+        System.err.println("[videobug] shutdown logger");
         skipUploads = true;
         shutdown = true;
 

@@ -55,7 +55,7 @@ public class RuntimeWeaver implements ClassFileTransformer {
                 if (config.isValid()) {
                     weaver = new Weaver(outputDir, config);
                     weaver.setDumpEnabled(params.isDumpClassEnabled());
-                    System.err.println("Session Id: [" + config.getSessionId() +
+                    System.out.println("[videobug] session Id: [" + config.getSessionId() +
                             "] on hostname [" + NetworkClient.getHostname() + "]");
                     weaver.log("Params: " + args);
 
@@ -100,15 +100,15 @@ public class RuntimeWeaver implements ClassFileTransformer {
                             break;
                     }
                 } else {
-                    System.err.println("No weaving option is specified.");
+                    System.out.println("[videobug] no weaving option is specified.");
                     weaver = null;
                 }
             } else {
-                System.err.println("ERROR: " + outputDir.getAbsolutePath() + " is not writable.");
+                System.err.println("[videobug] ERROR: " + outputDir.getAbsolutePath() + " is not writable.");
                 weaver = null;
             }
         } catch (Throwable thx) {
-            System.err.println("VideobugAgent failed, this session will not be recorded => " + thx.getMessage());
+            System.err.println("[videobug] agent init failed, this session will not be recorded => " + thx.getMessage());
             thx.printStackTrace();
             if (thx.getCause() != null) {
                 thx.getCause().printStackTrace();
@@ -126,15 +126,15 @@ public class RuntimeWeaver implements ClassFileTransformer {
      */
     public static void premain(String agentArgs, Instrumentation inst) throws IOException {
         String agentVersion = RuntimeWeaver.class.getPackage().getImplementationVersion();
-        System.err.println("Starting VideoBug Agent: [" + agentVersion + "] with arguments [" + agentArgs + "]");
+        System.out.println("[videobug] starting Agent: [" + agentVersion + "] with arguments [" + agentArgs + "]");
 
         final RuntimeWeaver runtimeWeaver = new RuntimeWeaver(agentArgs);
         Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
             @Override
             public void run() {
-                System.err.println("shutting down videobug");
+                System.out.println("[videobug] shutting down");
                 runtimeWeaver.close();
-                System.err.println("shut down complete");
+                System.out.println("[videobug] shutdown complete");
             }
         }));
 

@@ -105,7 +105,7 @@ public class RawFileCollector implements Runnable {
                 fileToAddToArchive.delete();
             }
         } catch (IOException e) {
-            System.err.println("Failed to upload file: " + e.getMessage());
+            System.err.println("[videobug] failed to upload file: " + e.getMessage());
             errorLogger.log(e);
         } catch (InterruptedException e) {
             errorLogger.log("file upload cron interrupted, shutting down");

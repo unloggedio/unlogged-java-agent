@@ -165,6 +165,27 @@ public class Logging {
     public static void recordEvent(byte value, int dataId) {
         INSTANCE.recordEvent(dataId, value);
     }
+    public static void recordEvent(Integer value, int dataId) {
+        INSTANCE.recordEvent(dataId, (int) value);
+    }
+    public static void recordEvent(Long value, int dataId) {
+        INSTANCE.recordEvent(dataId, (long)value);
+    }
+    public static void recordEvent(Byte value, int dataId) {
+        INSTANCE.recordEvent(dataId, (byte) value);
+    }
+    public static void recordEvent(Float value, int dataId) {
+        INSTANCE.recordEvent(dataId, (float) value);
+    }
+    public static void recordEvent(Double value, int dataId) {
+        INSTANCE.recordEvent(dataId, (double) value);
+    }
+    public static void recordEvent(Character value, int dataId) {
+        INSTANCE.recordEvent(dataId, (char)value);
+    }
+    public static void recordEvent(Boolean value, int dataId) {
+        INSTANCE.recordEvent(dataId, (boolean) value);
+    }
 
     /**
      * A method to record an event associated to a char value.

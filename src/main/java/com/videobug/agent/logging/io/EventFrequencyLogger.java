@@ -5,6 +5,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.videobug.agent.logging.IEventLogger;
@@ -103,7 +104,55 @@ public class EventFrequencyLogger implements IEventLogger {
 	public void recordEvent(int dataId, int value) {
 		countOccurrence(dataId);
 	}
-	
+
+	@Override
+	public void recordEvent(int dataId, Integer value) {
+		countOccurrence(dataId);
+
+	}
+
+	@Override
+	public void recordEvent(int dataId, Long value) {
+		countOccurrence(dataId);
+
+	}
+
+	@Override
+	public void recordEvent(int dataId, Short value) {
+		countOccurrence(dataId);
+
+	}
+
+	@Override
+	public void recordEvent(int dataId, Boolean value) {
+		countOccurrence(dataId);
+
+	}
+
+	@Override
+	public void recordEvent(int dataId, Double value) {
+		countOccurrence(dataId);
+
+	}
+
+	@Override
+	public void recordEvent(int dataId, Float value) {
+		countOccurrence(dataId);
+
+	}
+
+	@Override
+	public void recordEvent(int dataId, Byte value) {
+		countOccurrence(dataId);
+
+	}
+
+	@Override
+	public void recordEvent(int dataId, Date value) {
+		countOccurrence(dataId);
+
+	}
+
 	/**
 	 * Count the event occurrence.
 	 * @param dataId specifies an event to be counted.

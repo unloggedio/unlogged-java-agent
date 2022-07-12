@@ -2,6 +2,7 @@ package com.videobug.agent.logging.io;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Date;
 
 import com.videobug.agent.logging.util.EventDataStream;
 import com.videobug.agent.logging.util.ObjectIdFile;
@@ -75,6 +76,46 @@ public class EventStreamLogger implements IEventLogger {
 	 */
 	public void recordEvent(int dataId, int value) {
 		stream.write(dataId, value);
+	}
+
+	@Override
+	public void recordEvent(int dataId, Integer value) {
+
+	}
+
+	@Override
+	public void recordEvent(int dataId, Long value) {
+
+	}
+
+	@Override
+	public void recordEvent(int dataId, Short value) {
+
+	}
+
+	@Override
+	public void recordEvent(int dataId, Boolean value) {
+
+	}
+
+	@Override
+	public void recordEvent(int dataId, Double value) {
+
+	}
+
+	@Override
+	public void recordEvent(int dataId, Float value) {
+
+	}
+
+	@Override
+	public void recordEvent(int dataId, Byte value) {
+
+	}
+
+	@Override
+	public void recordEvent(int dataId, Date value) {
+
 	}
 
 	/**

@@ -8,6 +8,7 @@ import java.io.PrintWriter;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -522,7 +523,46 @@ public class LatestEventLogger implements IEventLogger {
 		Buffer b = prepareBuffer(int.class, "int", dataId);
 		b.addInt(value);
 	}
-	
+
+	@Override
+	public void recordEvent(int dataId, Integer value) {
+	}
+
+	@Override
+	public void recordEvent(int dataId, Long value) {
+
+	}
+
+	@Override
+	public void recordEvent(int dataId, Short value) {
+
+	}
+
+	@Override
+	public void recordEvent(int dataId, Boolean value) {
+
+	}
+
+	@Override
+	public void recordEvent(int dataId, Double value) {
+
+	}
+
+	@Override
+	public void recordEvent(int dataId, Float value) {
+
+	}
+
+	@Override
+	public void recordEvent(int dataId, Byte value) {
+
+	}
+
+	@Override
+	public void recordEvent(int dataId, Date value) {
+
+	}
+
 	/**
 	 * Record the event and the observed value.
 	 */

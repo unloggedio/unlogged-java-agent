@@ -29,6 +29,14 @@ public interface IEventLogger {
 	 * @param value contains a value to be recorded.
 	 */
 	public void recordEvent(int dataId, int value);
+	public void recordEvent(int dataId, Integer value);
+	public void recordEvent(int dataId, Long value);
+	public void recordEvent(int dataId, Short value);
+	public void recordEvent(int dataId, Boolean value);
+	public void recordEvent(int dataId, Double value);
+	public void recordEvent(int dataId, Float value);
+	public void recordEvent(int dataId, Byte value);
+	public void recordEvent(int dataId, Date value);
 
 	/**
 	 * Record an event occurrence and a value.

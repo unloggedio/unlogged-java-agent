@@ -1,6 +1,7 @@
 package com.videobug.agent.logging.io;
 
 import java.util.ArrayList;
+import java.util.Date;
 
 import com.videobug.agent.logging.IEventLogger;
 
@@ -207,6 +208,46 @@ public class MemoryLogger implements IEventLogger {
 	@Override
 	public void recordEvent(int dataId, int value) {
 		events.add(new Event(dataId, int.class, value));
+	}
+
+	@Override
+	public void recordEvent(int dataId, Integer value) {
+
+	}
+
+	@Override
+	public void recordEvent(int dataId, Long value) {
+
+	}
+
+	@Override
+	public void recordEvent(int dataId, Short value) {
+
+	}
+
+	@Override
+	public void recordEvent(int dataId, Boolean value) {
+
+	}
+
+	@Override
+	public void recordEvent(int dataId, Double value) {
+
+	}
+
+	@Override
+	public void recordEvent(int dataId, Float value) {
+
+	}
+
+	@Override
+	public void recordEvent(int dataId, Byte value) {
+
+	}
+
+	@Override
+	public void recordEvent(int dataId, Date value) {
+
 	}
 
 	/**

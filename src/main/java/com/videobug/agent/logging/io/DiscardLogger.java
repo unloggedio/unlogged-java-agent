@@ -2,6 +2,8 @@ package com.videobug.agent.logging.io;
 
 import com.videobug.agent.logging.IEventLogger;
 
+import java.util.Date;
+
 /**
  * This class is an implementation of IEventLogger that discards all events.
  * This is useful to measure the overhead of inserted logging code without disk writing.
@@ -69,7 +71,47 @@ public class DiscardLogger implements IEventLogger {
 	@Override
 	public void recordEvent(int dataId, int value) {
 	}
-	
+
+	@Override
+	public void recordEvent(int dataId, Integer value) {
+
+	}
+
+	@Override
+	public void recordEvent(int dataId, Long value) {
+
+	}
+
+	@Override
+	public void recordEvent(int dataId, Short value) {
+
+	}
+
+	@Override
+	public void recordEvent(int dataId, Boolean value) {
+
+	}
+
+	@Override
+	public void recordEvent(int dataId, Double value) {
+
+	}
+
+	@Override
+	public void recordEvent(int dataId, Float value) {
+
+	}
+
+	@Override
+	public void recordEvent(int dataId, Byte value) {
+
+	}
+
+	@Override
+	public void recordEvent(int dataId, Date value) {
+
+	}
+
 	/**
 	 * This logger does not record the given value.
 	 */

@@ -85,6 +85,30 @@ public class EventStreamAggregatedLogger implements IEventLogger {
      * Record an event and an object.
      * The object is translated into an object ID.
      */
+    public void recordEvent(int dataId, Short value) {
+        aggregatedLogger.writeEvent(dataId, value.longValue());
+    }
+
+    /**
+     * Record an event and an object.
+     * The object is translated into an object ID.
+     */
+    public void recordEvent(int dataId, Boolean value) {
+            aggregatedLogger.writeEvent(dataId, value ? 1 : 0);
+    }
+
+    /**
+     * Record an event and an object.
+     * The object is translated into an object ID.
+     */
+    public void recordEvent(int dataId, Float value) {
+        aggregatedLogger.writeEvent(dataId, value.longValue());
+    }
+
+    /**
+     * Record an event and an object.
+     * The object is translated into an object ID.
+     */
     public void recordEvent(int dataId, Byte value) {
         aggregatedLogger.writeEvent(dataId, value);
     }
@@ -102,7 +126,8 @@ public class EventStreamAggregatedLogger implements IEventLogger {
      * The object is translated into an object ID.
      */
     public void recordEvent(int dataId, Double value) {
-        aggregatedLogger.writeEvent(dataId, value.longValue());
+        long longValue = Double.doubleToRawLongBits(value);
+        aggregatedLogger.writeEvent(dataId, longValue);
     }
 
     /**

@@ -60,7 +60,7 @@ public class WeaveConfig {
      */
     public WeaveConfig(String options, String serverAddress, String username, String password) {
         String opt = options.toUpperCase();
-        System.out.printf("[videobug] Recording option: [%s] Server Address [%s] Username [%s] Password [%s]\n", opt, serverAddress, username, password);
+//        System.out.printf("[videobug] Recording option: [%s] Server Address [%s] Username [%s] Password [%s]\n", opt, serverAddress, username, password);
         if (opt.equals(KEY_RECORD_ALL)) {
             opt = KEY_RECORD_EXEC + KEY_RECORD_CALL + KEY_RECORD_FIELD + KEY_RECORD_ARRAY + KEY_RECORD_SYNC + KEY_RECORD_OBJECT + KEY_RECORD_PARAMETERS + KEY_RECORD_LABEL + KEY_RECORD_LOCAL + KEY_RECORD_LINE;
         } else if (opt.equals(KEY_RECORD_DEFAULT)) {
@@ -125,7 +125,7 @@ public class WeaveConfig {
     public WeaveConfig(RuntimeWeaverParameters params) {
         String options = params.getWeaveOption();
         String opt = options.toUpperCase();
-        System.out.printf("[videobug] Recording option: [%s] Server Address [%s] Username [%s] Password [%s]\n", opt, params.getServerAddress(), params.getUsername(), params.getPassword());
+//        System.out.printf("[videobug] Recording option: [%s] Server Address [%s] Username [%s] Password [%s]\n", opt, params.getServerAddress(), params.getUsername(), params.getPassword());
         if (opt.equals(KEY_RECORD_ALL)) {
             opt = KEY_RECORD_EXEC + KEY_RECORD_CALL + KEY_RECORD_FIELD + KEY_RECORD_ARRAY + KEY_RECORD_SYNC + KEY_RECORD_OBJECT + KEY_RECORD_PARAMETERS + KEY_RECORD_LABEL + KEY_RECORD_LOCAL + KEY_RECORD_LINE;
         } else if (opt.equals(KEY_RECORD_DEFAULT)) {

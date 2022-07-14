@@ -51,7 +51,7 @@ public class NetworkClient {
                 hostname = userName + "-" + UUID.randomUUID();
             }
         }
-        System.out.println("[videobug] session hostname is [" + hostname + "]");
+//        System.out.println("[videobug] session hostname is [" + hostname + "]");
 
         return hostname;
     }
@@ -81,7 +81,7 @@ public class NetworkClient {
     }
 
     public void uploadFile(String filePath) throws IOException {
-        System.out.println("[videobug] File to upload to [" + serverUrl + "]: " + filePath);
+//        System.out.println("[videobug] File to upload to [" + serverUrl + "]: " + filePath);
         long start = System.currentTimeMillis();
         sendPOSTRequest(serverUrl + "/checkpoint/uploadArchive", filePath);
         long end = System.currentTimeMillis();

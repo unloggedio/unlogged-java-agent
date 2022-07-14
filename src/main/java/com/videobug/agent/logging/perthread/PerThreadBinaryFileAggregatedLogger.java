@@ -9,6 +9,7 @@ import com.videobug.agent.logging.util.NetworkClient;
 import orestes.bloomfilter.BloomFilter;
 
 import java.io.*;
+import java.nio.channels.ClosedChannelException;
 import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
@@ -30,13 +31,13 @@ public class PerThreadBinaryFileAggregatedLogger implements
     /**
      * The number of events stored in a single file.
      */
-    public static final int MAX_EVENTS_PER_FILE = 10000 * 20;
-    public static final int WRITE_BYTE_BUFFER_SIZE = 1024 * 1024 * 8;
+    public static final int MAX_EVENTS_PER_FILE = 10000 * 50;
+    public static final int WRITE_BYTE_BUFFER_SIZE = 1024 * 1024 * 16;
     /**
      * This object records the number of threads observed by SELogger.
      */
     private static final AtomicInteger nextThreadId = new AtomicInteger(0);
-    private static final int TASK_QUEUE_CAPACITY = 1024 * 1024 * 16;
+    private static final int TASK_QUEUE_CAPACITY = 1024 * 1024 * 32;
 //    public final ArrayList<Byte> data = new ArrayList<>(1024 * 1024 * 4);
     /**
      * Assign an integer to this thread.
@@ -97,7 +98,7 @@ public class PerThreadBinaryFileAggregatedLogger implements
         this.fileCollector = fileCollector;
         this.fileList = fileCollector.getFileQueue();
 
-        System.out.printf("[videobug] create aggregated logger -> %s\n", currentFileMap.get(-1));
+//        System.out.printf("[videobug] create aggregated logger -> %s\n", currentFileMap.get(-1));
 
         threadPoolExecutor.submit(fileCollector);
         threadPoolExecutor.submit(new Runnable() {
@@ -106,7 +107,7 @@ public class PerThreadBinaryFileAggregatedLogger implements
 
                 while (true) {
                     try {
-                        OffLoadTaskPayload task = TaskQueueArray[offloadTaskQueueReadIndex];
+                        OffLoadTaskPayload task = TaskQueueArray[offloadTaskQueueReadIndex % TASK_QUEUE_CAPACITY];
                         if (task == null) {
                             Thread.sleep(10);
                             continue;
@@ -123,6 +124,8 @@ public class PerThreadBinaryFileAggregatedLogger implements
 
                         offloadTaskQueueReadIndex += 1;
 
+                    } catch (InterruptedException ie) {
+                        break;
                     } catch (Throwable throwable) {
 
                     }
@@ -175,8 +178,12 @@ public class PerThreadBinaryFileAggregatedLogger implements
         if (out != null) {
             String currentFile = currentFileMap.get(currentThreadId);
 //            errorLogger.log("flush existing file for thread [" + currentThreadId + "] -> " + currentFile);
-            out.flush();
-            out.close();
+            try {
+                out.close();
+            } catch (ClosedChannelException cce) {
+                            errorLogger.log("[videobug] channel already closed - flush existing " +
+                                    "file for " + "thread [" + currentThreadId + "] -> " + currentFile);
+            }
 
 
             BloomFilter<Long> valueIdBloomFilter = valueIdFilterSet.get(currentThreadId);

@@ -36,6 +36,7 @@ public class PerThreadBinaryFileAggregatedLogger implements
      * This object records the number of threads observed by SELogger.
      */
     private static final AtomicInteger nextThreadId = new AtomicInteger(0);
+    private static final int TASK_QUEUE_CAPACITY = 1024 * 1024 * 16;
 //    public final ArrayList<Byte> data = new ArrayList<>(1024 * 1024 * 4);
     /**
      * Assign an integer to this thread.
@@ -51,7 +52,11 @@ public class PerThreadBinaryFileAggregatedLogger implements
     private final String hostname;
     private final FileNameGenerator fileNameGenerator;
     private final IErrorLogger errorLogger;
-    private final ThreadLocal<byte[]> threadLocalByteBuffer = ThreadLocal.withInitial(() -> new byte[29]);
+    private final ThreadLocal<byte[]> threadLocalByteBuffer = ThreadLocal.withInitial(() -> {
+        byte[] bytes = new byte[29];
+        bytes[0] = 4;
+        return bytes;
+    });
     private final Map<Integer, BloomFilter<Long>> valueIdFilterSet = new HashMap<>();
     private final Map<Integer, BloomFilter<Integer>> probeIdFilterSet = new HashMap<>();
     ScheduledExecutorService threadPoolExecutor5Seconds = Executors.newScheduledThreadPool(1);
@@ -70,6 +75,8 @@ public class PerThreadBinaryFileAggregatedLogger implements
     private ScheduledFuture<?> skipResetFuture;
     private boolean shutdown;
     private DataOutputStream fileIndex;
+    private final OffLoadTaskPayload[] TaskQueueArray = new OffLoadTaskPayload[TASK_QUEUE_CAPACITY];
+    private int offloadTaskQueueReadIndex;
 
     /**
      * Create an instance of stream.
@@ -93,6 +100,36 @@ public class PerThreadBinaryFileAggregatedLogger implements
         System.out.printf("[videobug] create aggregated logger -> %s\n", currentFileMap.get(-1));
 
         threadPoolExecutor.submit(fileCollector);
+        threadPoolExecutor.submit(new Runnable() {
+            @Override
+            public void run() {
+
+                while (true) {
+                    try {
+                        OffLoadTaskPayload task = TaskQueueArray[offloadTaskQueueReadIndex];
+                        if (task == null) {
+                            Thread.sleep(10);
+                            continue;
+                        }
+                        TaskQueueArray[offloadTaskQueueReadIndex] = null;
+
+                        getThreadEventCount(task.threadId).addAndGet(1);
+
+
+                        valueIdFilterSet.get(task.threadId).add(task.value);
+                        fileCollector.addValueId(task.value);
+                        probeIdFilterSet.get(task.threadId).add(task.probeId);
+                        fileCollector.addProbeId(task.probeId);
+
+                        offloadTaskQueueReadIndex += 1;
+
+                    } catch (Throwable throwable) {
+
+                    }
+                }
+
+            }
+        });
 
         logFileTimeAgeChecker = new FileEventCountThresholdChecker(
                 threadFileMap, this,
@@ -202,11 +239,6 @@ public class PerThreadBinaryFileAggregatedLogger implements
 
         try {
 
-//            ByteArrayOutputStream baos = new ByteArrayOutputStream(bytesToWrite);
-//            DataOutputStream tempOut = new DataOutputStream(baos);
-//            tempOut.writeByte(1);
-//            tempOut.writeLong(id);
-//            tempOut.writeLong(typeId);
 
             byte[] buffer = threadLocalByteBuffer.get();
             buffer[0] = 1;
@@ -258,26 +290,9 @@ public class PerThreadBinaryFileAggregatedLogger implements
         }
 
 
-//        try {
-//            ByteArrayOutputStream baos = new ByteArrayOutputStream(bytesToWrite);
-//            DataOutputStream tempOut = new DataOutputStream(baos);
-////            err.log("Write string [" + id + "] -> [" + stringObject.length() + "] -> [" + stringObject + "]");
-//            tempOut.writeByte(2);
-//            tempOut.writeLong(id);
-//            byte[] bytes = stringObject.getBytes();
-//            tempOut.writeInt(bytes.length);
-//            tempOut.write(bytes);
-//            getStreamForThread(threadId.get()).write(baos.toByteArray());
-//            getThreadEventCount(currentThreadId).addAndGet(1);
         if (stringLength > 0) {
             fileCollector.indexStringEntry(id, stringObject);
         }
-//        } catch (IOException e) {
-//            errorLogger.log(e);
-//        }
-//        writeString(stringObject);
-
-        // System.err.println("Write new string - 2," + id + "," + stringObject.length() + " - " + stringObject + " = " + this.bytesWritten);
 
 
     }
@@ -312,14 +327,7 @@ public class PerThreadBinaryFileAggregatedLogger implements
     }
 
     public void writeEvent(int probeId, long valueId) {
-        if (skipUploads) {
-//            errorLogger.log("skip upload is true, skipping events");
-            return;
-        }
-
         long timestamp = currentTimestamp;
-
-
         int currentThreadId = threadId.get();
 
         try {
@@ -365,15 +373,9 @@ public class PerThreadBinaryFileAggregatedLogger implements
 
 
             getStreamForThread(currentThreadId).write(buffer);
-//            getStreamForThread(currentThreadId).flush();
-//            errorLogger.log("Wrote to buffer: [" + buffer.length + "] bytes");
-            getThreadEventCount(currentThreadId).addAndGet(1);
 
-
-            valueIdFilterSet.get(currentThreadId).add(valueId);
-            fileCollector.addValueId(valueId);
-            probeIdFilterSet.get(currentThreadId).add(probeId);
-            fileCollector.addProbeId(probeId);
+            TaskQueueArray[(int) (eventId % TASK_QUEUE_CAPACITY)] =
+                    new OffLoadTaskPayload(currentThreadId, probeId, valueId);
 
             eventId++;
         } catch (IOException e) {
@@ -385,36 +387,8 @@ public class PerThreadBinaryFileAggregatedLogger implements
 
     public void writeNewTypeRecord(int typeId, String typeName, byte[] toString) {
 
-//        int bytesToWrite = 1 + 4 + toString.length;
-//        int currentThreadId = threadId.get();
-//
-//        try {
-//
-//            if (getThreadEventCount(currentThreadId).get() >= MAX_EVENTS_PER_FILE) {
-//                prepareNextFile(currentThreadId);
-//            }
-//        } catch (IOException e) {
-//            errorLogger.log(e);
-//        }
-
-
-//        try {
-//            ByteArrayOutputStream baos = new ByteArrayOutputStream(bytesToWrite);
-//            DataOutputStream tempOut = new DataOutputStream(baos);
-//            tempOut.writeByte(5);              // 1
-//            tempOut.writeInt(toString.length);  // 4
-//            tempOut.write(toString);   // length
-//
-//            getStreamForThread(currentThreadId).write(baos.toByteArray());
-//            getThreadEventCount(currentThreadId).addAndGet(1);
         fileCollector.indexTypeEntry(typeId, typeName, toString);
 
-//        } catch (IOException e) {
-//            errorLogger.log(e);
-//            e.printStackTrace();
-//        }
-//        writeString(toString);
-        // System.err.println("Write type record - 5," + toString.length() + " - " + toString + " = " + this.bytesWritten);
     }
 
     public void writeWeaveInfo(byte[] byteArray) {

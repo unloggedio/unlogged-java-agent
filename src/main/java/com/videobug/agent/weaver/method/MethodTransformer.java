@@ -511,7 +511,16 @@ public class MethodTransformer extends LocalVariablesSorter {
                 int paramIndex = 0;
                 while (paramIndex < params.size()) {
                     generateNewVarInsn(params.getLoadInstruction(paramIndex), params.getLocalVar(paramIndex));
-                    generateLogging(EventType.CALL_PARAM, params.getRecordDesc(paramIndex), "CallParent=" + firstDataId + ",Index=" + (paramIndex + offset) + ",Type=" + params.getType(paramIndex).getDescriptor());
+                    Descriptor recordDesc = params.getRecordDesc(paramIndex);
+                    String typeDescriptor = params.getType(paramIndex).getDescriptor();
+                    Descriptor td = Descriptor.get(typeDescriptor);
+                    System.out.println("add new CALL_PARAM - "
+                            + recordDesc + " -  type descriptor : "
+                            + typeDescriptor);
+                    generateLogging(EventType.CALL_PARAM, td,
+                            "CallParent=" + firstDataId
+                                    + ",Index=" + (paramIndex + offset)
+                                    + ",Type=" + typeDescriptor);
                     paramIndex++;
                 }
 
@@ -1021,9 +1030,11 @@ public class MethodTransformer extends LocalVariablesSorter {
                 if (!(hasReceiver() && var == 0)) {  // Record variables except for "this"
                     LocalVariableNode local = variables.getLoadVar(var);
                     if (local != null) {
+                        System.out.println("Adding local_load for " + local.name + " - " + local.desc + " - " + local.signature);
                         Descriptor localDesc = Descriptor.get(local.desc);
                         generateLoggingPreservingStackTop(EventType.LOCAL_LOAD, localDesc, "Var=" + var + ",Name=" + local.name + ",Type=" + local.desc);
                     } else {
+                        System.out.println("Local variable not found");
                         generateLoggingPreservingStackTop(EventType.LOCAL_LOAD, d, "Var=" + var + ",Name=(Unavailable),Type=" + d.getString());
                     }
                 }
@@ -1060,6 +1071,8 @@ public class MethodTransformer extends LocalVariablesSorter {
         if (valueDesc == Descriptor.Void) {
             super.visitMethodInsn(Opcodes.INVOKESTATIC, LOGGER_CLASS, METHOD_RECORD_EVENT, "(I)V", false);
         } else {
+            System.out.println("[" + eventType + "]" + className + "@" + methodName + ":" + currentLine +
+                    " call " + "[" + valueDesc.getString() + "] ");
             super.visitMethodInsn(Opcodes.INVOKESTATIC, LOGGER_CLASS, METHOD_RECORD_EVENT,
                     "(" + valueDesc.getString() + "I)V", false);
         }
@@ -1086,6 +1099,8 @@ public class MethodTransformer extends LocalVariablesSorter {
                 super.visitInsn(Opcodes.DUP);
             }
             super.visitLdcInsn(dataId);
+            System.out.println("[" + eventType + "]" + className + "@" + methodName + ":" + currentLine +
+                    " call with stack " + "[" + valueDesc.getString() + "] ");
             super.visitMethodInsn(Opcodes.INVOKESTATIC, LOGGER_CLASS, METHOD_RECORD_EVENT,
                     "(" + valueDesc.getString() + "I)V", false);
         }

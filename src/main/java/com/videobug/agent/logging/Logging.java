@@ -184,7 +184,11 @@ public class Logging {
         INSTANCE.recordEvent(dataId, (char)value);
     }
     public static void recordEvent(Boolean value, int dataId) {
-        INSTANCE.recordEvent(dataId, (boolean) value);
+        if (value == null) {
+            INSTANCE.recordEvent(dataId, 0);
+        } else {
+            INSTANCE.recordEvent(dataId, 1);
+        }
     }
 
     /**

@@ -413,6 +413,45 @@ public class PerThreadBinaryFileAggregatedLogger implements
         threadPoolExecutor.shutdown();
     }
 
+    /**
+     * Block type: 7
+     * Event with object value serialized
+     *
+     * @param probeId probe id
+     * @param valueId value
+     * @param toByteArray serialized object representation
+     */
+    @Override
+    public void writeEvent(int probeId, long valueId, byte[] toByteArray) {
+        long timestamp = currentTimestamp;
+        int currentThreadId = threadId.get();
+
+        try {
+
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            DataOutputStream dos = new DataOutputStream(baos);
+
+
+            dos.write(7);
+            dos.writeLong(eventId);
+            dos.writeLong(timestamp);
+            dos.writeInt(probeId);
+            dos.writeLong(valueId);
+            dos.writeInt(toByteArray.length);
+            dos.write(toByteArray);
+
+
+            getStreamForThread(currentThreadId).write(baos.toByteArray());
+
+            TaskQueueArray[(int) (eventId % TASK_QUEUE_CAPACITY)] =
+                    new OffLoadTaskPayload(currentThreadId, probeId, valueId);
+
+            eventId++;
+        } catch (IOException e) {
+            errorLogger.log(e);
+        }
+    }
+
     @Override
     public AtomicInteger getThreadEventCount(int currentThreadId) {
         if (!count.containsKey(currentThreadId)) {

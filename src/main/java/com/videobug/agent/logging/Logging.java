@@ -113,6 +113,20 @@ public class Logging {
         return instance;
     }
 
+    public static
+    DetailedEventStreamAggregatedLogger
+    initialiseDetailedAggregatedLogger(
+            String includedPackage,
+            AggregatedFileLogger aggregatedLogger,
+            File outputDir
+    ) throws IOException {
+        DetailedEventStreamAggregatedLogger instance =
+                new DetailedEventStreamAggregatedLogger(includedPackage, outputDir,
+                        aggregatedLogger);
+        INSTANCE = instance;
+        return instance;
+    }
+
     /**
      * Create a logger and stores it to the INSTANCE field.
      * The logger keeps events on memory.
@@ -165,24 +179,31 @@ public class Logging {
     public static void recordEvent(byte value, int dataId) {
         INSTANCE.recordEvent(dataId, value);
     }
+
     public static void recordEvent(Integer value, int dataId) {
         INSTANCE.recordEvent(dataId, (int) value);
     }
+
     public static void recordEvent(Long value, int dataId) {
-        INSTANCE.recordEvent(dataId, (long)value);
+        INSTANCE.recordEvent(dataId, (long) value);
     }
+
     public static void recordEvent(Byte value, int dataId) {
         INSTANCE.recordEvent(dataId, (byte) value);
     }
+
     public static void recordEvent(Float value, int dataId) {
         INSTANCE.recordEvent(dataId, (float) value);
     }
+
     public static void recordEvent(Double value, int dataId) {
         INSTANCE.recordEvent(dataId, (double) value);
     }
+
     public static void recordEvent(Character value, int dataId) {
-        INSTANCE.recordEvent(dataId, (char)value);
+        INSTANCE.recordEvent(dataId, (char) value);
     }
+
     public static void recordEvent(Boolean value, int dataId) {
         if (value == null) {
             INSTANCE.recordEvent(dataId, 0);

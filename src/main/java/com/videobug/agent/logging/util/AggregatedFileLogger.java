@@ -17,4 +17,6 @@ public interface AggregatedFileLogger {
     void writeWeaveInfo(byte[] byteArray);
 
     void shutdown() throws IOException;
+
+    void writeEvent(int dataId, long objectId, byte[] toByteArray);
 }

@@ -92,6 +92,28 @@ public class RuntimeWeaver implements ClassFileTransformer {
                             logger = Logging.initialiseAggregatedLogger(weaver, perThreadBinaryFileAggregatedLogger, outputDir);
                             break;
 
+                        case Testing:
+
+                            NetworkClient networkClient1 =
+                                    new NetworkClient(params.getServerAddress(),
+                                            config.getSessionId(), params.getAuthToken(), weaver);
+
+                            FileNameGenerator fileNameGenerator2 =
+                                    new FileNameGenerator(outputDir, "index-", ".zip");
+                            RawFileCollector fileCollector1 =
+                                    new RawFileCollector(params.getFilesPerIndex(), fileNameGenerator2, networkClient1, weaver);
+
+                            outputDir.mkdirs();
+                            FileNameGenerator fileNameGenerator3 =
+                                    new FileNameGenerator(outputDir, "log-", ".selog");
+                            PerThreadBinaryFileAggregatedLogger perThreadBinaryFileAggregatedLogger1
+                                    = new PerThreadBinaryFileAggregatedLogger(fileNameGenerator3, weaver, fileCollector1);
+
+                            logger =
+                                    Logging.initialiseDetailedAggregatedLogger(this.params.getIncludedNames().get(0),
+                                            perThreadBinaryFileAggregatedLogger1, outputDir);
+                            break;
+
                         case Stream:
                             logger = Logging.initializeStreamLogger(outputDir, true, weaver);
                             break;
@@ -295,6 +317,6 @@ public class RuntimeWeaver implements ClassFileTransformer {
         return null;
     }
 
-    public enum Mode {Stream, Frequency, FixedSize, Discard, Network, PerThread}
+    public enum Mode {Stream, Frequency, FixedSize, Discard, Network, PerThread, Testing}
 
 }

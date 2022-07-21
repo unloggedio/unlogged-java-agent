@@ -1071,9 +1071,9 @@ public class MethodTransformer extends LocalVariablesSorter {
         if (valueDesc == Descriptor.Void) {
             super.visitMethodInsn(Opcodes.INVOKESTATIC, LOGGER_CLASS, METHOD_RECORD_EVENT, "(I)V", false);
         } else {
-            System.out.println("["+  dataId +"][" + eventType + "]" + className + "@" + methodName +
-                    ":" + currentLine +
-                    " call " + "[" + valueDesc.getString() + "] ");
+//            System.out.println("["+  dataId +"][" + eventType + "]" + className + "@" + methodName +
+//                    ":" + currentLine +
+//                    " call " + "[" + valueDesc.getString() + "] ");
             super.visitMethodInsn(Opcodes.INVOKESTATIC, LOGGER_CLASS, METHOD_RECORD_EVENT,
                     "(" + valueDesc.getString() + "I)V", false);
         }

@@ -142,9 +142,9 @@ public class RuntimeWeaverParameters {
                     mode = Mode.Stream;
 //                } else if (opt.startsWith("single")) {
 //                    mode = Mode.Single;
-                } else if (opt.startsWith("perthread")) {
+                } else if (opt.startsWith("replay")) {
                     mode = Mode.PerThread;
-                } else if (opt.startsWith("detailed")) {
+                } else if (opt.startsWith("testing")) {
                     mode = Mode.Testing;
                 } else if (opt.startsWith("network")) {
                     mode = Mode.Network;

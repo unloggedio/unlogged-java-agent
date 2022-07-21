@@ -100,14 +100,14 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 //                    bytes = new byte[0];
 //                }
                 bytes = jsonValue.getBytes();
-                System.out.println("Serialized [" + value.getClass().getCanonicalName() + "] [" + dataId + "]" + bytes.length + "  -> [" + new String(bytes) + "]");
+//                System.out.println("Serialized [" + value.getClass().getCanonicalName() + "] [" + dataId + "]" + bytes.length + "  -> [" + new String(bytes) + "]");
                 gson.fromJson(jsonValue, Gson.class);
             }
         } catch (Throwable e) {
             if (value != null) {
-                System.err.println("ThrowSerialized [" + value.getClass().getCanonicalName() + "]" +
-                        " [" + dataId + "] error -> " + e.getMessage());
-                e.printStackTrace();
+//                System.err.println("ThrowSerialized [" + value.getClass().getCanonicalName() + "]" +
+//                        " [" + dataId + "] error -> " + e.getMessage());
+//                e.printStackTrace();
             }
             // ignore if we cannot record the variable information
         }

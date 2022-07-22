@@ -334,7 +334,7 @@ public class PerThreadBinaryFileAggregatedLogger implements
     }
 
     public void writeEvent(int probeId, long valueId) {
-        long timestamp = currentTimestamp;
+        long timestamp = System.nanoTime();
         int currentThreadId = threadId.get();
 
         try {
@@ -423,7 +423,7 @@ public class PerThreadBinaryFileAggregatedLogger implements
      */
     @Override
     public void writeEvent(int probeId, long valueId, byte[] toByteArray) {
-        long timestamp = currentTimestamp;
+        long timestamp = System.nanoTime();
         int currentThreadId = threadId.get();
 
         try {

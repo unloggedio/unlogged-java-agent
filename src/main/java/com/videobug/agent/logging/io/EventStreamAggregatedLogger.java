@@ -70,7 +70,11 @@ public class EventStreamAggregatedLogger implements IEventLogger {
      * The object is translated into an object ID.
      */
     public void recordEvent(int dataId, Integer value) {
-        aggregatedLogger.writeEvent(dataId, value.longValue());
+        if (value == null) {
+            aggregatedLogger.writeEvent(dataId, 0);
+        } else {
+            aggregatedLogger.writeEvent(dataId, value.longValue());
+        }
     }
 
     /**
@@ -78,7 +82,12 @@ public class EventStreamAggregatedLogger implements IEventLogger {
      * The object is translated into an object ID.
      */
     public void recordEvent(int dataId, Long value) {
-        aggregatedLogger.writeEvent(dataId, value.longValue());
+        if (value == null) {
+            aggregatedLogger.writeEvent(dataId, 0);
+        } else {
+            aggregatedLogger.writeEvent(dataId, value.longValue());
+        }
+
     }
 
     /**
@@ -86,7 +95,12 @@ public class EventStreamAggregatedLogger implements IEventLogger {
      * The object is translated into an object ID.
      */
     public void recordEvent(int dataId, Short value) {
-        aggregatedLogger.writeEvent(dataId, value.longValue());
+        if (value == null) {
+            aggregatedLogger.writeEvent(dataId, 0);
+        } else {
+            aggregatedLogger.writeEvent(dataId, value.longValue());
+        }
+
     }
 
     /**
@@ -94,7 +108,7 @@ public class EventStreamAggregatedLogger implements IEventLogger {
      * The object is translated into an object ID.
      */
     public void recordEvent(int dataId, Boolean value) {
-        aggregatedLogger.writeEvent(dataId, value ? 1 : 0);
+        aggregatedLogger.writeEvent(dataId, value == null ? 0 : value ? 1 : 0);
     }
 
     /**
@@ -102,7 +116,12 @@ public class EventStreamAggregatedLogger implements IEventLogger {
      * The object is translated into an object ID.
      */
     public void recordEvent(int dataId, Float value) {
-        aggregatedLogger.writeEvent(dataId, value.longValue());
+        if (value == null) {
+            aggregatedLogger.writeEvent(dataId, 0);
+        } else {
+            aggregatedLogger.writeEvent(dataId, value.longValue());
+        }
+
     }
 
     /**
@@ -118,7 +137,12 @@ public class EventStreamAggregatedLogger implements IEventLogger {
      * The object is translated into an object ID.
      */
     public void recordEvent(int dataId, Date value) {
-        aggregatedLogger.writeEvent(dataId, value.getTime());
+        if (value == null) {
+            aggregatedLogger.writeEvent(dataId, 0);
+        } else {
+            aggregatedLogger.writeEvent(dataId, value.getTime());
+        }
+
     }
 
     /**

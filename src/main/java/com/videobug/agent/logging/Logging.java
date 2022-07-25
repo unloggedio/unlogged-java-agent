@@ -181,28 +181,51 @@ public class Logging {
     }
 
     public static void recordEvent(Integer value, int dataId) {
-        INSTANCE.recordEvent(dataId, (int) value);
+        if (value != null) {
+            INSTANCE.recordEvent(dataId, (int) value);
+        } else {
+            INSTANCE.recordEvent(dataId, value);
+        }
     }
 
     public static void recordEvent(Long value, int dataId) {
-        INSTANCE.recordEvent(dataId, (long) value);
+        if (value != null) {
+            INSTANCE.recordEvent(dataId, (long) value);
+        } else {
+            INSTANCE.recordEvent(dataId, value);
+        }
     }
 
     public static void recordEvent(Byte value, int dataId) {
-        INSTANCE.recordEvent(dataId, (byte) value);
+        if (value != null) {
+            INSTANCE.recordEvent(dataId, (byte) value);
+        } else {
+            INSTANCE.recordEvent(dataId, value);
+        }
     }
 
     public static void recordEvent(Float value, int dataId) {
-        INSTANCE.recordEvent(dataId, (float) value);
+        if (value != null) {
+            INSTANCE.recordEvent(dataId, (float) value);
+        } else {
+            INSTANCE.recordEvent(dataId, value);
+        }
     }
 
     public static void recordEvent(Double value, int dataId) {
-        INSTANCE.recordEvent(dataId, (double) value);
+        if (value != null) {
+            INSTANCE.recordEvent(dataId, (double) value);
+        } else {
+            INSTANCE.recordEvent(dataId, value);
+        }
     }
 
     public static void recordEvent(Character value, int dataId) {
-        INSTANCE.recordEvent(dataId, (char) value);
-    }
+        if (value != null) {
+            INSTANCE.recordEvent(dataId, (char) value);
+        } else {
+            INSTANCE.recordEvent(dataId, value);
+        }    }
 
     public static void recordEvent(Boolean value, int dataId) {
         if (value == null) {

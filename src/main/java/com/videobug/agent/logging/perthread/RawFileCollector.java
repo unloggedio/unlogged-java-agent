@@ -59,7 +59,7 @@ public class RawFileCollector implements Runnable {
                 drainItemsToIndex(archivedIndexWriterOld);
                 archivedIndexWriterOld.drainQueueToIndex(new LinkedList<>(), typeInfoDocuments, new LinkedList<>());
                 archivedIndexWriterOld.close();
-                if (networkClient != null) {
+                if (networkClient != null && !"localhost-token".equals(networkClient.getToken())) {
                     File archiveFile = archivedIndexWriterOld.getArchiveFile();
                     try {
                         errorLogger.log("uploading file: " + archiveFile.getAbsolutePath());
@@ -67,9 +67,7 @@ public class RawFileCollector implements Runnable {
                     } catch (IOException e) {
                         errorLogger.log("failed to upload archive file: " + e.getMessage());
                     } finally {
-                        if (!"localhost-token".equals(networkClient.getToken())) {
-                            archiveFile.delete();
-                        }
+                        archiveFile.delete();
                     }
                 }
             });

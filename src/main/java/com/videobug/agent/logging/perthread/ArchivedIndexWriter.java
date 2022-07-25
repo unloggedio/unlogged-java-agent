@@ -177,7 +177,7 @@ public class ArchivedIndexWriter implements IndexOutputStream {
                 archivedIndexOutputStream.putNextEntry(classWeaveEntry);
                 DataOutputStream weaveOutputStream = new DataOutputStream(archivedIndexOutputStream);
 
-                List<byte[]> classesInfo = this.classWeaves.subList(0, this.classWeaves.size());
+                List<byte[]> classesInfo = new LinkedList<>(this.classWeaves.subList(0, this.classWeaves.size()));
                 weaveOutputStream.writeInt(classesInfo.size());
                 for (byte[] classWeave : classesInfo) {
                     weaveOutputStream.write(classWeave);
@@ -263,6 +263,8 @@ public class ArchivedIndexWriter implements IndexOutputStream {
             } catch (IOException e) {
                 errorLogger.log(e);
             }
+        } catch (Exception e) {
+            errorLogger.log(e);
         } finally {
             long end = System.currentTimeMillis();
             errorLogger.log("Took [" + ((end - start) / 1000) + "] seconds to complete archive: " + currentArchiveFile.getName());

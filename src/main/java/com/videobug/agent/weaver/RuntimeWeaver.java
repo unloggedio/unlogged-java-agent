@@ -82,7 +82,8 @@ public class RuntimeWeaver implements ClassFileTransformer {
                                     config.getSessionId(), params.getAuthToken(), weaver);
 
                             FileNameGenerator fileNameGenerator1 = new FileNameGenerator(outputDir, "index-", ".zip");
-                            RawFileCollector fileCollector = new RawFileCollector(params.getFilesPerIndex(), fileNameGenerator1, networkClient, weaver);
+                            RawFileCollector fileCollector =
+                                    new RawFileCollector(params.getFilesPerIndex(), fileNameGenerator1, networkClient, weaver);
 
                             outputDir.mkdirs();
                             FileNameGenerator fileNameGenerator = new FileNameGenerator(outputDir, "log-", ".selog");

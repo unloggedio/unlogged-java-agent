@@ -58,6 +58,11 @@ public class PerThreadBinaryFileAggregatedLogger implements
         bytes[0] = 4;
         return bytes;
     });
+    private final ThreadLocal<byte[]> threadLocalByteBuffer2 = ThreadLocal.withInitial(() -> {
+        byte[] bytes = new byte[29];
+        bytes[0] = 4;
+        return bytes;
+    });
     private final Map<Integer, BloomFilter<Long>> valueIdFilterSet = new HashMap<>();
     private final Map<Integer, BloomFilter<Integer>> probeIdFilterSet = new HashMap<>();
     ScheduledExecutorService threadPoolExecutor5Seconds = Executors.newScheduledThreadPool(1);
@@ -105,31 +110,29 @@ public class PerThreadBinaryFileAggregatedLogger implements
             @Override
             public void run() {
 
-                while (true) {
-                    try {
-                        OffLoadTaskPayload task = TaskQueueArray[offloadTaskQueueReadIndex % TASK_QUEUE_CAPACITY];
-                        if (task == null) {
-                            Thread.sleep(10);
-                            continue;
-                        }
-                        TaskQueueArray[offloadTaskQueueReadIndex] = null;
-
-                        getThreadEventCount(task.threadId).addAndGet(1);
-
-
-                        valueIdFilterSet.get(task.threadId).add(task.value);
-                        fileCollector.addValueId(task.value);
-                        probeIdFilterSet.get(task.threadId).add(task.probeId);
-                        fileCollector.addProbeId(task.probeId);
-
-                        offloadTaskQueueReadIndex += 1;
-
-                    } catch (InterruptedException ie) {
-                        break;
-                    } catch (Throwable throwable) {
-
-                    }
-                }
+//                while (true) {
+//                    try {
+//                        OffLoadTaskPayload task = TaskQueueArray[offloadTaskQueueReadIndex % TASK_QUEUE_CAPACITY];
+//                        if (task == null) {
+//                            Thread.sleep(10);
+//                            continue;
+//                        }
+//                        TaskQueueArray[offloadTaskQueueReadIndex] = null;
+//
+//                        getThreadEventCount(task.threadId).addAndGet(1);
+//                        valueIdFilterSet.get(task.threadId).add(task.value);
+//                        fileCollector.addValueId(task.value);
+//                        probeIdFilterSet.get(task.threadId).add(task.probeId);
+//                        fileCollector.addProbeId(task.probeId);
+//
+//                        offloadTaskQueueReadIndex += 1;
+//
+//                    } catch (InterruptedException ie) {
+//                        break;
+//                    } catch (Throwable throwable) {
+//
+//                    }
+//                }
 
             }
         });
@@ -247,7 +250,7 @@ public class PerThreadBinaryFileAggregatedLogger implements
         try {
 
 
-            byte[] buffer = threadLocalByteBuffer.get();
+            byte[] buffer = threadLocalByteBuffer2.get();
             buffer[0] = 1;
 
 
@@ -381,8 +384,15 @@ public class PerThreadBinaryFileAggregatedLogger implements
 
             getStreamForThread(currentThreadId).write(buffer);
 
-            TaskQueueArray[(int) (eventId % TASK_QUEUE_CAPACITY)] =
-                    new OffLoadTaskPayload(currentThreadId, probeId, valueId);
+            getThreadEventCount(currentThreadId).addAndGet(1);
+            valueIdFilterSet.get(currentThreadId).add(valueId);
+            fileCollector.addValueId(valueId);
+            probeIdFilterSet.get(currentThreadId).add(probeId);
+            fileCollector.addProbeId(probeId);
+
+
+//            TaskQueueArray[(int) (eventId % TASK_QUEUE_CAPACITY)] =
+//                    new OffLoadTaskPayload(currentThreadId, probeId, valueId);
 
             eventId++;
         } catch (IOException e) {
@@ -443,8 +453,14 @@ public class PerThreadBinaryFileAggregatedLogger implements
 
             getStreamForThread(currentThreadId).write(baos.toByteArray());
 
-            TaskQueueArray[(int) (eventId % TASK_QUEUE_CAPACITY)] =
-                    new OffLoadTaskPayload(currentThreadId, probeId, valueId);
+            getThreadEventCount(currentThreadId).addAndGet(1);
+            valueIdFilterSet.get(currentThreadId).add(valueId);
+            fileCollector.addValueId(valueId);
+            probeIdFilterSet.get(currentThreadId).add(probeId);
+            fileCollector.addProbeId(probeId);
+
+//            TaskQueueArray[(int) (eventId % TASK_QUEUE_CAPACITY)] =
+//                    new OffLoadTaskPayload(currentThreadId, probeId, valueId);
 
             eventId++;
         } catch (IOException e) {

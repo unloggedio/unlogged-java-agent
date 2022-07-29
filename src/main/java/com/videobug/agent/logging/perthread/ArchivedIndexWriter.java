@@ -50,10 +50,8 @@ public class ArchivedIndexWriter implements IndexOutputStream {
     private DiskPersistence<StringInfoDocument, Long> stringInfoDocumentStringDiskPersistence;
     private DiskPersistence<TypeInfoDocument, Integer> typeInfoDocumentStringDiskPersistence;
     private List<UploadFile> fileListToUpload = new LinkedList<>();
-    private BloomFilter<Long> aggregatedValueSet
-            = BloomFilterUtil.newBloomFilterForValues(BloomFilterUtil.BLOOM_AGGREGATED_FILTER_BIT_SIZE);
-    private BloomFilter<Integer> aggregatedProbeIdSet
-            = BloomFilterUtil.newBloomFilterForProbes(BloomFilterUtil.BLOOM_AGGREGATED_FILTER_BIT_SIZE);
+    final private BloomFilter<Long> aggregatedValueSet;
+    final private BloomFilter<Integer> aggregatedProbeIdSet;
     private ZipOutputStream archivedIndexOutputStream;
 
     public ArchivedIndexWriter(File archiveFile, List<byte[]> classWeaves, IErrorLogger errorLogger) throws IOException {
@@ -63,7 +61,13 @@ public class ArchivedIndexWriter implements IndexOutputStream {
         this.currentArchiveFile = archiveFile;
 
         initIndexQueues();
-        prepareArchive();
+
+        errorLogger.log("prepare index archive: " + currentArchiveFile.getAbsolutePath());
+        archivedIndexOutputStream = new ZipOutputStream(new BufferedOutputStream(new FileOutputStream(currentArchiveFile)));
+        aggregatedValueSet = BloomFilterUtil.newBloomFilterForValues(BloomFilterUtil.BLOOM_AGGREGATED_FILTER_BIT_SIZE);
+        aggregatedProbeIdSet = BloomFilterUtil.newBloomFilterForProbes(BloomFilterUtil.BLOOM_AGGREGATED_FILTER_BIT_SIZE);
+
+
         initialiseIndexes();
 
     }
@@ -213,6 +217,9 @@ public class ArchivedIndexWriter implements IndexOutputStream {
 
                 byte[] aggregatedValueFilterSerialized = BloomFilterConverter.toJson(aggregatedValueSet).toString().getBytes();
                 byte[] aggregatedProbeFilterSerialized = BloomFilterConverter.toJson(aggregatedProbeIdSet).toString().getBytes();
+                System.err.println("Aggregated value filter for [" + currentArchiveFile.getName() + "] -> " + aggregatedValueFilterSerialized.length);
+                System.err.println("Aggregated probe filter for [" + currentArchiveFile.getName() +
+                        "] -> " + aggregatedProbeFilterSerialized.length);
 
 
                 outputStream.writeInt(aggregatedValueFilterSerialized.length);
@@ -277,13 +284,6 @@ public class ArchivedIndexWriter implements IndexOutputStream {
         }
     }
 
-    private void prepareArchive() throws IOException {
-        errorLogger.log("prepare index archive: " + currentArchiveFile.getAbsolutePath());
-        archivedIndexOutputStream = new ZipOutputStream(new BufferedOutputStream(new FileOutputStream(currentArchiveFile)));
-        aggregatedValueSet = BloomFilterUtil.newBloomFilterForValues(BloomFilterUtil.BLOOM_AGGREGATED_FILTER_BIT_SIZE);
-        aggregatedProbeIdSet = BloomFilterUtil.newBloomFilterForProbes(BloomFilterUtil.BLOOM_AGGREGATED_FILTER_BIT_SIZE);
-    }
-
     public void close() {
 //        shutdown = true;
         completeArchive(stringsToIndex, objectsToIndex, typesToIndex);
@@ -320,6 +320,7 @@ public class ArchivedIndexWriter implements IndexOutputStream {
     }
 
     public void addValueId(long value) {
+//        System.err.println("Add value to aggregated value filter: " + value);
         aggregatedValueSet.add(value);
     }
 

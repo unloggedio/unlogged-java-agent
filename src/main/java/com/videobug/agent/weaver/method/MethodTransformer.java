@@ -997,7 +997,9 @@ public class MethodTransformer extends LocalVariablesSorter {
      */
     private int nextDataId(EventType eventType, Descriptor desc, String label) {
 //		assert !label.contains(WeavingInfo.SEPARATOR) : "Location ID cannot includes WeavingInfo.SEPARATOR(" + WeavingInfo.SEPARATOR + ").";
-        return weavingInfo.nextDataId(currentLine, instructionIndex, eventType, desc, label);
+        int nextDataId = weavingInfo.nextDataId(currentLine, instructionIndex, eventType, desc, label);
+//        System.err.println("Data id [" + nextDataId + "] -> line=" + currentLine + ", eventType=" + eventType);
+        return nextDataId;
     }
 
 

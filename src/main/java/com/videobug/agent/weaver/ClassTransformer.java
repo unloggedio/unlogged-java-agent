@@ -18,6 +18,10 @@ import org.objectweb.asm.commons.TryCatchBlockSorter;
  */
 public class ClassTransformer extends ClassVisitor {
 
+	private String[] interfaces;
+	private String superName;
+	private String signature;
+
 	/**
 	 * This constructor weaves the given class and provides the result. 
 	 * @param weaver specifies the state of the weaver.
@@ -118,6 +122,9 @@ public class ClassTransformer extends ClassVisitor {
 		this.fullClassName = name;
 		this.weavingInfo.setFullClassName(fullClassName);
 		int index = name.lastIndexOf(PACKAGE_SEPARATOR);
+		this.interfaces = interfaces;
+		this.superName = superName;
+		this.signature = signature;
 		if (index >= 0) {
 			packageName = name.substring(0, index);
 			className = name.substring(index+1);
@@ -165,11 +172,26 @@ public class ClassTransformer extends ClassVisitor {
         MethodVisitor mv = cv.visitMethod(access, name, desc, signature, exceptions);
         if (mv != null) {
         	mv = new TryCatchBlockSorter(mv, access, name, desc, signature, exceptions);
-        	MethodTransformer trans = new MethodTransformer(weavingInfo, config, sourceFileName, fullClassName, outerClassName, access, name, desc, signature, exceptions, mv);
+        	MethodTransformer trans = new MethodTransformer(
+					weavingInfo, config, sourceFileName,
+					fullClassName, outerClassName, access,
+					name, desc, signature, exceptions, mv
+			);
         	return new JSRInliner(trans, access, name, desc, signature, exceptions);
         } else {
         	return null;
         }
 	}
-	
+
+	public String[] getInterfaces() {
+		return interfaces;
+	}
+
+	public String getSuperName() {
+		return superName;
+	}
+
+	public String getSignature() {
+		return signature;
+	}
 }

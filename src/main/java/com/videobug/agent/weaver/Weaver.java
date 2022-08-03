@@ -161,8 +161,14 @@ public class Weaver implements IErrorLogger {
             }
 
             ClassInfo classIdEntry
-                    = new ClassInfo(classId, container, classTransformer.getSourceFileName(),
-                    log.getFullClassName(), level, hash, classTransformer.getClassLoaderIdentifier());
+                    = new ClassInfo(
+                    classId, container, classTransformer.getSourceFileName(),
+                    log.getFullClassName(), level, hash,
+                    classTransformer.getClassLoaderIdentifier(),
+                    classTransformer.getInterfaces(),
+                    classTransformer.getSuperName(),
+                    classTransformer.getSignature()
+            );
 
 //            System.err.println("New Class [" + classIdEntry.getClassId() + "] in file ["
 //                    + classIdEntry.getFilename() + "] => [" + classIdEntry.getClassName() + "]");

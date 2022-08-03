@@ -152,7 +152,8 @@ public class PerThreadBinaryFileAggregatedLoggerTest {
         WeaveLog weaveLog = new WeaveLog(1, 1, 1);
         ClassInfo classInfo = new ClassInfo(
                 1, "class-container", "filename",
-                "classname", LogLevel.Normal, "hash", "classLoaderIdentifier"
+                "classname", LogLevel.Normal, "hash", "classLoaderIdentifier",
+                new String[]{}, "supername", "signature"
         );
 
         weaveLog.startMethod(

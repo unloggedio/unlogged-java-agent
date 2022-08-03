@@ -5,6 +5,8 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.URL;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 
 
 /**
@@ -95,6 +97,14 @@ public class TypeIdAggregatedStreamMap {
         // Assign type IDs to dependent classes first.
         int superClass = getTypeIdString(type.getSuperclass());
         int componentType = getTypeIdString(type.getComponentType());
+
+        List<Integer> interfaceClasses = new LinkedList<>();
+        for (Class<?> anInterface : type.getInterfaces()) {
+            int interfaceClassId = getTypeIdString(anInterface);
+            interfaceClasses.add(interfaceClassId);
+        }
+
+
         // Getting a class location may load other types (if a custom class loader is working with selogger)
         String classLocation = getClassLocation(type);
 
@@ -121,6 +131,13 @@ public class TypeIdAggregatedStreamMap {
 
             record.writeInt(classLoaderIdentifier.getBytes().length);
             record.write(classLoaderIdentifier.getBytes());
+
+
+            record.writeInt(interfaceClasses.size());
+            for (Integer interfaceClass : interfaceClasses) {
+                record.writeInt(interfaceClass);
+            }
+
 
         } catch (IOException e) {
             /// should never happen

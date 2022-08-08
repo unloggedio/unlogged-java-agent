@@ -81,10 +81,6 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
      */
     public void recordEvent(int dataId, Object value) {
         long objectId = objectIdMap.getId(value);
-//        ElsaSerializer serializer = new ElsaMaker().make();
-        // Elsa Serializer takes DataOutput and DataInput.
-        // Use streams to create it.
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
 
         byte[] bytes = new byte[0];
         // write data into OutputStream
@@ -92,20 +88,26 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
             String className = value.getClass().getCanonicalName().replaceAll("\\.", "/");
             if (className.startsWith(includedPackage)) {
 
-//                String jsonValue = gson.toJson(value);
-                kryo.register(value.getClass());
-//                System.out.println("Registration " + registration.toString() + " - ");
+                // # using gson
+                String jsonValue = gson.toJson(value);
+                bytes = jsonValue.getBytes();
+
+                // # using ObjectOutputStream
+                //                System.out.println("Registration " + registration.toString() + " - ");
 //                ObjectOutputStream oos = new ObjectOutputStream(out);
 //                            serializer.serialize(out2, value);
 //                oos.writeObject(value);
-                Output output = new Output(out);
-                kryo.writeObject(output, value);
-                output.close();
-                bytes = out.toByteArray();
+
+                // # using kryo
+//                kryo.register(value.getClass());
+//                Output output = new Output(out);
+//                kryo.writeObject(output, value);
+//                output.close();
+//                bytes = out.toByteArray();
 //                if (bytes == null) {
 //                    bytes = new byte[0];
 //                }
-//                bytes = jsonValue.getBytes();
+
 //                System.out.println("Serialized [" + value.getClass().getCanonicalName() + "] [" + dataId + "]" + bytes.length + "  -> [" + new String(bytes) + "]");
 //                gson.fromJson(jsonValue, Gson.class);
             }

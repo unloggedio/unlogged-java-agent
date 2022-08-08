@@ -30,7 +30,7 @@ public class RawFileCollector implements Runnable {
     private ArchivedIndexWriter archivedIndexWriter;
     private int fileCount = 0;
     private BlockingQueue<StringInfoDocument> stringsToIndex;
-    private BlockingQueue<TypeInfoDocument> typesToIndex;
+    private final BlockingQueue<TypeInfoDocument> typesToIndex;
     private BlockingQueue<ObjectInfoDocument> objectsToIndex;
 
     public RawFileCollector(int filesPerArchive,
@@ -43,7 +43,10 @@ public class RawFileCollector implements Runnable {
         this.errorLogger = errorLogger;
         this.fileList = new ArrayBlockingQueue<>(1024 * 128);
         this.typeInfoDocuments = new LinkedList<>();
-        prepareIndexItemBuffers();
+        typesToIndex = new ArrayBlockingQueue<>(1024 * 1024);
+        objectsToIndex = new ArrayBlockingQueue<>(1024 * 1024);
+        stringsToIndex = new ArrayBlockingQueue<>(1024 * 1024);
+//        prepareIndexItemBuffers();
         finalizeArchiveAndUpload();
 
     }
@@ -119,15 +122,28 @@ public class RawFileCollector implements Runnable {
         List<ObjectInfoDocument> objectInfoDocuments = new LinkedList<>();
         List<StringInfoDocument> stringInfoDocuments = new LinkedList<>();
 
+
+//        System.err.println("Before drain got " + objectsToIndex.size() + " new object info");
+//        BlockingQueue<ObjectInfoDocument> objectsToIndexRef = objectsToIndex;
+//        BlockingQueue<TypeInfoDocument> typesToIndexRef = typesToIndex;
+//        BlockingQueue<StringInfoDocument> stringsToIndexRef = stringsToIndex;
+
+//        prepareIndexItemBuffers();
+
         objectsToIndex.drainTo(objectInfoDocuments);
-        typesToIndex.drainTo(typeInfoDocuments);
+
+        List<TypeInfoDocument> newTypes = new LinkedList<>();
+        typesToIndex.drainTo(newTypes);
+
+        typeInfoDocuments.addAll(newTypes);
+
         stringsToIndex.drainTo(stringInfoDocuments);
 
         if (objectInfoDocuments.size() == 0 && stringInfoDocuments.size() == 0 && typeInfoDocuments.size() == 0) {
             return;
         }
 
-        prepareIndexItemBuffers();
+//        prepareIndexItemBuffers();
         writer.drainQueueToIndex(objectInfoDocuments, new LinkedList<>(), stringInfoDocuments);
 
 
@@ -136,7 +152,7 @@ public class RawFileCollector implements Runnable {
     void prepareIndexItemBuffers() {
         objectsToIndex = new ArrayBlockingQueue<>(1024 * 1024);
         stringsToIndex = new ArrayBlockingQueue<>(1024 * 1024);
-        typesToIndex = new ArrayBlockingQueue<>(1024 * 1024);
+//        typesToIndex = new ArrayBlockingQueue<>(1024 * 1024);
     }
 
     @Override
@@ -160,6 +176,8 @@ public class RawFileCollector implements Runnable {
 
     public void indexObjectTypeEntry(long id, int typeId) {
         objectsToIndex.offer(new ObjectInfoDocument(id, typeId));
+//        System.err.println("Offering object [" + id + "] of type [" + typeId + "] => " + objectsToIndex.size());
+
     }
 
     public void indexStringEntry(long id, String stringObject) {
@@ -177,6 +195,7 @@ public class RawFileCollector implements Runnable {
     }
 
     public void indexTypeEntry(int typeId, String typeName, byte[] typeInfoBytes) {
+//        System.err.println("Offering type [" + typeId + "] -> " + typeName + ". Now collected " + typesToIndex.size());
         typesToIndex.offer(new TypeInfoDocument(typeId, typeName, typeInfoBytes));
     }
 

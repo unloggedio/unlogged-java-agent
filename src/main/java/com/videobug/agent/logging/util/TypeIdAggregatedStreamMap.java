@@ -99,9 +99,13 @@ public class TypeIdAggregatedStreamMap {
         int componentType = getTypeIdString(type.getComponentType());
 
         List<Integer> interfaceClasses = new LinkedList<>();
-        for (Class<?> anInterface : type.getInterfaces()) {
-            int interfaceClassId = getTypeIdString(anInterface);
-            interfaceClasses.add(interfaceClassId);
+        if (type.getInterfaces() != null) {
+            for (Class<?> anInterface : type.getInterfaces()) {
+                int interfaceClassId = getTypeIdString(anInterface);
+//                System.err.println(type.getName() + " has interface " + anInterface.getName() +
+//                        " -> " + interfaceClassId);
+                interfaceClasses.add(interfaceClassId);
+            }
         }
 
 

@@ -73,7 +73,8 @@ public class ObjectIdAggregatedStream extends ObjectIdMap {
 
                 StackTraceElement[] trace = t.getStackTrace();
 
-                // todo: recording only first item in the stack trace
+                // todo: recording only first item in the stack trace for now, need to record the
+                //  whole stack trace for better reproducibility ?
                 for (int i = 0; i < 1; ++i) {
                     StackTraceElement e = trace[i];
 

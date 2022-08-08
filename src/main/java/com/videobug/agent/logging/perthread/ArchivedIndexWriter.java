@@ -132,6 +132,8 @@ public class ArchivedIndexWriter implements IndexOutputStream {
         }
 
         objectInfoIndex.addAll(objectsToIndex);
+//        System.err.println("Wrote " + objectsToIndex.size() + " object information to " +
+//                objectInfoDocumentIntegerDiskPersistence.getFile().getName());
         typeInfoIndex.addAll(typesToIndex);
         stringInfoIndex.addAll(stringsToIndex);
 
@@ -217,9 +219,9 @@ public class ArchivedIndexWriter implements IndexOutputStream {
 
                 byte[] aggregatedValueFilterSerialized = BloomFilterConverter.toJson(aggregatedValueSet).toString().getBytes();
                 byte[] aggregatedProbeFilterSerialized = BloomFilterConverter.toJson(aggregatedProbeIdSet).toString().getBytes();
-                System.err.println("Aggregated value filter for [" + currentArchiveFile.getName() + "] -> " + aggregatedValueFilterSerialized.length);
-                System.err.println("Aggregated probe filter for [" + currentArchiveFile.getName() +
-                        "] -> " + aggregatedProbeFilterSerialized.length);
+//                System.err.println("Aggregated value filter for [" + currentArchiveFile.getName() + "] -> " + aggregatedValueFilterSerialized.length);
+//                System.err.println("Aggregated probe filter for [" + currentArchiveFile.getName() +
+//                        "] -> " + aggregatedProbeFilterSerialized.length);
 
 
                 outputStream.writeInt(aggregatedValueFilterSerialized.length);

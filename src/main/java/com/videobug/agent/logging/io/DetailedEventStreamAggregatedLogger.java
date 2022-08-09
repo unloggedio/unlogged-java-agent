@@ -15,7 +15,6 @@ import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.util.Date;
 
-import static java.lang.System.out;
 
 /**
  * This class is an implementation of IEventLogger that records
@@ -63,7 +62,7 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
      * Close all file streams used by the object.
      */
     public void close() {
-        out.printf("[videobug] close event stream aggregated logger\n");
+        System.out.printf("[videobug] close event stream aggregated logger\n");
         objectIdMap.close();
         try {
             aggregatedLogger.shutdown();
@@ -89,8 +88,8 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
             if (className.startsWith(includedPackage)) {
 
                 // # using gson
-                String jsonValue = gson.toJson(value);
-                bytes = jsonValue.getBytes();
+//                String jsonValue = gson.toJson(value);
+//                bytes = jsonValue.getBytes();
 
                 // # using ObjectOutputStream
                 //                System.out.println("Registration " + registration.toString() + " - ");
@@ -99,11 +98,12 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 //                oos.writeObject(value);
 
                 // # using kryo
-//                kryo.register(value.getClass());
-//                Output output = new Output(out);
-//                kryo.writeObject(output, value);
-//                output.close();
-//                bytes = out.toByteArray();
+                kryo.register(value.getClass());
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                Output output = new Output(out);
+                kryo.writeObject(output, value);
+                output.close();
+                bytes = out.toByteArray();
 //                if (bytes == null) {
 //                    bytes = new byte[0];
 //                }

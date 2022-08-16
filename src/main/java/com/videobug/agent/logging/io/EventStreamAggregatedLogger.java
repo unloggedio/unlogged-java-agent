@@ -1,9 +1,11 @@
 package com.videobug.agent.logging.io;
 
+import com.insidious.common.weaver.ClassInfo;
 import com.videobug.agent.logging.IEventLogger;
 import com.videobug.agent.logging.util.AggregatedFileLogger;
 import com.videobug.agent.logging.util.ObjectIdAggregatedStream;
 import com.videobug.agent.logging.util.TypeIdAggregatedStreamMap;
+import com.videobug.agent.weaver.WeaveLog;
 
 import java.io.File;
 import java.io.IOException;
@@ -20,6 +22,10 @@ import java.util.Date;
  */
 public class EventStreamAggregatedLogger implements IEventLogger {
 
+    @Override
+    public void registerClass(Integer id, Class<?> type) {
+
+    }
     private final AggregatedFileLogger aggregatedLogger;
     private final TypeIdAggregatedStreamMap typeToId;
     private final ObjectIdAggregatedStream objectIdMap;
@@ -35,7 +41,7 @@ public class EventStreamAggregatedLogger implements IEventLogger {
     ) throws IOException {
 //        System.out.printf("[videobug] new event stream aggregated logger\n");
         this.aggregatedLogger = aggregatedLogger;
-        typeToId = new TypeIdAggregatedStreamMap(this.aggregatedLogger);
+        typeToId = new TypeIdAggregatedStreamMap(this.aggregatedLogger, this);
         objectIdMap = new ObjectIdAggregatedStream(this.aggregatedLogger, typeToId, outputDir);
     }
 
@@ -229,7 +235,7 @@ public class EventStreamAggregatedLogger implements IEventLogger {
     }
 
     @Override
-    public void recordWeaveInfo(byte[] byteArray) {
+    public void recordWeaveInfo(byte[] byteArray, ClassInfo classIdEntry, WeaveLog log) {
         aggregatedLogger.writeWeaveInfo(byteArray);
     }
 

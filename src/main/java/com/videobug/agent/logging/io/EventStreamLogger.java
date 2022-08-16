@@ -4,12 +4,14 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Date;
 
+import com.insidious.common.weaver.ClassInfo;
 import com.videobug.agent.logging.util.EventDataStream;
 import com.videobug.agent.logging.util.ObjectIdFile;
 import com.videobug.agent.logging.util.TypeIdMap;
 import com.videobug.agent.logging.IErrorLogger;
 import com.videobug.agent.logging.IEventLogger;
 import com.videobug.agent.logging.util.FileNameGenerator;
+import com.videobug.agent.weaver.WeaveLog;
 
 /**
  * This class is an implementation of IEventLogger that records
@@ -22,6 +24,10 @@ import com.videobug.agent.logging.util.FileNameGenerator;
  */
 public class EventStreamLogger implements IEventLogger {
 
+	@Override
+	public void registerClass(Integer id, Class<?> type) {
+
+	}
 	public static final String FILENAME_TYPEID = "LOG$Types.txt";
 
 	public static final String LOG_PREFIX = "log-";
@@ -175,7 +181,7 @@ public class EventStreamLogger implements IEventLogger {
 
 
 	@Override
-	public void recordWeaveInfo(byte[] byteArray) {
+	public void recordWeaveInfo(byte[] byteArray, ClassInfo classIdEntry, WeaveLog log) {
 
 	}
 

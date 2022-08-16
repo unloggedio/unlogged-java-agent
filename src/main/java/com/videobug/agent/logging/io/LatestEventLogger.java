@@ -16,15 +16,21 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.io.JsonStringEncoder;
 
+import com.insidious.common.weaver.ClassInfo;
 import com.videobug.agent.logging.util.ObjectIdFile;
 import com.videobug.agent.logging.util.TypeIdMap;
 import com.videobug.agent.logging.IEventLogger;
+import com.videobug.agent.weaver.WeaveLog;
 
 /**
  * This class is an implementation of IEventLogger that records
  * only the latest k events for each data ID.
  */
 public class LatestEventLogger implements IEventLogger {
+	@Override
+	public void registerClass(Integer id, Class<?> type) {
+
+	}
 
 	/**
 	 * Enum object to specify how to record objects in an execution trace
@@ -511,7 +517,7 @@ public class LatestEventLogger implements IEventLogger {
 	}
 
 	@Override
-	public void recordWeaveInfo(byte[] byteArray) {
+	public void recordWeaveInfo(byte[] byteArray, ClassInfo classIdEntry, WeaveLog log) {
 
 	}
 

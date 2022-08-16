@@ -8,14 +8,20 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.insidious.common.weaver.ClassInfo;
 import com.videobug.agent.logging.IEventLogger;
+import com.videobug.agent.weaver.WeaveLog;
 
 /**
  * This class is an implementation of IEventLogger that counts
  * the number of occurrences for each event (dataId). 
  */
 public class EventFrequencyLogger implements IEventLogger {
-	
+	@Override
+	public void registerClass(Integer id, Class<?> type) {
+
+	}
+
 	/**
 	 * The name of a file created by this logger
 	 */
@@ -91,7 +97,7 @@ public class EventFrequencyLogger implements IEventLogger {
 	}
 
 	@Override
-	public void recordWeaveInfo(byte[] byteArray) {
+	public void recordWeaveInfo(byte[] byteArray, ClassInfo classIdEntry, WeaveLog log) {
 
 	}
 

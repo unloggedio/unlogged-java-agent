@@ -73,25 +73,25 @@ public class ObjectIdMap {
      * 0 is returned for null.
      */
 
-    IntIntMap4 objectMap = new IntIntMap4(1024 * 1024, 0.5f);
+//    IntIntMap4 objectMap = new IntIntMap4(1024 * 1024, 0.5f);
 
-    public long getIdOld(Object o) {
-        if (o == null) {
-            return 0L;
-        }
-        idCount++;
-        int id = System.identityHashCode(o);
-
-        int val = objectMap.get(id);
-        if (val == 0) {
-            objectMap.put(id, id);
-            onNewObjectId(o, id);
-        } else {
-            int x = id + 1;
-        }
-        return id;
-
-    }
+//    public long getIdOld(Object o) {
+//        if (o == null) {
+//            return 0L;
+//        }
+//        idCount++;
+//        int id = System.identityHashCode(o);
+//
+//        int val = objectMap.get(id);
+//        if (val == 0) {
+//            objectMap.put(id, id);
+//            onNewObjectId(o, id);
+//        } else {
+//            int x = id + 1;
+//        }
+//        return id;
+//
+//    }
 //
 //    ChronicleMap<LongValue, LongValue> objectIdContainer;
 //    ThreadLocal<LongValue> keyHolder = ThreadLocal.withInitial(() -> Values.newHeapInstance(LongValue.class));
@@ -148,10 +148,12 @@ public class ObjectIdMap {
         int hash = System.identityHashCode(o);
 
         if (aggregatedProbeIdSet.contains(hash)) {
+//            System.out.println("Object " + hash + " already present of type " + o.getClass());
             return hash;
         }
 
         if (aggregatedProbeIdSet.getFalsePositiveProbability() > 0.01) {
+            System.out.println("Clearing probe id bloom filter");
             aggregatedProbeIdSet.clear();
         }
         aggregatedProbeIdSet.add(hash);

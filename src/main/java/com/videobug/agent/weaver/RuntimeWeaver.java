@@ -237,7 +237,7 @@ public class RuntimeWeaver implements ClassFileTransformer {
 
 //        System.out.printf("Load class: [%s]\n", className);
         if (isExcludedFromLogging(className)) {
-            weaver.log("Excluded by name filter: " + className);
+//            weaver.log("Excluded by name filter: " + className);
             return null;
         }
 

@@ -1,6 +1,9 @@
 package com.videobug.agent.logging;
 
 
+import com.insidious.common.weaver.ClassInfo;
+import com.videobug.agent.weaver.WeaveLog;
+
 import java.util.Date;
 
 /**
@@ -66,6 +69,8 @@ public interface IEventLogger {
 	 */
 	public void recordEvent(int dataId, char value);
 
+	void registerClass(Integer id, Class<?> type);
+
 	/**
 	 * Record an event occurrence and a value.
 	 * @param dataId specifies an event and its bytecode location.
@@ -86,5 +91,5 @@ public interface IEventLogger {
 	 * @param value contains a value to be recorded.
 	 */
 	void recordEvent(int dataId, float value);
-	void recordWeaveInfo(byte[] byteArray);
+	void recordWeaveInfo(byte[] byteArray, ClassInfo classIdEntry, WeaveLog log);
 }

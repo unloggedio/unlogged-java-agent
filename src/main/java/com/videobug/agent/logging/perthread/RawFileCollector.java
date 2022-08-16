@@ -24,13 +24,13 @@ public class RawFileCollector implements Runnable {
     private final List<byte[]> classWeaves = new LinkedList<>();
     private final List<TypeInfoDocument> typeInfoDocuments;
     private final NetworkClient networkClient;
+    private final BlockingQueue<TypeInfoDocument> typesToIndex;
     public int filesPerArchive = 0;
     private boolean shutdown = false;
     private boolean skipUploads;
     private ArchivedIndexWriter archivedIndexWriter;
     private int fileCount = 0;
     private BlockingQueue<StringInfoDocument> stringsToIndex;
-    private final BlockingQueue<TypeInfoDocument> typesToIndex;
     private BlockingQueue<ObjectInfoDocument> objectsToIndex;
 
     public RawFileCollector(int filesPerArchive,
@@ -59,6 +59,7 @@ public class RawFileCollector implements Runnable {
         fileCount = 0;
         if (archivedIndexWriterOld != null) {
             EXECUTOR_SERVICE.submit(() -> {
+                errorLogger.log("closing archive: " + archivedIndexWriterOld.getArchiveFile().getName());
                 drainItemsToIndex(archivedIndexWriterOld);
                 archivedIndexWriterOld.drainQueueToIndex(new LinkedList<>(), typeInfoDocuments, new LinkedList<>());
                 archivedIndexWriterOld.close();
@@ -98,7 +99,7 @@ public class RawFileCollector implements Runnable {
             fileList.drainTo(logFiles, filesPerArchive - archivedIndexWriter.fileCount());
             logFiles.add(logFile);
 
-//            errorLogger.log("add [" + logFiles.size() + "] files");
+            errorLogger.log("add [" + logFiles.size() + "] files");
             for (UploadFile file : logFiles) {
                 File fileToAddToArchive = new File(file.path);
                 archivedIndexWriter.writeFileEntry(file);
@@ -111,6 +112,8 @@ public class RawFileCollector implements Runnable {
         } catch (InterruptedException e) {
             errorLogger.log("file upload cron interrupted, shutting down");
         } finally {
+            errorLogger.log("check can archive [" + archivedIndexWriter.getArchiveFile().getName() + "] can be closed: " +
+                    archivedIndexWriter.fileCount() + " >= " + filesPerArchive);
             if (archivedIndexWriter.fileCount() >= filesPerArchive) {
                 finalizeArchiveAndUpload();
             }
@@ -123,7 +126,7 @@ public class RawFileCollector implements Runnable {
         List<StringInfoDocument> stringInfoDocuments = new LinkedList<>();
 
 
-//        System.err.println("Before drain got " + objectsToIndex.size() + " new object info");
+        System.err.println("Before drain got " + objectsToIndex.size() + " new object info");
 //        BlockingQueue<ObjectInfoDocument> objectsToIndexRef = objectsToIndex;
 //        BlockingQueue<TypeInfoDocument> typesToIndexRef = typesToIndex;
 //        BlockingQueue<StringInfoDocument> stringsToIndexRef = stringsToIndex;
@@ -140,6 +143,7 @@ public class RawFileCollector implements Runnable {
         stringsToIndex.drainTo(stringInfoDocuments);
 
         if (objectInfoDocuments.size() == 0 && stringInfoDocuments.size() == 0 && typeInfoDocuments.size() == 0) {
+            errorLogger.log("no new data to record, return");
             return;
         }
 
@@ -157,20 +161,24 @@ public class RawFileCollector implements Runnable {
 
     @Override
     public void run() {
-        while (true) {
-            // errorLogger.log("add file");
-            long start = System.currentTimeMillis();
-            if (shutdown) {
-                return;
-            }
-            try {
-                EXECUTOR_SERVICE.submit(() -> drainItemsToIndex(archivedIndexWriter));
-                upload();
-            } catch (IOException e) {
-                errorLogger.log(e);
-            }
-            long timeToProcessFile = System.currentTimeMillis() - start;
+        try {
+            while (true) {
+                errorLogger.log("run raw file collector cron: " + shutdown);
+                long start = System.currentTimeMillis();
+                if (shutdown) {
+                    return;
+                }
+                try {
+                    EXECUTOR_SERVICE.submit(() -> drainItemsToIndex(archivedIndexWriter));
+                    upload();
+                } catch (IOException e) {
+                    errorLogger.log(e);
+                }
+                long timeToProcessFile = System.currentTimeMillis() - start;
 //            errorLogger.log("adding file took [" + timeToProcessFile + "] ms");
+            }
+        } catch (Throwable e) {
+            errorLogger.log("failed to write archived index to disk: " + e.getMessage());
         }
     }
 

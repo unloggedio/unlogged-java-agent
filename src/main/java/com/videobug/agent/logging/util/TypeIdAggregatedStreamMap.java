@@ -1,5 +1,7 @@
 package com.videobug.agent.logging.util;
 
+import com.videobug.agent.logging.IEventLogger;
+
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -50,13 +52,16 @@ public class TypeIdAggregatedStreamMap {
      * Mapping from a Class object to String type ID.
      */
     private final HashMap<Class<?>, Integer> classToIdMap;
+    private final IEventLogger eventLogger;
     private int nextId;
 
     /**
      * Create an initial map containing only basic types.
      */
-    public TypeIdAggregatedStreamMap(AggregatedFileLogger aggregatedLogger) {
+    public TypeIdAggregatedStreamMap(AggregatedFileLogger aggregatedLogger,
+                                     IEventLogger detailedEventStreamAggregatedLogger) {
         this.aggregatedLogger = aggregatedLogger;
+        this.eventLogger = detailedEventStreamAggregatedLogger;
         classToIdMap = new HashMap<>(65536);
         for (int i = 0; i < BASIC_TYPE_CLASS.length; ++i) {
             Integer id = createTypeRecord(BASIC_TYPE_CLASS[i]);
@@ -95,6 +100,7 @@ public class TypeIdAggregatedStreamMap {
      */
     private int createTypeRecord(Class<?> type) {
         // Assign type IDs to dependent classes first.
+//        System.out.println("Create type record: " + type.getCanonicalName());
         int superClass = getTypeIdString(type.getSuperclass());
         int componentType = getTypeIdString(type.getComponentType());
 
@@ -119,6 +125,7 @@ public class TypeIdAggregatedStreamMap {
 
 
         int newId = nextId++;
+        eventLogger.registerClass(newId, type);
         classToIdMap.put(type, newId);
 //        StringBuilder record = new StringBuilder(512);
 
@@ -159,6 +166,7 @@ public class TypeIdAggregatedStreamMap {
             return TYPEID_NULL;
         } else {
             if (classToIdMap.containsKey(type)) {
+//                System.out.println("Class already exists: " + type.getCanonicalName());
                 return classToIdMap.get(type);
             }
             return createTypeRecord(type);

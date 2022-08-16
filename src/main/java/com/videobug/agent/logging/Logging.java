@@ -1,8 +1,10 @@
 package com.videobug.agent.logging;
 
+import com.insidious.common.weaver.ClassInfo;
 import com.videobug.agent.logging.io.*;
 import com.videobug.agent.logging.io.LatestEventLogger.ObjectRecordingStrategy;
 import com.videobug.agent.logging.util.AggregatedFileLogger;
+import com.videobug.agent.weaver.WeaveLog;
 
 import java.io.File;
 import java.io.IOException;
@@ -471,7 +473,7 @@ public class Logging {
     }
 
 
-    public static void recordWeaveInfo(byte[] byteArray) {
-        INSTANCE.recordWeaveInfo(byteArray);
+    public static void recordWeaveInfo(byte[] byteArray, ClassInfo classIdEntry, WeaveLog log) {
+        INSTANCE.recordWeaveInfo(byteArray, classIdEntry, log);
     }
 }

@@ -3,12 +3,18 @@ package com.videobug.agent.logging.io;
 import java.util.ArrayList;
 import java.util.Date;
 
+import com.insidious.common.weaver.ClassInfo;
 import com.videobug.agent.logging.IEventLogger;
+import com.videobug.agent.weaver.WeaveLog;
 
 /**
  * A logger records all events on memory for testing SELogger features.
  */
 public class MemoryLogger implements IEventLogger {
+	@Override
+	public void registerClass(Integer id, Class<?> type) {
+
+	}
 
 	/**
 	 * An event object to keep a data ID and an observed value.
@@ -198,7 +204,7 @@ public class MemoryLogger implements IEventLogger {
 	}
 
 	@Override
-	public void recordWeaveInfo(byte[] byteArray) {
+	public void recordWeaveInfo(byte[] byteArray, ClassInfo classIdEntry, WeaveLog log) {
 
 	}
 

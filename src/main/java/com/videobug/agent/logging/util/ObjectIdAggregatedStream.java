@@ -50,7 +50,7 @@ public class ObjectIdAggregatedStream extends ObjectIdMap {
     @Override
     protected void onNewObjectId(Object o, long id) {
         int typeId = typeToId.getTypeIdString(o.getClass());
-//        System.err.println("new object [" + id + "] of type [" + typeId + "] -> " + o.getClass().getName());
+//        System.err.println("new object [" + id + "] of type [" + typeId + "] -> " + o.getClass().getCanonicalName() + " => " + o);
         aggregatedLogger.writeNewObjectType(id, typeId);
 
         if (o instanceof String) {

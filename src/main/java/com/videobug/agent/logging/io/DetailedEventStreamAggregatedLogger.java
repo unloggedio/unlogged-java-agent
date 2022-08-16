@@ -3,17 +3,21 @@ package com.videobug.agent.logging.io;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.Registration;
 import com.esotericsoftware.kryo.io.Output;
-import com.google.gson.Gson;
+import com.insidious.common.weaver.ClassInfo;
+import com.insidious.common.weaver.DataInfo;
+import com.insidious.common.weaver.EventType;
 import com.videobug.agent.logging.IEventLogger;
 import com.videobug.agent.logging.util.AggregatedFileLogger;
 import com.videobug.agent.logging.util.ObjectIdAggregatedStream;
 import com.videobug.agent.logging.util.TypeIdAggregatedStreamMap;
+import com.videobug.agent.weaver.WeaveLog;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
-import java.util.Date;
+import java.util.*;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 
 /**
@@ -35,6 +39,20 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
     private final TypeIdAggregatedStreamMap typeToId;
     private final ObjectIdAggregatedStream objectIdMap;
     private final String includedPackage;
+    private final ThreadLocal<ByteArrayOutputStream> threadOutputBuffer =
+            ThreadLocal.withInitial(ByteArrayOutputStream::new);
+    final private boolean serializeValues = true;
+    private final ThreadLocal<Output> outputContainer = ThreadLocal.withInitial(
+            new Supplier<Output>() {
+                @Override
+                public Output get() {
+                    return new Output(threadOutputBuffer.get());
+                }
+            }
+    );
+    private final Map<String, WeaveLog> classMap = new HashMap<>();
+    Kryo kryo = new Kryo();
+    private final List<Integer> probesToRecord = new ArrayList<>();
 
     /**
      * Create an instance of logging object.
@@ -50,8 +68,13 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 //        System.out.printf("[videobug] new event stream aggregated logger\n");
         this.includedPackage = includedPackage;
         this.aggregatedLogger = aggregatedLogger;
-        typeToId = new TypeIdAggregatedStreamMap(this.aggregatedLogger);
+        typeToId = new TypeIdAggregatedStreamMap(this.aggregatedLogger, this);
         objectIdMap = new ObjectIdAggregatedStream(this.aggregatedLogger, typeToId, outputDir);
+
+
+        kryo.register(byte[].class);
+        kryo.register(LinkedHashMap.class);
+        kryo.register(LinkedHashSet.class);
     }
 
     public ObjectIdAggregatedStream getObjectIdMap() {
@@ -70,57 +93,84 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
             e.printStackTrace();
         }
     }
-
-    Kryo kryo = new Kryo();
-    Gson gson = new Gson();
+//    Gson gson = new Gson();
 
     /**
      * Record an event and an object.
      * The object is translated into an object ID.
      */
     public void recordEvent(int dataId, Object value) {
+//        System.out.println("Record event [" + dataId + "] - [" + value + "]");
         long objectId = objectIdMap.getId(value);
-
         byte[] bytes = new byte[0];
-        // write data into OutputStream
-        try {
-            String className = value.getClass().getCanonicalName().replaceAll("\\.", "/");
-            if (className.startsWith(includedPackage)) {
+        if (serializeValues && probesToRecord.size() > 0 && probesToRecord.contains(dataId)) {
+
+            if (value != null) {
+                System.out.println("record serialized value for probe [" + dataId + "] -> " + value.getClass());
+//                kryo.register(value.getClass());
+                if (value instanceof Class) {
+                    kryo.register((Class) value);
+                }
+            }
+
+
+            // write data into OutputStream
+            try {
+//            String className = value.getClass().getCanonicalName().replaceAll("\\.", "/");
+
+                // ############### USING GSON #######################
 
                 // # using gson
 //                String jsonValue = gson.toJson(value);
 //                bytes = jsonValue.getBytes();
+                // ######################################
 
+
+                // ################# USING OOS #####################
                 // # using ObjectOutputStream
                 //                System.out.println("Registration " + registration.toString() + " - ");
 //                ObjectOutputStream oos = new ObjectOutputStream(out);
 //                            serializer.serialize(out2, value);
 //                oos.writeObject(value);
+                // ######################################
+
 
                 // # using kryo
-                kryo.register(value.getClass());
-                ByteArrayOutputStream out = new ByteArrayOutputStream();
-                Output output = new Output(out);
+                // ################ USING KRYO ######################
+                Output output = outputContainer.get();
+                ByteArrayOutputStream buffer = (ByteArrayOutputStream) output.getOutputStream();
+//            output.setOutputStream(buffer);
+//            buffer.reset();
+                output.reset();
                 kryo.writeObject(output, value);
-                output.close();
-                bytes = out.toByteArray();
-//                if (bytes == null) {
-//                    bytes = new byte[0];
-//                }
+                output.flush();
+                bytes = buffer.toByteArray();
+                // ######################################
 
-//                System.out.println("Serialized [" + value.getClass().getCanonicalName() + "] [" + dataId + "]" + bytes.length + "  -> [" + new String(bytes) + "]");
-//                gson.fromJson(jsonValue, Gson.class);
+            } catch (Throwable e) {
+//                if (value != null) {
+//                    kryo.register(value.getClass());
+//                    String message = e.getMessage();
+//                    System.err.println("ThrowSerialized [" + value.getClass().getCanonicalName() + "]" +
+//                            " [" + dataId + "] error -> " + message);
+//                    if (message.startsWith("Class is not registered")) {
+//                        String className = message.split(":")[1];
+//                        try {
+//                            Class<?> classType = Class.forName(className);
+//                            kryo.register(classType);
+//                        } catch (ClassNotFoundException ex) {
+////                            ex.printStackTrace();
+//                        }
+//                    }
+////                    e.printStackTrace();
+//                }
+                // ignore if we cannot record the variable information
             }
-        } catch (Throwable e) {
-            if (value != null) {
-//                System.err.println("ThrowSerialized [" + value.getClass().getCanonicalName() + "]" +
-//                        " [" + dataId + "] error -> " + e.getMessage());
-//                e.printStackTrace();
-            }
-            // ignore if we cannot record the variable information
+            aggregatedLogger.writeEvent(dataId, objectId, bytes);
+        } else {
+            aggregatedLogger.writeEvent(dataId, objectId);
         }
 
-        aggregatedLogger.writeEvent(dataId, objectId, bytes);
     }
 
     /**
@@ -291,8 +341,40 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
     }
 
     @Override
-    public void recordWeaveInfo(byte[] byteArray) {
+    public void recordWeaveInfo(byte[] byteArray, ClassInfo classIdEntry, WeaveLog log) {
+
+        classMap.put(classIdEntry.getClassName(), log);
+        System.err.println("Record weave info for [" + classIdEntry.getClassName() + "]");
+        if (
+                classIdEntry.getClassName().startsWith("com/appsmith/server/services") &&
+                        !classIdEntry.getClassName().contains("mongo") &&
+                        !classIdEntry.getClassName().contains("spring") &&
+                        !classIdEntry.getClassName().contains("redis")
+        ) {
+            List<Integer> newClassProbes = log.getDataEntries()
+                    .stream()
+                    .filter(e ->
+                            e.getEventType() == EventType.CALL_PARAM ||
+                                    e.getEventType() == EventType.CALL_RETURN
+                    )
+                    .map(DataInfo::getDataId)
+                    .collect(Collectors.toList());
+            probesToRecord.addAll(newClassProbes);
+            System.err.println("Record serialized value for probes: " + newClassProbes);
+        }
         aggregatedLogger.writeWeaveInfo(byteArray);
+    }
+
+    @Override
+    public void registerClass(Integer id, Class<?> type) {
+        if (serializeValues) {
+            try {
+                Registration registration = kryo.register(type);
+            } catch (Throwable th) {
+                System.out.println("Failed to register kryo class: " + type.getCanonicalName() +
+                        " -> " + th.getMessage());
+            }
+        }
     }
 
 

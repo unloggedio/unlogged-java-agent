@@ -310,7 +310,8 @@ public class ArchivedIndexWriter implements IndexOutputStream {
         archivedIndexOutputStream.closeEntry();
         long end = System.currentTimeMillis();
 
-        errorLogger.log("Add files to archive: " + logFile.path + " took - " + (end - currentTimestamp) / 1000 + " ms");
+        errorLogger.log("[" + currentArchiveFile.getName() +  "] Add files to archive: " + logFile.path + " " +
+                "took - " + (end - currentTimestamp) / 1000 + " ms");
     }
 
     void copy(InputStream source, OutputStream target) throws IOException {

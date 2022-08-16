@@ -1,6 +1,8 @@
 package com.videobug.agent.logging.io;
 
+import com.insidious.common.weaver.ClassInfo;
 import com.videobug.agent.logging.IEventLogger;
+import com.videobug.agent.weaver.WeaveLog;
 
 import java.util.Date;
 
@@ -61,7 +63,12 @@ public class DiscardLogger implements IEventLogger {
 	}
 
 	@Override
-	public void recordWeaveInfo(byte[] byteArray) {
+	public void recordWeaveInfo(byte[] byteArray, ClassInfo classIdEntry, WeaveLog log) {
+
+	}
+
+	@Override
+	public void registerClass(Integer id, Class<?> type) {
 
 	}
 

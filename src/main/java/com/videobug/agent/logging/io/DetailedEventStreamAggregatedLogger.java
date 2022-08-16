@@ -11,10 +11,13 @@ import com.videobug.agent.logging.util.AggregatedFileLogger;
 import com.videobug.agent.logging.util.ObjectIdAggregatedStream;
 import com.videobug.agent.logging.util.TypeIdAggregatedStreamMap;
 import com.videobug.agent.weaver.WeaveLog;
+import reactor.core.publisher.Mono;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -35,6 +38,7 @@ import java.util.stream.Collectors;
  */
 public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 
+    public static final Duration MILLI_1 = Duration.of(1, ChronoUnit.MILLIS);
     private final AggregatedFileLogger aggregatedLogger;
     private final TypeIdAggregatedStreamMap typeToId;
     private final ObjectIdAggregatedStream objectIdMap;
@@ -51,8 +55,8 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
             }
     );
     private final Map<String, WeaveLog> classMap = new HashMap<>();
-    Kryo kryo = new Kryo();
     private final List<Integer> probesToRecord = new ArrayList<>();
+    Kryo kryo = new Kryo();
 
     /**
      * Create an instance of logging object.
@@ -142,7 +146,20 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 //            output.setOutputStream(buffer);
 //            buffer.reset();
                 output.reset();
-                kryo.writeObject(output, value);
+                if (value.getClass().getCanonicalName().contains("Mono")) {
+                    System.out.println("BGlocking for " + value);
+
+                    try {
+                        Object block = ((Mono) value).block(MILLI_1);
+                        System.out.println("BGlocking unlocked for " + block);
+                        kryo.writeObject(output, block);
+                    }catch (Exception e) {
+                        System.out.println("BGlocking unlocked failed " + e.getMessage());
+                    }
+
+                } else {
+                    kryo.writeObject(output, value);
+                }
                 output.flush();
                 bytes = buffer.toByteArray();
                 // ######################################
@@ -346,7 +363,7 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
         classMap.put(classIdEntry.getClassName(), log);
         System.err.println("Record weave info for [" + classIdEntry.getClassName() + "]");
         if (
-                classIdEntry.getClassName().startsWith("com/appsmith/server/services") &&
+                classIdEntry.getClassName().startsWith("org/zerhusen") &&
                         !classIdEntry.getClassName().contains("mongo") &&
                         !classIdEntry.getClassName().contains("spring") &&
                         !classIdEntry.getClassName().contains("redis")

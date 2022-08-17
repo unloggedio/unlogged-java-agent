@@ -153,7 +153,7 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                         Object block = ((Mono) value).block(MILLI_1);
                         System.out.println("BGlocking unlocked for " + block);
                         kryo.writeObject(output, block);
-                    }catch (Exception e) {
+                    } catch (Exception e) {
                         System.out.println("BGlocking unlocked failed " + e.getMessage());
                     }
 
@@ -362,11 +362,9 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 
         classMap.put(classIdEntry.getClassName(), log);
         System.err.println("Record weave info for [" + classIdEntry.getClassName() + "]");
-        if (
-                classIdEntry.getClassName().startsWith("org/zerhusen") &&
-                        !classIdEntry.getClassName().contains("mongo") &&
-                        !classIdEntry.getClassName().contains("spring") &&
-                        !classIdEntry.getClassName().contains("redis")
+        if (!classIdEntry.getClassName().contains("mongo") &&
+                !classIdEntry.getClassName().contains("spring") &&
+                !classIdEntry.getClassName().contains("redis")
         ) {
             List<Integer> newClassProbes = log.getDataEntries()
                     .stream()

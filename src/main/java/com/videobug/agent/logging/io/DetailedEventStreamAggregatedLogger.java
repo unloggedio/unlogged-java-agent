@@ -3,6 +3,7 @@ package com.videobug.agent.logging.io;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.Registration;
 import com.esotericsoftware.kryo.io.Output;
+import com.google.gson.Gson;
 import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.EventType;
@@ -11,7 +12,6 @@ import com.videobug.agent.logging.util.AggregatedFileLogger;
 import com.videobug.agent.logging.util.ObjectIdAggregatedStream;
 import com.videobug.agent.logging.util.TypeIdAggregatedStreamMap;
 import com.videobug.agent.weaver.WeaveLog;
-import reactor.core.publisher.Mono;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -56,7 +56,9 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
     );
     private final Map<String, WeaveLog> classMap = new HashMap<>();
     private final List<Integer> probesToRecord = new ArrayList<>();
+    private final SerializationMode SERIALIZATION_MODE = SerializationMode.GSON;
     Kryo kryo = new Kryo();
+    Gson gson = new Gson();
 
     /**
      * Create an instance of logging object.
@@ -97,7 +99,6 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
             e.printStackTrace();
         }
     }
-//    Gson gson = new Gson();
 
     /**
      * Record an event and an object.
@@ -111,7 +112,6 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 
             if (value != null) {
                 System.out.println("record serialized value for probe [" + dataId + "] -> " + value.getClass());
-//                kryo.register(value.getClass());
                 if (value instanceof Class) {
                     kryo.register((Class) value);
                 }
@@ -124,45 +124,51 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 
                 // ############### USING GSON #######################
 
-                // # using gson
-//                String jsonValue = gson.toJson(value);
-//                bytes = jsonValue.getBytes();
-                // ######################################
+                if (SERIALIZATION_MODE == SerializationMode.GSON) {
+                    // # using gson
+                    String jsonValue = gson.toJson(value);
+                    bytes = jsonValue.getBytes();
+                    // ######################################
+                }
 
 
-                // ################# USING OOS #####################
-                // # using ObjectOutputStream
-                //                System.out.println("Registration " + registration.toString() + " - ");
-//                ObjectOutputStream oos = new ObjectOutputStream(out);
-//                            serializer.serialize(out2, value);
-//                oos.writeObject(value);
-                // ######################################
+                if (SERIALIZATION_MODE == SerializationMode.OOS) {
+                    // ################# USING OOS #####################
+                    // # using ObjectOutputStream
+                    //                System.out.println("Registration " + registration.toString() + " - ");
+//                    ObjectOutputStream oos = new ObjectOutputStream(out);
+//                    serializer.serialize(out2, value);
+//                    oos.writeObject(value);
+                    // ######################################
+
+                }
 
 
                 // # using kryo
                 // ################ USING KRYO ######################
-                Output output = outputContainer.get();
-                ByteArrayOutputStream buffer = (ByteArrayOutputStream) output.getOutputStream();
-//            output.setOutputStream(buffer);
-//            buffer.reset();
-                output.reset();
-                if (value.getClass().getCanonicalName().contains("Mono")) {
-                    System.out.println("BGlocking for " + value);
-
-                    try {
-                        Object block = ((Mono) value).block(MILLI_1);
-                        System.out.println("BGlocking unlocked for " + block);
-                        kryo.writeObject(output, block);
-                    } catch (Exception e) {
-                        System.out.println("BGlocking unlocked failed " + e.getMessage());
-                    }
-
-                } else {
+                if (SERIALIZATION_MODE == SerializationMode.KRYO) {
+                    Output output = outputContainer.get();
+                    ByteArrayOutputStream buffer = (ByteArrayOutputStream) output.getOutputStream();
+                    output.reset();
+//                    if (value.getClass().getCanonicalName().contains("Mono")) {
+//                        System.out.println("BGlocking for " + value);
+//
+//                        try {
+//                            Object block = ((Mono) value).block(MILLI_1);
+//                            System.out.println("BGlocking unlocked for " + block);
+//                            kryo.writeObject(output, block);
+//                        } catch (Exception e) {
+//                            System.out.println("BGlocking unlocked failed " + e.getMessage());
+//                        }
+//
+//                    } else {
                     kryo.writeObject(output, value);
+//                    }
+                    output.flush();
+                    bytes = buffer.toByteArray();
+                    // ######################################
                 }
-                output.flush();
-                bytes = buffer.toByteArray();
-                // ######################################
+
 
             } catch (Throwable e) {
 //                if (value != null) {
@@ -189,99 +195,99 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
         }
 
     }
-
-    /**
-     * Record an event and an object.
-     * The object is translated into an object ID.
-     */
-    public void recordEvent(int dataId, Integer value) {
-        if (value == null) {
-            aggregatedLogger.writeEvent(dataId, 0);
-        } else {
-            aggregatedLogger.writeEvent(dataId, value.longValue());
-        }
-    }
-
-    /**
-     * Record an event and an object.
-     * The object is translated into an object ID.
-     */
-    public void recordEvent(int dataId, Long value) {
-        if (value == null) {
-            aggregatedLogger.writeEvent(dataId, 0);
-        } else {
-            aggregatedLogger.writeEvent(dataId, value.longValue());
-        }
-
-    }
-
-    /**
-     * Record an event and an object.
-     * The object is translated into an object ID.
-     */
-    public void recordEvent(int dataId, Short value) {
-        if (value == null) {
-            aggregatedLogger.writeEvent(dataId, 0);
-        } else {
-            aggregatedLogger.writeEvent(dataId, value.longValue());
-        }
-
-    }
-
-    /**
-     * Record an event and an object.
-     * The object is translated into an object ID.
-     */
-    public void recordEvent(int dataId, Boolean value) {
-        aggregatedLogger.writeEvent(dataId, value == null ? 0 : value ? 1 : 0);
-    }
-
-    /**
-     * Record an event and an object.
-     * The object is translated into an object ID.
-     */
-    public void recordEvent(int dataId, Float value) {
-        if (value == null) {
-            aggregatedLogger.writeEvent(dataId, 0);
-        } else {
-            aggregatedLogger.writeEvent(dataId, value.longValue());
-        }
-
-    }
-
-    /**
-     * Record an event and an object.
-     * The object is translated into an object ID.
-     */
-    public void recordEvent(int dataId, Byte value) {
-        aggregatedLogger.writeEvent(dataId, value);
-    }
-
-    /**
-     * Record an event and an object.
-     * The object is translated into an object ID.
-     */
-    public void recordEvent(int dataId, Date value) {
-        if (value == null) {
-            aggregatedLogger.writeEvent(dataId, 0);
-        } else {
-            aggregatedLogger.writeEvent(dataId, value.getTime());
-        }
-
-    }
-
-    /**
-     * Record an event and an object.
-     * The object is translated into an object ID.
-     */
-    public void recordEvent(int dataId, Double value) {
-        if (value != null) {
-            long longValue = Double.doubleToRawLongBits(value);
-            aggregatedLogger.writeEvent(dataId, longValue);
-        } else {
-            aggregatedLogger.writeEvent(dataId, 0);
-        }
-    }
+//
+//    /**
+//     * Record an event and an object.
+//     * The object is translated into an object ID.
+//     */
+//    public void recordEvent(int dataId, Integer value) {
+//        if (value == null) {
+//            aggregatedLogger.writeEvent(dataId, 0);
+//        } else {
+//            aggregatedLogger.writeEvent(dataId, value.longValue());
+//        }
+//    }
+//
+//    /**
+//     * Record an event and an object.
+//     * The object is translated into an object ID.
+//     */
+//    public void recordEvent(int dataId, Long value) {
+//        if (value == null) {
+//            aggregatedLogger.writeEvent(dataId, 0);
+//        } else {
+//            aggregatedLogger.writeEvent(dataId, value.longValue());
+//        }
+//
+//    }
+//
+//    /**
+//     * Record an event and an object.
+//     * The object is translated into an object ID.
+//     */
+//    public void recordEvent(int dataId, Short value) {
+//        if (value == null) {
+//            aggregatedLogger.writeEvent(dataId, 0);
+//        } else {
+//            aggregatedLogger.writeEvent(dataId, value.longValue());
+//        }
+//
+//    }
+//
+//    /**
+//     * Record an event and an object.
+//     * The object is translated into an object ID.
+//     */
+//    public void recordEvent(int dataId, Boolean value) {
+//        aggregatedLogger.writeEvent(dataId, value == null ? 0 : value ? 1 : 0);
+//    }
+//
+//    /**
+//     * Record an event and an object.
+//     * The object is translated into an object ID.
+//     */
+//    public void recordEvent(int dataId, Float value) {
+//        if (value == null) {
+//            aggregatedLogger.writeEvent(dataId, 0);
+//        } else {
+//            aggregatedLogger.writeEvent(dataId, value.longValue());
+//        }
+//
+//    }
+//
+//    /**
+//     * Record an event and an object.
+//     * The object is translated into an object ID.
+//     */
+//    public void recordEvent(int dataId, Byte value) {
+//        aggregatedLogger.writeEvent(dataId, value);
+//    }
+//
+//    /**
+//     * Record an event and an object.
+//     * The object is translated into an object ID.
+//     */
+//    public void recordEvent(int dataId, Date value) {
+//        if (value == null) {
+//            aggregatedLogger.writeEvent(dataId, 0);
+//        } else {
+//            aggregatedLogger.writeEvent(dataId, value.getTime());
+//        }
+//
+//    }
+//
+//    /**
+//     * Record an event and an object.
+//     * The object is translated into an object ID.
+//     */
+//    public void recordEvent(int dataId, Double value) {
+//        if (value != null) {
+//            long longValue = Double.doubleToRawLongBits(value);
+//            aggregatedLogger.writeEvent(dataId, longValue);
+//        } else {
+//            aggregatedLogger.writeEvent(dataId, 0);
+//        }
+//    }
 
     /**
      * Record an event and an integer value.
@@ -370,6 +376,8 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                     .stream()
                     .filter(e ->
                             e.getEventType() == EventType.CALL_PARAM ||
+                                    e.getEventType() == EventType.METHOD_PARAM ||
+                                    e.getEventType() == EventType.METHOD_NORMAL_EXIT ||
                                     e.getEventType() == EventType.CALL_RETURN
                     )
                     .map(DataInfo::getDataId)

@@ -126,7 +126,7 @@ public class RawFileCollector implements Runnable {
         List<StringInfoDocument> stringInfoDocuments = new LinkedList<>();
 
 
-        System.err.println("Before drain got " + objectsToIndex.size() + " new object info");
+//        System.err.println("Before drain got " + objectsToIndex.size() + " new object info");
 //        BlockingQueue<ObjectInfoDocument> objectsToIndexRef = objectsToIndex;
 //        BlockingQueue<TypeInfoDocument> typesToIndexRef = typesToIndex;
 //        BlockingQueue<StringInfoDocument> stringsToIndexRef = stringsToIndex;

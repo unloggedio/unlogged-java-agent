@@ -3,7 +3,6 @@ package com.videobug.agent.weaver;
 import com.videobug.agent.logging.IErrorLogger;
 import com.videobug.agent.logging.IEventLogger;
 import com.videobug.agent.logging.Logging;
-import com.videobug.agent.logging.io.MemoryLogger;
 import com.videobug.agent.logging.perthread.PerThreadBinaryFileAggregatedLogger;
 import com.videobug.agent.logging.perthread.RawFileCollector;
 import com.videobug.agent.logging.util.AggregatedFileLogger;

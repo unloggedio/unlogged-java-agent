@@ -60,21 +60,6 @@ public class RuntimeWeaver implements ClassFileTransformer {
                     weaver.log("Params: " + args);
 
                     switch (params.getMode()) {
-                        case FixedSize:
-                            logger = Logging.initializeLatestEventTimeLogger(outputDir,
-                                    params.getBufferSize(), params.getObjectRecordingStrategy(), params.isOutputJsonEnabled());
-                            break;
-
-                        case Frequency:
-                            logger = Logging.initializeFrequencyLogger(outputDir);
-                            break;
-
-//                    case Single:
-//                        BinaryFileAggregatedLogger aggregateLogger = new BinaryFileAggregatedLogger(
-//                                params.getOutputDirname(),
-//                                weaver, params.getAuthToken(), config.getSessionId(), params.getServerAddress());
-//                        logger = Logging.initialiseAggregatedLogger(weaver, aggregateLogger);
-//                        break;
 
                         case PerThread:
 
@@ -115,12 +100,6 @@ public class RuntimeWeaver implements ClassFileTransformer {
                                             perThreadBinaryFileAggregatedLogger1, outputDir);
                             break;
 
-                        case Stream:
-                            logger = Logging.initializeStreamLogger(outputDir, true, weaver);
-                            break;
-                        case Discard:
-                            logger = Logging.initializeDiscardLogger();
-                            break;
                     }
                 } else {
                     System.out.println("[videobug] no weaving option is specified.");

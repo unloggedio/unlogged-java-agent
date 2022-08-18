@@ -7,7 +7,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 
-import com.videobug.agent.logging.io.EventStreamLogger;
 
 /**
  * This class is to read Object-Type ID map created by ObjectIdFile class.

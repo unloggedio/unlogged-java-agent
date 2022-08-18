@@ -1,6 +1,5 @@
 package com.videobug.agent.weaver;
 
-import com.videobug.agent.logging.io.LatestEventLogger;
 import com.videobug.agent.weaver.RuntimeWeaver.Mode;
 
 import java.text.SimpleDateFormat;
@@ -52,7 +51,7 @@ public class RuntimeWeaverParameters {
     /**
      * Strategy to keep objects on memory
      */
-    private LatestEventLogger.ObjectRecordingStrategy keepObject = LatestEventLogger.ObjectRecordingStrategy.Strong;
+//    private LatestEventLogger.ObjectRecordingStrategy keepObject = LatestEventLogger.ObjectRecordingStrategy.Strong;
     /**
      * If true, automatic filtering for security manager classes is disabled
      */
@@ -106,16 +105,7 @@ public class RuntimeWeaverParameters {
             } else if (arg.startsWith("json=")) {
                 String param = arg.substring("json=".length());
                 outputJson = param.equalsIgnoreCase("true");
-            } else if (arg.startsWith("keepobj=")) {
-                String param = arg.substring("keepobj=".length());
-                if (param.equalsIgnoreCase("true") || param.equalsIgnoreCase("strong")) {
-                    keepObject = LatestEventLogger.ObjectRecordingStrategy.Strong;
-                } else if (param.equalsIgnoreCase("false") || param.equalsIgnoreCase("weak")) {
-                    keepObject = LatestEventLogger.ObjectRecordingStrategy.Weak;
-                } else if (param.equalsIgnoreCase("id")) {
-                    keepObject = LatestEventLogger.ObjectRecordingStrategy.Id;
-                }
-            } else if (arg.startsWith("e=")) {
+            }  else if (arg.startsWith("e=")) {
                 String prefix = arg.substring("e=".length());
                 if (prefix.length() > 0) {
                     prefix = prefix.replace('.', '/');
@@ -174,10 +164,10 @@ public class RuntimeWeaverParameters {
     public int getBufferSize() {
         return bufferSize;
     }
-
-    public LatestEventLogger.ObjectRecordingStrategy getObjectRecordingStrategy() {
-        return keepObject;
-    }
+//
+//    public LatestEventLogger.ObjectRecordingStrategy getObjectRecordingStrategy() {
+//        return keepObject;
+//    }
 
     public boolean isOutputJsonEnabled() {
         return outputJson;

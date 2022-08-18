@@ -2,7 +2,6 @@ package com.videobug.agent.logging;
 
 import com.insidious.common.weaver.ClassInfo;
 import com.videobug.agent.logging.io.*;
-import com.videobug.agent.logging.io.LatestEventLogger.ObjectRecordingStrategy;
 import com.videobug.agent.logging.util.AggregatedFileLogger;
 import com.videobug.agent.weaver.WeaveLog;
 
@@ -27,84 +26,6 @@ public class Logging {
      */
     static IEventLogger INSTANCE;
 
-    /**
-     * Create a stream logger and stores it to the INSTANCE field.
-     * The stream logger stores a sequence of events into files.
-     *
-     * @param outputDir    specifies a directory where files are created.
-     * @param recordString If this flag is true, the logger records string objects into files.
-     * @param errorLogger  specifies a logger to record error messages reported by the logger.
-     * @return the created logger instance.
-     */
-    public static IEventLogger initializeStreamLogger(File outputDir, boolean recordString, IErrorLogger errorLogger) {
-        try {
-            INSTANCE = new EventStreamLogger(errorLogger, outputDir, recordString);
-            return INSTANCE;
-        } catch (Throwable e) {
-            e.printStackTrace();
-            throw e;
-        }
-    }
-
-    private static Integer getProcessId(final Integer fallback) {
-        // Note: may fail in some JVM implementations
-        // therefore fallback has to be provided
-
-        // something like '<pid>@<hostname>', at least in SUN / Oracle JVMs
-        final String jvmName = ManagementFactory.getRuntimeMXBean().getName();
-        final int index = jvmName.indexOf('@');
-
-        if (index < 1) {
-            // part before '@' empty (index = 0) / '@' not found (index = -1)
-            return fallback;
-        }
-
-        try {
-            return Integer.parseInt(jvmName.substring(0, index));
-        } catch (NumberFormatException e) {
-            // ignore
-        }
-        return fallback;
-    }
-
-    /**
-     * Create a frequency logger and stores it to the INSTANCE field.
-     * The logger records only the frequency of events.
-     *
-     * @param outputDir specifies a directory where files are created.
-     * @return the created logger instance.
-     */
-    public static IEventLogger initializeFrequencyLogger(File outputDir) {
-        INSTANCE = new EventFrequencyLogger(outputDir);
-        return INSTANCE;
-    }
-
-    /**
-     * Create a data logger and stores it to the INSTANCE field.
-     * The logger records the latest k events for each event type (dataId) with thread ID asd timestamps.
-     * Although it may miss some frequent events, it works with a limited size of storage.
-     *
-     * @param outputDir  specifies a directory where files are created.
-     * @param bufferSize specifies the buffer size k.
-     * @param outputJson generates a data file in a JSON format
-     * @return the created logger instance.
-     */
-    public static IEventLogger initializeLatestEventTimeLogger(File outputDir, int bufferSize, ObjectRecordingStrategy keepObject, boolean outputJson) {
-        INSTANCE = new LatestEventLogger(outputDir, bufferSize, keepObject, outputJson);
-        return INSTANCE;
-    }
-
-    /**
-     * Create a logger and stores it to the INSTANCE field.
-     * The logger simply discards events.
-     *
-     * @return the created logger instance.
-     */
-    public static IEventLogger initializeDiscardLogger() {
-        INSTANCE = new DiscardLogger();
-        return INSTANCE;
-    }
-
 
     public static EventStreamAggregatedLogger initialiseAggregatedLogger(
             IErrorLogger errorLogger,
@@ -127,18 +48,6 @@ public class Logging {
                         aggregatedLogger);
         INSTANCE = instance;
         return instance;
-    }
-
-    /**
-     * Create a logger and stores it to the INSTANCE field.
-     * The logger keeps events on memory.
-     *
-     * @return the created logger instance.
-     */
-    public static MemoryLogger initializeForTest() {
-        MemoryLogger m = new MemoryLogger();
-        INSTANCE = m;
-        return m;
     }
 
     /**

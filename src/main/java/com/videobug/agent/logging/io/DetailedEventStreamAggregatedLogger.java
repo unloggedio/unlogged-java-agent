@@ -12,6 +12,7 @@ import com.videobug.agent.logging.util.AggregatedFileLogger;
 import com.videobug.agent.logging.util.ObjectIdAggregatedStream;
 import com.videobug.agent.logging.util.TypeIdAggregatedStreamMap;
 import com.videobug.agent.weaver.WeaveLog;
+import reactor.core.publisher.Mono;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -19,6 +20,7 @@ import java.io.IOException;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -111,7 +113,7 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
         if (serializeValues && probesToRecord.size() > 0 && probesToRecord.contains(dataId)) {
 
             if (value != null) {
-                System.out.println("record serialized value for probe [" + dataId + "] -> " + value.getClass());
+//                System.out.println("record serialized value for probe [" + dataId + "] -> " + value.getClass());
                 if (value instanceof Class) {
                     kryo.register((Class) value);
                 }
@@ -367,7 +369,7 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
     public void recordWeaveInfo(byte[] byteArray, ClassInfo classIdEntry, WeaveLog log) {
 
         classMap.put(classIdEntry.getClassName(), log);
-        System.err.println("Record weave info for [" + classIdEntry.getClassName() + "]");
+//        System.err.println("Record weave info for [" + classIdEntry.getClassName() + "]");
         if (!classIdEntry.getClassName().contains("mongo") &&
                 !classIdEntry.getClassName().contains("spring") &&
                 !classIdEntry.getClassName().contains("redis")
@@ -383,21 +385,21 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                     .map(DataInfo::getDataId)
                     .collect(Collectors.toList());
             probesToRecord.addAll(newClassProbes);
-            System.err.println("Record serialized value for probes: " + newClassProbes);
+//            System.err.println("Record serialized value for probes: " + newClassProbes);
         }
         aggregatedLogger.writeWeaveInfo(byteArray);
     }
 
     @Override
     public void registerClass(Integer id, Class<?> type) {
-        if (serializeValues) {
-            try {
-                Registration registration = kryo.register(type);
-            } catch (Throwable th) {
-                System.out.println("Failed to register kryo class: " + type.getCanonicalName() +
-                        " -> " + th.getMessage());
-            }
-        }
+//        if (serializeValues) {
+//            try {
+//                Registration registration = kryo.register(type);
+//            } catch (Throwable th) {
+//                System.out.println("Failed to register kryo class: " + type.getCanonicalName() +
+//                        " -> " + th.getMessage());
+//            }
+//        }
     }
 
 

@@ -114,7 +114,7 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 
             if (value != null) {
 //                System.out.println("record serialized value for probe [" + dataId + "] -> " + value.getClass());
-                if (value instanceof Class) {
+                if (value instanceof Class && SERIALIZATION_MODE == SerializationMode.KRYO) {
                     kryo.register((Class) value);
                 }
             }

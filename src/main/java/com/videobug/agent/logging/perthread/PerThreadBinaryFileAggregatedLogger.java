@@ -178,12 +178,20 @@ public class PerThreadBinaryFileAggregatedLogger implements
             }
         }
 
-        OutputStream out = threadFileMap.get(currentThreadId);
-        if (out != null) {
-            String currentFile = currentFileMap.get(currentThreadId);
+        String currentFile = currentFileMap.get(currentThreadId);
+        OutputStream currentOutputStream = threadFileMap.get(currentThreadId);
+
+        File nextFile = fileNameGenerator.getNextFile(String.valueOf(currentThreadId));
+        currentFileMap.put(currentThreadId, nextFile.getPath());
+
+        BufferedOutputStream outNew = new BufferedOutputStream(Files.newOutputStream(nextFile.toPath()),
+                WRITE_BYTE_BUFFER_SIZE);
+        threadFileMap.put(currentThreadId, outNew);
+
+        if (currentOutputStream != null) {
 //            errorLogger.log("flush existing file for thread [" + currentThreadId + "] -> " + currentFile);
             try {
-                out.close();
+                currentOutputStream.close();
             } catch (ClosedChannelException cce) {
                             errorLogger.log("[videobug] channel already closed - flush existing " +
                                     "file for " + "thread [" + currentThreadId + "] -> " + currentFile);
@@ -206,12 +214,10 @@ public class PerThreadBinaryFileAggregatedLogger implements
         }
 
         if (shutdown) {
+            outNew.close();
             return;
         }
-        File nextFile = fileNameGenerator.getNextFile(String.valueOf(currentThreadId));
-        currentFileMap.put(currentThreadId, nextFile.getPath());
-        out = new BufferedOutputStream(Files.newOutputStream(nextFile.toPath()), WRITE_BYTE_BUFFER_SIZE);
-        threadFileMap.put(currentThreadId, out);
+
 
         count.put(currentThreadId, new AtomicInteger(0));
         valueIdFilterSet.put(currentThreadId,

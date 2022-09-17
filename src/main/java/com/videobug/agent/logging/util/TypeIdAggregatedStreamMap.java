@@ -65,7 +65,9 @@ public class TypeIdAggregatedStreamMap {
         classToIdMap = new HashMap<>(65536);
         for (int i = 0; i < BASIC_TYPE_CLASS.length; ++i) {
             Integer id = createTypeRecord(BASIC_TYPE_CLASS[i]);
-            assert id.equals(i);
+            if (i < 10) {
+                assert id.equals(i);
+            }
         }
     }
 

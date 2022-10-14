@@ -66,6 +66,7 @@ public class PerThreadBinaryFileAggregatedLogger implements
     });
     private final Map<Integer, BloomFilter<Long>> valueIdFilterSet = new HashMap<>();
     private final Map<Integer, BloomFilter<Integer>> probeIdFilterSet = new HashMap<>();
+    private final OffLoadTaskPayload[] TaskQueueArray = new OffLoadTaskPayload[TASK_QUEUE_CAPACITY];
     ScheduledExecutorService threadPoolExecutor5Seconds = Executors.newScheduledThreadPool(1);
     ExecutorService threadPoolExecutor = Executors.newFixedThreadPool(4);
     private long currentTimestamp = System.currentTimeMillis();
@@ -82,7 +83,6 @@ public class PerThreadBinaryFileAggregatedLogger implements
     private ScheduledFuture<?> skipResetFuture;
     private boolean shutdown;
     private DataOutputStream fileIndex;
-    private final OffLoadTaskPayload[] TaskQueueArray = new OffLoadTaskPayload[TASK_QUEUE_CAPACITY];
     private int offloadTaskQueueReadIndex;
 
     /**
@@ -193,8 +193,8 @@ public class PerThreadBinaryFileAggregatedLogger implements
             try {
                 currentOutputStream.close();
             } catch (ClosedChannelException cce) {
-                            errorLogger.log("[videobug] channel already closed - flush existing " +
-                                    "file for " + "thread [" + currentThreadId + "] -> " + currentFile);
+                errorLogger.log("[videobug] channel already closed - flush existing " +
+                        "file for " + "thread [" + currentThreadId + "] -> " + currentFile);
             }
 
 
@@ -283,7 +283,7 @@ public class PerThreadBinaryFileAggregatedLogger implements
 //
 //            out.write(buffer, 0, 17);
 //            getThreadEventCount(currentThreadId).addAndGet(1);
-            fileCollector.indexObjectTypeEntry(id, (int) typeId);
+        fileCollector.indexObjectTypeEntry(id, (int) typeId);
 
 //        } catch (IOException e) {
 //            errorLogger.log(e);
@@ -356,14 +356,15 @@ public class PerThreadBinaryFileAggregatedLogger implements
             buffer[0] = 7;
 
 
-            buffer[1] = (byte) (eventId >>> 56);
-            buffer[2] = (byte) (eventId >>> 48);
-            buffer[3] = (byte) (eventId >>> 40);
-            buffer[4] = (byte) (eventId >>> 32);
-            buffer[5] = (byte) (eventId >>> 24);
-            buffer[6] = (byte) (eventId >>> 16);
-            buffer[7] = (byte) (eventId >>> 8);
-            buffer[8] = (byte) (eventId >>> 0);
+            long currentEventId = getNextEventId();
+            buffer[1] = (byte) (currentEventId >>> 56);
+            buffer[2] = (byte) (currentEventId >>> 48);
+            buffer[3] = (byte) (currentEventId >>> 40);
+            buffer[4] = (byte) (currentEventId >>> 32);
+            buffer[5] = (byte) (currentEventId >>> 24);
+            buffer[6] = (byte) (currentEventId >>> 16);
+            buffer[7] = (byte) (currentEventId >>> 8);
+            buffer[8] = (byte) (currentEventId >>> 0);
 
 
             buffer[9] = (byte) (timestamp >>> 56);
@@ -407,10 +408,6 @@ public class PerThreadBinaryFileAggregatedLogger implements
             fileCollector.addProbeId(probeId);
 
 
-//            TaskQueueArray[(int) (eventId % TASK_QUEUE_CAPACITY)] =
-//                    new OffLoadTaskPayload(currentThreadId, probeId, valueId);
-
-            eventId++;
         } catch (IOException e) {
             errorLogger.log(e);
         }
@@ -418,10 +415,12 @@ public class PerThreadBinaryFileAggregatedLogger implements
 
     }
 
+    public synchronized long getNextEventId() {
+        return eventId++;
+    }
+
     public void writeNewTypeRecord(int typeId, String typeName, byte[] toString) {
-
         fileCollector.indexTypeEntry(typeId, typeName, toString);
-
     }
 
     public void writeWeaveInfo(byte[] byteArray) {
@@ -443,8 +442,8 @@ public class PerThreadBinaryFileAggregatedLogger implements
      * Block type: 7
      * Event with object value serialized
      *
-     * @param probeId probe id
-     * @param valueId value
+     * @param probeId     probe id
+     * @param valueId     value
      * @param toByteArray serialized object representation
      */
     @Override
@@ -459,7 +458,7 @@ public class PerThreadBinaryFileAggregatedLogger implements
 
 
             dos.write(7);
-            dos.writeLong(eventId);
+            dos.writeLong(getNextEventId());
             dos.writeLong(timestamp);
             dos.writeInt(probeId);
             dos.writeLong(valueId);
@@ -475,10 +474,7 @@ public class PerThreadBinaryFileAggregatedLogger implements
             probeIdFilterSet.get(currentThreadId).add(probeId);
             fileCollector.addProbeId(probeId);
 
-//            TaskQueueArray[(int) (eventId % TASK_QUEUE_CAPACITY)] =
-//                    new OffLoadTaskPayload(currentThreadId, probeId, valueId);
 
-            eventId++;
         } catch (IOException e) {
             errorLogger.log(e);
         }

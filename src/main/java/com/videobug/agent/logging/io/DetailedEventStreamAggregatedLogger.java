@@ -1,7 +1,6 @@
 package com.videobug.agent.logging.io;
 
 import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.Registration;
 import com.esotericsoftware.kryo.io.Output;
 import com.google.gson.Gson;
 import com.insidious.common.weaver.ClassInfo;
@@ -12,7 +11,6 @@ import com.videobug.agent.logging.util.AggregatedFileLogger;
 import com.videobug.agent.logging.util.ObjectIdAggregatedStream;
 import com.videobug.agent.logging.util.TypeIdAggregatedStreamMap;
 import com.videobug.agent.weaver.WeaveLog;
-import reactor.core.publisher.Mono;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -20,7 +18,6 @@ import java.io.IOException;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -114,7 +111,7 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 
             if (value != null) {
 //                System.out.println("record serialized value for probe [" + dataId + "] -> " + value.getClass());
-                if (value instanceof Class && SERIALIZATION_MODE == SerializationMode.KRYO) {
+                if (SERIALIZATION_MODE == SerializationMode.KRYO && value instanceof Class) {
                     kryo.register((Class) value);
                 }
             }
@@ -130,6 +127,7 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                     // # using gson
                     String jsonValue = gson.toJson(value);
                     bytes = jsonValue.getBytes();
+//                    System.err.println("record serialized value for probe [" + objectId + "] -> " + jsonValue);
                     // ######################################
                 }
 
@@ -177,7 +175,7 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 //                    kryo.register(value.getClass());
 //                    String message = e.getMessage();
 //                    System.err.println("ThrowSerialized [" + value.getClass().getCanonicalName() + "]" +
-//                            " [" + dataId + "] error -> " + message);
+//                            " [" + dataId + "] error -> " + e.getMessage());
 //                    if (message.startsWith("Class is not registered")) {
 //                        String className = message.split(":")[1];
 //                        try {
@@ -187,7 +185,7 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 ////                            ex.printStackTrace();
 //                        }
 //                    }
-////                    e.printStackTrace();
+//                e.printStackTrace();
 //                }
                 // ignore if we cannot record the variable information
             }

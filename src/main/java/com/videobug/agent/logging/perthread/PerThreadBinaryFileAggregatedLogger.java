@@ -107,36 +107,6 @@ public class PerThreadBinaryFileAggregatedLogger implements
 //        System.out.printf("[videobug] create aggregated logger -> %s\n", currentFileMap.get(-1));
 
         threadPoolExecutor.submit(fileCollector);
-//        threadPoolExecutor.submit(new Runnable() {
-//            @Override
-//            public void run() {
-//
-//                while (true) {
-//                    try {
-//                        OffLoadTaskPayload task = TaskQueueArray[offloadTaskQueueReadIndex % TASK_QUEUE_CAPACITY];
-//                        if (task == null) {
-//                            Thread.sleep(10);
-//                            continue;
-//                        }
-//                        TaskQueueArray[offloadTaskQueueReadIndex] = null;
-//
-//                        getThreadEventCount(task.threadId).addAndGet(1);
-//                        valueIdFilterSet.get(task.threadId).add(task.value);
-//                        fileCollector.addValueId(task.value);
-//                        probeIdFilterSet.get(task.threadId).add(task.probeId);
-//                        fileCollector.addProbeId(task.probeId);
-//
-//                        offloadTaskQueueReadIndex += 1;
-//
-//                    } catch (InterruptedException ie) {
-//                        break;
-//                    } catch (Throwable throwable) {
-//
-//                    }
-//                }
-//
-//            }
-//        });
 
         logFileTimeAgeChecker = new FileEventCountThresholdChecker(
                 threadFileMap, this,

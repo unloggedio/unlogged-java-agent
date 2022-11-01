@@ -128,7 +128,7 @@ public class RuntimeWeaver implements ClassFileTransformer {
      */
     public static void premain(String agentArgs, Instrumentation inst) throws IOException {
         String agentVersion = RuntimeWeaver.class.getPackage().getImplementationVersion();
-        System.out.println("[videobug] starting Agent: [" + agentVersion + "] with arguments [" + agentArgs + "]");
+        System.out.println("[videobug] Starting agent: [" + agentVersion + "] with arguments [" + agentArgs + "]");
 
         final RuntimeWeaver runtimeWeaver = new RuntimeWeaver(agentArgs);
         Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {

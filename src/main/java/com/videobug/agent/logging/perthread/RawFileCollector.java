@@ -164,7 +164,7 @@ public class RawFileCollector implements Runnable {
         try {
             while (true) {
                 errorLogger.log("run raw file collector cron: " + shutdown);
-                long start = System.currentTimeMillis();
+//                long start = System.currentTimeMillis();
                 if (shutdown) {
                     return;
                 }
@@ -174,7 +174,7 @@ public class RawFileCollector implements Runnable {
                 } catch (IOException e) {
                     errorLogger.log(e);
                 }
-                long timeToProcessFile = System.currentTimeMillis() - start;
+//                long timeToProcessFile = System.currentTimeMillis() - start;
 //            errorLogger.log("adding file took [" + timeToProcessFile + "] ms");
             }
         } catch (Throwable e) {

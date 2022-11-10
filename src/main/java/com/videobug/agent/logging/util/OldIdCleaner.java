@@ -1,6 +1,6 @@
 package com.videobug.agent.logging.util;
 
-import net.openhft.chronicle.core.values.LongValue;
+//import net.openhft.chronicle.core.values.LongValue;
 //import net.openhft.chronicle.map.ChronicleMap;
 //import net.openhft.chronicle.values.Values;
 

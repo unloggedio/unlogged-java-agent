@@ -167,11 +167,11 @@
 
     <dependencies>
 
-        <dependency>
-            <groupId>net.openhft</groupId>
-            <artifactId>chronicle-queue</artifactId>
-            <version>5.22.18</version>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>net.openhft</groupId>-->
+<!--            <artifactId>chronicle-queue</artifactId>-->
+<!--            <version>5.22.18</version>-->
+<!--        </dependency>-->
         <dependency>
             <groupId>com.baqend</groupId>
             <artifactId>bloom-filter</artifactId>

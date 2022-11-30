@@ -58,7 +58,11 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
     );
     private final Map<String, WeaveLog> classMap = new HashMap<>();
     private final Set<Integer> probesToRecord = new HashSet<>();
+    private final Map<Integer, DataInfo> callProbes = new HashMap<>();
     private final SerializationMode SERIALIZATION_MODE = SerializationMode.JACKSON;
+    private final ThreadLocal<ByteArrayOutputStream> output =
+            ThreadLocal.withInitial(() -> new ByteArrayOutputStream(1_000_000));
+    private final Set<String> classesToIgnore = new HashSet<>();
     Kryo kryo = new Kryo();
     Gson gson = new Gson();
 
@@ -81,6 +85,21 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
         typeToId = new TypeIdAggregatedStreamMap(this.aggregatedLogger, this);
         objectIdMap = new ObjectIdAggregatedStream(this.aggregatedLogger, typeToId, outputDir);
 
+
+//        className.contains("java.lang.reflect")
+//                || className.contains("com.google")
+//                || className.contains("org.apache.http")
+//                || className.contains("org.elasticsearch.client")
+//                || className.contains("org.hibernate")
+//                || className.contains("com.amazon")
+//
+
+        classesToIgnore.add("java.lang.reflect");
+        classesToIgnore.add("com.google");
+        classesToIgnore.add("org.apache.http");
+        classesToIgnore.add("org.elasticsearch.client");
+        classesToIgnore.add("org.hibernate");
+        classesToIgnore.add("com.amazon");
 
         kryo.register(byte[].class);
         kryo.register(LinkedHashMap.class);
@@ -113,25 +132,39 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
      * The object is translated into an object ID.
      */
     public void recordEvent(int dataId, Object value) {
+//        if (callProbes.containsKey(dataId)) {
+//            System.err.println("Record event: " + callProbes.get(dataId)
+//                    .getAttributes());
+//        }
         long objectId = objectIdMap.getId(value);
         byte[] bytes = new byte[0];
-        if (serializeValues && probesToRecord.size() > 0 && probesToRecord.contains(dataId)) {
+        if (value != null && serializeValues && probesToRecord.size() > 0 && probesToRecord.contains(dataId)) {
 
-            if (value != null) {
-//                System.out.println("record serialized value for probe [" + dataId + "] -> " + value.getClass());
-                if (SERIALIZATION_MODE == SerializationMode.KRYO && value instanceof Class) {
-                    kryo.register((Class) value);
-                }
+//            if (value != null) {
+//            System.out.println("record serialized value for probe [" + dataId + "] -> " + value.getClass());
+//            }
+            if (SERIALIZATION_MODE == SerializationMode.KRYO && value instanceof Class) {
+                kryo.register((Class) value);
             }
+//            }
 
 
             // write data into OutputStream
             try {
-//            String className = value.getClass().getCanonicalName().replaceAll("\\.", "/");
+                String className = value.getClass()
+                        .getCanonicalName();
 
                 // ############### USING GSON #######################
-
-                if (SERIALIZATION_MODE == SerializationMode.GSON) {
+//                System.out.println("Ignore: " + value.getClass()
+//                        .getName());
+                if (className.startsWith("java.lang.reflect")
+                        || className.startsWith("com.google")
+                        || className.startsWith("org.apache.http")
+                        || className.startsWith("org.elasticsearch.client")
+                        || className.startsWith("org.hibernate")
+                        || className.startsWith("com.amazon")
+                ) {
+                } else if (SERIALIZATION_MODE == SerializationMode.GSON) {
                     // # using gson
                     String jsonValue = gson.toJson(value);
                     bytes = jsonValue.getBytes();
@@ -183,6 +216,7 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 
 
             } catch (Throwable e) {
+                probesToRecord.remove(dataId);
 //                if (value != null) {
 //                    kryo.register(value.getClass());
 //                    String message = e.getMessage();
@@ -381,9 +415,12 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 
         classMap.put(classIdEntry.getClassName(), log);
 //        System.err.println("Record weave info for [" + classIdEntry.getClassName() + "]");
-        if (!classIdEntry.getClassName().contains("mongo") &&
-                !classIdEntry.getClassName().contains("spring") &&
-                !classIdEntry.getClassName().contains("redis")
+        if (!classIdEntry.getClassName()
+                .contains("mongo") &&
+                !classIdEntry.getClassName()
+                        .contains("spring") &&
+                !classIdEntry.getClassName()
+                        .contains("redis")
         ) {
             List<Integer> newClassProbes = log.getDataEntries()
                     .stream()
@@ -395,7 +432,18 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                     )
                     .map(DataInfo::getDataId)
                     .collect(Collectors.toList());
+
+
+//            Map<Integer, DataInfo> callProbes1 = log.getDataEntries()
+//                    .stream()
+//                    .filter(e ->
+//                            e.getEventType() == EventType.CALL
+//                    )
+//                    .collect(Collectors.toMap(DataInfo::getDataId, e -> e));
+
+
             probesToRecord.addAll(newClassProbes);
+//            callProbes.putAll(callProbes1);
 //            System.err.println("Record serialized value for probes: " + newClassProbes);
         }
         aggregatedLogger.writeWeaveInfo(byteArray);

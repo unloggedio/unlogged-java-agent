@@ -451,6 +451,40 @@ public class PerThreadBinaryFileAggregatedLogger implements
     }
 
     @Override
+    public void writeEvent(int probeId, long valueId, ByteArrayOutputStream outputStream) {
+        long timestamp = System.nanoTime();
+        int currentThreadId = threadId.get();
+
+        try {
+
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            DataOutputStream dos = new DataOutputStream(baos);
+
+
+            dos.write(7);
+            dos.writeLong(getNextEventId());
+            dos.writeLong(timestamp);
+            dos.writeInt(probeId);
+            dos.writeLong(valueId);
+            dos.writeInt(outputStream.size());
+            outputStream.writeTo(dos);
+
+
+            getStreamForThread(currentThreadId).write(baos.toByteArray());
+
+            getThreadEventCount(currentThreadId).addAndGet(1);
+            valueIdFilterSet.get(currentThreadId).add(valueId);
+            fileCollector.addValueId(valueId);
+            probeIdFilterSet.get(currentThreadId).add(probeId);
+            fileCollector.addProbeId(probeId);
+
+
+        } catch (IOException e) {
+            errorLogger.log(e);
+        }
+    }
+
+    @Override
     public AtomicInteger getThreadEventCount(int currentThreadId) {
         if (!count.containsKey(currentThreadId)) {
             count.put(currentThreadId, new AtomicInteger(0));

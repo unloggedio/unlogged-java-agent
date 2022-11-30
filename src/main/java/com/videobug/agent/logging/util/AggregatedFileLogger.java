@@ -1,5 +1,6 @@
 package com.videobug.agent.logging.util;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 public interface AggregatedFileLogger {
@@ -19,4 +20,6 @@ public interface AggregatedFileLogger {
     void shutdown() throws IOException;
 
     void writeEvent(int dataId, long objectId, byte[] toByteArray);
+
+    void writeEvent(int dataId, long objectId, ByteArrayOutputStream outputStream);
 }

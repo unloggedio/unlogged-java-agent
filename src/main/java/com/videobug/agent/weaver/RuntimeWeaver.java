@@ -126,7 +126,7 @@ public class RuntimeWeaver implements ClassFileTransformer {
      * @param agentArgs comes from command line.
      * @param inst      is provided by the jvm
      */
-    public static void premain(String agentArgs, Instrumentation inst) throws IOException {
+    public static void premain(String agentArgs, Instrumentation inst) {
         String agentVersion = RuntimeWeaver.class.getPackage().getImplementationVersion();
         System.out.println("[videobug] Starting agent: [" + agentVersion + "] with arguments [" + agentArgs + "]");
 

@@ -468,6 +468,7 @@ public class PerThreadBinaryFileAggregatedLogger implements
             dos.writeLong(valueId);
             dos.writeInt(outputStream.size());
             outputStream.writeTo(dos);
+            outputStream.flush();
 
 
             getStreamForThread(currentThreadId).write(baos.toByteArray());

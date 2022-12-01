@@ -378,7 +378,7 @@ public class PerThreadBinaryFileAggregatedLogger implements
             fileCollector.addProbeId(probeId);
 
 
-        } catch (IOException e) {
+        } catch (Exception e) {
             errorLogger.log(e);
         }
 //            System.err.println("Write new event - 4," + id + "," + value + " = " + this.bytesWritten);
@@ -397,7 +397,7 @@ public class PerThreadBinaryFileAggregatedLogger implements
         fileCollector.addClassWeaveInfo(byteArray);
     }
 
-    public void shutdown() throws IOException {
+    public void shutdown() throws IOException, InterruptedException {
         System.err.println("[videobug] shutdown logger");
         skipUploads = true;
         shutdown = true;

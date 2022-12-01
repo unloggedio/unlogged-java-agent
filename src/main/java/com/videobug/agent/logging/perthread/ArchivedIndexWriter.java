@@ -40,6 +40,8 @@ public class ArchivedIndexWriter implements IndexOutputStream {
     private final String outputDir;
     private final File currentArchiveFile;
     private final List<byte[]> classWeaves;
+    final private BloomFilter<Long> aggregatedValueSet;
+    final private BloomFilter<Integer> aggregatedProbeIdSet;
     private BlockingQueue<StringInfoDocument> stringsToIndex;
     private BlockingQueue<TypeInfoDocument> typesToIndex;
     private BlockingQueue<ObjectInfoDocument> objectsToIndex;
@@ -50,8 +52,6 @@ public class ArchivedIndexWriter implements IndexOutputStream {
     private DiskPersistence<StringInfoDocument, Long> stringInfoDocumentStringDiskPersistence;
     private DiskPersistence<TypeInfoDocument, Integer> typeInfoDocumentStringDiskPersistence;
     private List<UploadFile> fileListToUpload = new LinkedList<>();
-    final private BloomFilter<Long> aggregatedValueSet;
-    final private BloomFilter<Integer> aggregatedProbeIdSet;
     private ZipOutputStream archivedIndexOutputStream;
 
     public ArchivedIndexWriter(File archiveFile, List<byte[]> classWeaves, IErrorLogger errorLogger) throws IOException {
@@ -63,9 +63,11 @@ public class ArchivedIndexWriter implements IndexOutputStream {
         initIndexQueues();
 
         errorLogger.log("prepare index archive: " + currentArchiveFile.getAbsolutePath());
-        archivedIndexOutputStream = new ZipOutputStream(new BufferedOutputStream(new FileOutputStream(currentArchiveFile)));
+        archivedIndexOutputStream = new ZipOutputStream(
+                new BufferedOutputStream(new FileOutputStream(currentArchiveFile)));
         aggregatedValueSet = BloomFilterUtil.newBloomFilterForValues(BloomFilterUtil.BLOOM_AGGREGATED_FILTER_BIT_SIZE);
-        aggregatedProbeIdSet = BloomFilterUtil.newBloomFilterForProbes(BloomFilterUtil.BLOOM_AGGREGATED_FILTER_BIT_SIZE);
+        aggregatedProbeIdSet = BloomFilterUtil.newBloomFilterForProbes(
+                BloomFilterUtil.BLOOM_AGGREGATED_FILTER_BIT_SIZE);
 
 
         initialiseIndexes();
@@ -84,7 +86,8 @@ public class ArchivedIndexWriter implements IndexOutputStream {
 
     private void initialiseIndexes() {
 
-        String archiveName = currentArchiveFile.getName().split(".zip")[0];
+        String archiveName = currentArchiveFile.getName()
+                .split(".zip")[0];
 
         File typeIndexFile = new File(outputDir + archiveName + "-" + INDEX_TYPE_DAT_FILE);
         File stringIndexFile = new File(outputDir + archiveName + "-" + INDEX_STRING_DAT_FILE);
@@ -181,14 +184,17 @@ public class ArchivedIndexWriter implements IndexOutputStream {
 
                 ZipEntry classWeaveEntry = new ZipEntry(WEAVE_DAT_FILE);
                 archivedIndexOutputStream.putNextEntry(classWeaveEntry);
+                FileOutputStream classWeaveFileRaw = new FileOutputStream(new File(outputDir + "class.weave.dat"));
                 DataOutputStream weaveOutputStream = new DataOutputStream(archivedIndexOutputStream);
 
                 List<byte[]> classesInfo = new LinkedList<>(this.classWeaves.subList(0, this.classWeaves.size()));
                 weaveOutputStream.writeInt(classesInfo.size());
                 for (byte[] classWeave : classesInfo) {
                     weaveOutputStream.write(classWeave);
+                    classWeaveFileRaw.write(classWeave);
                 }
                 archivedIndexOutputStream.closeEntry();
+                classWeaveFileRaw.close();
 
 
                 ZipEntry indexEntry = new ZipEntry(INDEX_EVENTS_DAT_FILE);
@@ -206,8 +212,12 @@ public class ArchivedIndexWriter implements IndexOutputStream {
                     outputStream.writeLong(fileToUpload.threadId);
 
 
-                    byte[] valueByteArray = BloomFilterConverter.toJson(fileToUpload.valueIdBloomFilter).toString().getBytes();
-                    byte[] probeByteArray = BloomFilterConverter.toJson(fileToUpload.probeIdBloomFilter).toString().getBytes();
+                    byte[] valueByteArray = BloomFilterConverter.toJson(fileToUpload.valueIdBloomFilter)
+                            .toString()
+                            .getBytes();
+                    byte[] probeByteArray = BloomFilterConverter.toJson(fileToUpload.probeIdBloomFilter)
+                            .toString()
+                            .getBytes();
 
 
                     outputStream.writeInt(valueByteArray.length);
@@ -217,8 +227,12 @@ public class ArchivedIndexWriter implements IndexOutputStream {
                     outputStream.write(probeByteArray);
                 }
 
-                byte[] aggregatedValueFilterSerialized = BloomFilterConverter.toJson(aggregatedValueSet).toString().getBytes();
-                byte[] aggregatedProbeFilterSerialized = BloomFilterConverter.toJson(aggregatedProbeIdSet).toString().getBytes();
+                byte[] aggregatedValueFilterSerialized = BloomFilterConverter.toJson(aggregatedValueSet)
+                        .toString()
+                        .getBytes();
+                byte[] aggregatedProbeFilterSerialized = BloomFilterConverter.toJson(aggregatedProbeIdSet)
+                        .toString()
+                        .getBytes();
 //                System.err.println("Aggregated value filter for [" + currentArchiveFile.getName() + "] -> " + aggregatedValueFilterSerialized.length);
 //                System.err.println("Aggregated probe filter for [" + currentArchiveFile.getName() +
 //                        "] -> " + aggregatedProbeFilterSerialized.length);
@@ -244,39 +258,48 @@ public class ArchivedIndexWriter implements IndexOutputStream {
                 drainQueueToIndex(pendingObjects, pendingTypes, pendingStrings);
 
 
-                String currentArchiveName = currentArchiveFile.getName().split(".zip")[0];
+                String currentArchiveName = currentArchiveFile.getName()
+                        .split(".zip")[0];
 
 
                 ZipEntry stringIndexEntry = new ZipEntry(INDEX_STRING_DAT_FILE);
                 archivedIndexOutputStream.putNextEntry(stringIndexEntry);
-                Path stringIndexFilePath = FileSystems.getDefault().getPath(outputDir + currentArchiveName + "-" + INDEX_STRING_DAT_FILE);
+                Path stringIndexFilePath = FileSystems.getDefault()
+                        .getPath(outputDir + currentArchiveName + "-" + INDEX_STRING_DAT_FILE);
                 Files.copy(stringIndexFilePath, archivedIndexOutputStream);
-                stringIndexFilePath.toFile().delete();
+                stringIndexFilePath.toFile()
+                        .delete();
                 archivedIndexOutputStream.closeEntry();
 
                 ZipEntry typeIndexEntry = new ZipEntry(INDEX_TYPE_DAT_FILE);
                 archivedIndexOutputStream.putNextEntry(typeIndexEntry);
-                Path typeIndexFilePath = FileSystems.getDefault().getPath(outputDir + currentArchiveName + "-" + INDEX_TYPE_DAT_FILE);
+                Path typeIndexFilePath = FileSystems.getDefault()
+                        .getPath(outputDir + currentArchiveName + "-" + INDEX_TYPE_DAT_FILE);
                 Files.copy(typeIndexFilePath, archivedIndexOutputStream);
-                typeIndexFilePath.toFile().delete();
+                typeIndexFilePath.toFile()
+                        .delete();
                 archivedIndexOutputStream.closeEntry();
 
                 ZipEntry objectIndexEntry = new ZipEntry(INDEX_OBJECT_DAT_FILE);
                 archivedIndexOutputStream.putNextEntry(objectIndexEntry);
-                Path objectIndexFilePath = FileSystems.getDefault().getPath(outputDir + currentArchiveName + "-" + INDEX_OBJECT_DAT_FILE);
+                Path objectIndexFilePath = FileSystems.getDefault()
+                        .getPath(outputDir + currentArchiveName + "-" + INDEX_OBJECT_DAT_FILE);
                 Files.copy(objectIndexFilePath, archivedIndexOutputStream);
-                objectIndexFilePath.toFile().delete();
+                objectIndexFilePath.toFile()
+                        .delete();
                 archivedIndexOutputStream.closeEntry();
-                archivedIndexOutputStream.close();
 
             } catch (IOException e) {
                 errorLogger.log(e);
+            } finally {
+                archivedIndexOutputStream.close();
             }
         } catch (Exception e) {
             errorLogger.log(e);
         } finally {
             long end = System.currentTimeMillis();
-            errorLogger.log("Took [" + ((end - start) / 1000) + "] seconds to complete archive: " + currentArchiveFile.getName());
+            errorLogger.log(
+                    "Took [" + ((end - start) / 1000) + "] seconds to complete archive: " + currentArchiveFile.getName());
             try {
                 indexWriterLock.unlock();
             } catch (Exception e) {
@@ -310,7 +333,7 @@ public class ArchivedIndexWriter implements IndexOutputStream {
         archivedIndexOutputStream.closeEntry();
         long end = System.currentTimeMillis();
 
-        errorLogger.log("[" + currentArchiveFile.getName() +  "] Add files to archive: " + logFile.path + " " +
+        errorLogger.log("[" + currentArchiveFile.getName() + "] Add files to archive: " + logFile.path + " " +
                 "took - " + (end - currentTimestamp) / 1000 + " ms");
     }
 

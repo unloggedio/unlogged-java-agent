@@ -122,7 +122,7 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
         objectIdMap.close();
         try {
             aggregatedLogger.shutdown();
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }

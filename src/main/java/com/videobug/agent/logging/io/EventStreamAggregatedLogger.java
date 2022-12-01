@@ -57,7 +57,7 @@ public class EventStreamAggregatedLogger implements IEventLogger {
         objectIdMap.close();
         try {
             aggregatedLogger.shutdown();
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }

@@ -59,14 +59,14 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
     private final Map<String, WeaveLog> classMap = new HashMap<>();
     private final Set<Integer> probesToRecord = new HashSet<>();
     private final Map<Integer, DataInfo> callProbes = new HashMap<>();
-    private final SerializationMode SERIALIZATION_MODE = SerializationMode.JACKSON;
+    private final SerializationMode SERIALIZATION_MODE = SerializationMode.GSON;
     private final ThreadLocal<ByteArrayOutputStream> output =
             ThreadLocal.withInitial(() -> new ByteArrayOutputStream(1_000_000));
     private final Set<String> classesToIgnore = new HashSet<>();
     Kryo kryo = new Kryo();
     Gson gson = new Gson();
-
     ObjectMapper objectMapper = new ObjectMapper();
+    private String className;
 
     /**
      * Create an instance of logging object.
@@ -108,6 +108,7 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
         DateFormat df = new SimpleDateFormat("MMM d, yyyy HH:mm:ss aaa");
         objectMapper.setDateFormat(df);
 
+        className = "";
     }
 
     public ObjectIdAggregatedStream getObjectIdMap() {
@@ -133,30 +134,34 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
      */
     public void recordEvent(int dataId, Object value) {
 //        if (callProbes.containsKey(dataId)) {
-//            System.err.println("Record event: " + callProbes.get(dataId)
-//                    .getAttributes());
+//        System.err.println("Record event: [" + dataId + "] " + callProbes.get(dataId)
+//                .getEventType());
 //        }
         long objectId = objectIdMap.getId(value);
 //        byte[] bytes = new byte[0];
         ByteArrayOutputStream outputStream = output.get();
         outputStream.reset();
 
-        if (value != null && serializeValues && probesToRecord.size() > 0 && probesToRecord.contains(dataId)) {
+        if (serializeValues && probesToRecord.size() > 0 && probesToRecord.contains(dataId)) {
 
 //            if (value != null) {
 //            System.out.println("record serialized value for probe [" + dataId + "] -> " + value.getClass());
 //            }
-            if (SERIALIZATION_MODE == SerializationMode.KRYO && value instanceof Class) {
-                kryo.register((Class) value);
-            }
+//            if (SERIALIZATION_MODE == SerializationMode.KRYO && value instanceof Class) {
+//                kryo.register((Class) value);
+//            }
 //            }
 
 
             // write data into OutputStream
-//            byte[] bytes;
+            byte[] bytes = new byte[0];
             try {
-                String className = value.getClass()
-                        .getCanonicalName();
+                if (value != null) {
+                    className = value.getClass()
+                            .getCanonicalName();
+                } else {
+                    className = "";
+                }
 
                 // ############### USING GSON #######################
 //                System.out.println("[" + dataId + "] Serialize class: " + value.getClass()
@@ -175,17 +180,18 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                     probesToRecord.remove(dataId);
                 } else if (SERIALIZATION_MODE == SerializationMode.GSON) {
                     // # using gson
-//                    String jsonValue = gson.toJson(value);
-//                    bytes = jsonValue.getBytes();
+                    String jsonValue = gson.toJson(value);
+                    bytes = jsonValue.getBytes();
 //                    System.err.println(
 //                            "[" + dataId + "] record serialized value for probe [" + value.getClass() + "] [" + objectId + "] ->" +
 //                                    " " + jsonValue);
                     // ######################################
                 } else if (SERIALIZATION_MODE == SerializationMode.JACKSON) {
                     // # using gson
-                    objectMapper.writeValue(outputStream, value);
-                    outputStream.flush();
-//                    bytes = jsonValue.getBytes();
+//                    objectMapper.writeValue(outputStream, value);
+//                    outputStream.flush();
+//                    bytes = outputStream.toByteArray();
+                    bytes = objectMapper.writeValueAsBytes(value);
 //                    System.err.println(
 //                            "[" + dataId + "] record serialized value for probe [" + value.getClass() + "] [" + objectId + "] ->" +
 //                                    " " + outputStream.toString());
@@ -246,7 +252,7 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 //                }
                 // ignore if we cannot record the variable information
             }
-            aggregatedLogger.writeEvent(dataId, objectId, outputStream);
+            aggregatedLogger.writeEvent(dataId, objectId, bytes);
             outputStream.reset();
         } else {
 //            System.err.println("No serialization for: " + dataId);
@@ -446,16 +452,13 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                     .collect(Collectors.toList());
 
 
-//            Map<Integer, DataInfo> callProbes1 = log.getDataEntries()
-//                    .stream()
-//                    .filter(e ->
-//                            e.getEventType() == EventType.CALL
-//                    )
-//                    .collect(Collectors.toMap(DataInfo::getDataId, e -> e));
+            Map<Integer, DataInfo> callProbes1 = log.getDataEntries()
+                    .stream()
+                    .collect(Collectors.toMap(DataInfo::getDataId, e -> e));
 
 
             probesToRecord.addAll(newClassProbes);
-//            callProbes.putAll(callProbes1);
+            callProbes.putAll(callProbes1);
 //            System.err.println("Record serialized value for probes: " + newClassProbes);
         }
         aggregatedLogger.writeWeaveInfo(byteArray);

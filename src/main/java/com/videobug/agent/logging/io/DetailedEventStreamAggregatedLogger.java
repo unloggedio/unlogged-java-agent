@@ -16,7 +16,6 @@ import com.videobug.agent.weaver.WeaveLog;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
@@ -134,12 +133,13 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
      */
     public void recordEvent(int dataId, Object value) {
 //        if (callProbes.containsKey(dataId)) {
-        System.err.println("Record event: " + dataId);
+//            System.err.println("Record event: " + callProbes.get(dataId)
+//                    .getAttributes());
 //        }
         long objectId = objectIdMap.getId(value);
-        byte[] bytes = new byte[0];
-//        ByteArrayOutputStream outputStream = output.get();
-//        outputStream.reset();
+//        byte[] bytes = new byte[0];
+        ByteArrayOutputStream outputStream = output.get();
+        outputStream.reset();
 
         if (value != null && serializeValues && probesToRecord.size() > 0 && probesToRecord.contains(dataId)) {
 
@@ -159,6 +159,8 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                         .getCanonicalName();
 
                 // ############### USING GSON #######################
+//                System.out.println("Ignore: " + value.getClass()
+//                        .getName());
                 if (className.startsWith("java.lang.reflect")
                         || className.startsWith("com.google")
                         || className.startsWith("org.apache.http")
@@ -166,9 +168,6 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                         || className.startsWith("org.hibernate")
                         || className.startsWith("com.amazon")
                 ) {
-                    System.out.println("[" + dataId + "]Ignore: " + value.getClass()
-                            .getName());
-
                 } else if (SERIALIZATION_MODE == SerializationMode.GSON) {
                     // # using gson
 //                    String jsonValue = gson.toJson(value);
@@ -179,15 +178,12 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                     // ######################################
                 } else if (SERIALIZATION_MODE == SerializationMode.JACKSON) {
                     // # using gson
-//                    outputStream.flush();
-//                    ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-//                    objectMapper.writeValue(outputStream, value);
-//                    objectMapper.writeValue(outputStream, value);
-                    bytes = objectMapper.writeValueAsString(value).getBytes(StandardCharsets.UTF_8);
-//                    bytes = outputStream.toByteArray();
-                    System.err.println(
-                            "[" + dataId + "] byte record serialized value for probe [" + value.getClass() + "] [" + objectId + "] ->" +
-                                    " " + bytes.length);
+                    objectMapper.writeValue(outputStream, value);
+                    outputStream.flush();
+//                    bytes = jsonValue.getBytes();
+//                    System.err.println(
+//                            "[" + dataId + "] record serialized value for probe [" + value.getClass() + "] [" + objectId + "] ->" +
+//                                    " " + outputStream.toString());
                     // ######################################
                 } else if (SERIALIZATION_MODE == SerializationMode.OOS) {
                     // ################# USING OOS #####################
@@ -229,8 +225,9 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 //                if (value != null) {
 //                    kryo.register(value.getClass());
 //                    String message = e.getMessage();
-                System.err.println("ThrowSerialized [" + value + "]" +
-                        " [" + dataId + "] error -> " + e.getMessage() + " -> " + e.getClass().getCanonicalName());
+//                System.err.println("ThrowSerialized [" + value + "]" +
+//                        " [" + dataId + "] error -> " + e.getMessage() + " -> " + e.getClass()
+//                        .getCanonicalName());
 //                    if (message.startsWith("Class is not registered")) {
 //                        String className = message.split(":")[1];
 //                        try {
@@ -244,8 +241,8 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 //                }
                 // ignore if we cannot record the variable information
             }
-            aggregatedLogger.writeEvent(dataId, objectId, bytes);
-//            outputStream.reset();
+            aggregatedLogger.writeEvent(dataId, objectId, outputStream);
+            outputStream.reset();
         } else {
 //            System.err.println("No serialization for: " + dataId);
             aggregatedLogger.writeEvent(dataId, objectId);

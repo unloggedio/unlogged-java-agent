@@ -159,15 +159,20 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                         .getCanonicalName();
 
                 // ############### USING GSON #######################
-//                System.out.println("Ignore: " + value.getClass()
-//                        .getName());
+                System.out.println("[" + dataId + "] Serialize class: " + value.getClass()
+                        .getName());
                 if (className.startsWith("java.lang.reflect")
                         || className.startsWith("com.google")
                         || className.startsWith("org.apache.http")
                         || className.startsWith("org.elasticsearch.client")
                         || className.startsWith("org.hibernate")
+                        || className.startsWith("io.dropwizard")
+                        || className.contains("java.lang.reflect")
+                        || className.startsWith("org.redis")
+                        || className.startsWith("java.lang.Class")
                         || className.startsWith("com.amazon")
                 ) {
+                    probesToRecord.remove(dataId);
                 } else if (SERIALIZATION_MODE == SerializationMode.GSON) {
                     // # using gson
 //                    String jsonValue = gson.toJson(value);

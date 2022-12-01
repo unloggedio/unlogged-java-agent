@@ -159,8 +159,8 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                         .getCanonicalName();
 
                 // ############### USING GSON #######################
-                System.out.println("[" + dataId + "] Serialize class: " + value.getClass()
-                        .getName());
+//                System.out.println("[" + dataId + "] Serialize class: " + value.getClass()
+//                        .getName());
                 if (className.startsWith("java.lang.reflect")
                         || className.startsWith("com.google")
                         || className.startsWith("org.apache.http")

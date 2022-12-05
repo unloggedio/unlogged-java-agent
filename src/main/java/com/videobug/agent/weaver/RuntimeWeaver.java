@@ -14,9 +14,11 @@ import java.io.InputStream;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
 import java.lang.instrument.Instrumentation;
+import java.lang.management.ManagementFactory;
 import java.security.CodeSource;
 import java.security.ProtectionDomain;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.regex.Pattern;
 
 /**
@@ -24,6 +26,7 @@ import java.util.regex.Pattern;
  */
 public class RuntimeWeaver implements ClassFileTransformer {
 
+    private static boolean initialized = false;
     /**
      * The weaver injects logging instructions into target classes.
      */
@@ -68,14 +71,16 @@ public class RuntimeWeaver implements ClassFileTransformer {
 
                             FileNameGenerator fileNameGenerator1 = new FileNameGenerator(outputDir, "index-", ".zip");
                             RawFileCollector fileCollector =
-                                    new RawFileCollector(params.getFilesPerIndex(), fileNameGenerator1, networkClient, weaver);
+                                    new RawFileCollector(params.getFilesPerIndex(), fileNameGenerator1, networkClient,
+                                            weaver);
 
                             outputDir.mkdirs();
                             FileNameGenerator fileNameGenerator = new FileNameGenerator(outputDir, "log-", ".selog");
                             PerThreadBinaryFileAggregatedLogger perThreadBinaryFileAggregatedLogger
                                     = new PerThreadBinaryFileAggregatedLogger(fileNameGenerator, weaver, fileCollector);
 
-                            logger = Logging.initialiseAggregatedLogger(weaver, perThreadBinaryFileAggregatedLogger, outputDir);
+                            logger = Logging.initialiseAggregatedLogger(weaver, perThreadBinaryFileAggregatedLogger,
+                                    outputDir);
                             break;
 
                         case Testing:
@@ -87,16 +92,19 @@ public class RuntimeWeaver implements ClassFileTransformer {
                             FileNameGenerator fileNameGenerator2 =
                                     new FileNameGenerator(outputDir, "index-", ".zip");
                             RawFileCollector fileCollector1 =
-                                    new RawFileCollector(params.getFilesPerIndex(), fileNameGenerator2, networkClient1, weaver);
+                                    new RawFileCollector(params.getFilesPerIndex(), fileNameGenerator2, networkClient1,
+                                            weaver);
 
                             outputDir.mkdirs();
                             FileNameGenerator fileNameGenerator3 =
                                     new FileNameGenerator(outputDir, "log-", ".selog");
                             PerThreadBinaryFileAggregatedLogger perThreadBinaryFileAggregatedLogger1
-                                    = new PerThreadBinaryFileAggregatedLogger(fileNameGenerator3, weaver, fileCollector1);
+                                    = new PerThreadBinaryFileAggregatedLogger(fileNameGenerator3, weaver,
+                                    fileCollector1);
 
                             logger =
-                                    Logging.initialiseDetailedAggregatedLogger(this.params.getIncludedNames().get(0),
+                                    Logging.initialiseDetailedAggregatedLogger(this.params.getIncludedNames()
+                                                    .get(0),
                                             perThreadBinaryFileAggregatedLogger1, outputDir);
                             break;
 
@@ -110,10 +118,12 @@ public class RuntimeWeaver implements ClassFileTransformer {
                 weaver = null;
             }
         } catch (Throwable thx) {
-            System.err.println("[videobug] agent init failed, this session will not be recorded => " + thx.getMessage());
+            System.err.println(
+                    "[videobug] agent init failed, this session will not be recorded => " + thx.getMessage());
             thx.printStackTrace();
             if (thx.getCause() != null) {
-                thx.getCause().printStackTrace();
+                thx.getCause()
+                        .printStackTrace();
             }
         }
     }
@@ -126,19 +136,34 @@ public class RuntimeWeaver implements ClassFileTransformer {
      * @param agentArgs comes from command line.
      * @param inst      is provided by the jvm
      */
-    public static void premain(String agentArgs, Instrumentation inst) {
-        String agentVersion = RuntimeWeaver.class.getPackage().getImplementationVersion();
+    public static void premain(String agentArgs, Instrumentation inst) throws IOException {
+        String agentVersion = RuntimeWeaver.class.getPackage()
+                .getImplementationVersion();
         System.out.println("[videobug] Starting agent: [" + agentVersion + "] with arguments [" + agentArgs + "]");
+        String processId = ManagementFactory.getRuntimeMXBean()
+                .getName();
+        long startTime = new Date().getTime();
+
+        String lockFileName = ".videobug" + processId + ".lock";
+        File lockFile = new File(lockFileName);
+        if (lockFile.exists()) {
+            System.out.println("[videobug] agent already loaded -> " + lockFileName + ". Delete the lock file and " +
+                    "restart to start recording.");
+            return;
+        }
+        lockFile.createNewFile();
+        lockFile.deleteOnExit();
 
         final RuntimeWeaver runtimeWeaver = new RuntimeWeaver(agentArgs);
-        Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
-            @Override
-            public void run() {
-                System.out.println("[videobug] shutting down");
-                runtimeWeaver.close();
-                System.out.println("[videobug] shutdown complete");
-            }
-        }));
+        Runtime.getRuntime()
+                .addShutdownHook(new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+//                        System.out.println("[videobug] shutting down");
+                        runtimeWeaver.close();
+                        System.out.println("[videobug] shutdown complete");
+                    }
+                }));
 
         if (runtimeWeaver.isValid()) {
             inst.addTransformer(runtimeWeaver);
@@ -182,7 +207,9 @@ public class RuntimeWeaver implements ClassFileTransformer {
             for (String ex : includedNames) {
                 if (className.startsWith(ex) ||
                         "*".equals(ex) ||
-                        Pattern.compile(ex).matcher(className).matches()) {
+                        Pattern.compile(ex)
+                                .matcher(className)
+                                .matches()) {
                     return false;
                 }
             }
@@ -224,7 +251,8 @@ public class RuntimeWeaver implements ClassFileTransformer {
             CodeSource s = protectionDomain.getCodeSource();
             String l;
             if (s != null) {
-                l = s.getLocation().toExternalForm();
+                l = s.getLocation()
+                        .toExternalForm();
             } else {
                 l = "(Unknown Source)";
             }

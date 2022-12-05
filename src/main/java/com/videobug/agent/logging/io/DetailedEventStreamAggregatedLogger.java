@@ -119,7 +119,7 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
      * Close all file streams used by the object.
      */
     public void close() {
-        System.out.printf("[videobug] close event stream aggregated logger\n");
+//        System.out.printf("[videobug] close event stream aggregated logger\n");
         objectIdMap.close();
         try {
             aggregatedLogger.shutdown();

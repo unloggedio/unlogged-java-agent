@@ -175,6 +175,10 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                         || className.contains("java.lang.reflect")
                         || className.startsWith("org.redis")
                         || className.startsWith("java.lang.Class")
+                        || className.startsWith("org.glassfish")
+                        || className.startsWith("org.slf4j")
+                        || className.startsWith("java.io")
+                        || className.startsWith("java.util.concurrent")
                         || className.startsWith("com.amazon")
                 ) {
                     probesToRecord.remove(dataId);

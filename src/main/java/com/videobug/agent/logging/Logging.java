@@ -107,6 +107,14 @@ public class Logging {
         }
     }
 
+    public static void recordEvent(Short value, int dataId) {
+        if (value != null) {
+            INSTANCE.recordEvent(dataId, (short) value);
+        } else {
+            INSTANCE.recordEvent(dataId, value);
+        }
+    }
+
     public static void recordEvent(Byte value, int dataId) {
         if (value != null) {
             INSTANCE.recordEvent(dataId, (byte) value);

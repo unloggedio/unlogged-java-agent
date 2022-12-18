@@ -95,7 +95,7 @@ public class RawFileCollector implements Runnable {
             UploadFile logFile = fileList.poll(1, TimeUnit.SECONDS);
             if (logFile == null) {
                 if (fileCount > 0 || shutdown) {
-                    errorLogger.log("files from queue, currently [" + fileCount + "] files in list");
+                    errorLogger.log("files from queue, currently [" + fileCount + "] files in list : shutdown: " + shutdown );
                     finalizeArchiveAndUpload();
                     return;
                 }
@@ -120,8 +120,8 @@ public class RawFileCollector implements Runnable {
         } catch (InterruptedException e) {
             errorLogger.log("file upload cron interrupted, shutting down");
         } finally {
-            errorLogger.log("check can archive [" + archivedIndexWriter.getArchiveFile().getName() + "] can be closed: " +
-                    archivedIndexWriter.fileCount() + " >= " + filesPerArchive);
+            errorLogger.log("finally check can archive [" + archivedIndexWriter.getArchiveFile().getName() + "] can " +
+                    "be closed: " + archivedIndexWriter.fileCount() + " >= " + filesPerArchive);
             if (archivedIndexWriter.fileCount() >= filesPerArchive || shutdown) {
                 finalizeArchiveAndUpload();
             }

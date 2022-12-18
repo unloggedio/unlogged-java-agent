@@ -178,6 +178,7 @@ public class PerThreadBinaryFileAggregatedLogger implements
                     BloomFilterUtil.newBloomFilterForProbes(BloomFilterUtil.BLOOM_FILTER_BIT_SIZE));
 
             UploadFile newLogFile = new UploadFile(currentFile, currentThreadId, valueIdBloomFilter, probeIdBloomFilter);
+            errorLogger.log("new log file complete: " + newLogFile.getPath());
             fileList.offer(newLogFile);
 
 

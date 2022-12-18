@@ -59,7 +59,7 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
     private final Map<String, WeaveLog> classMap = new HashMap<>();
     private final Set<Integer> probesToRecord = new HashSet<>();
     private final Map<Integer, DataInfo> callProbes = new HashMap<>();
-    private final SerializationMode SERIALIZATION_MODE = SerializationMode.GSON;
+    private final SerializationMode SERIALIZATION_MODE = SerializationMode.JACKSON;
     private final ThreadLocal<ByteArrayOutputStream> output =
             ThreadLocal.withInitial(() -> new ByteArrayOutputStream(1_000_000));
     private final Set<String> classesToIgnore = new HashSet<>();
@@ -171,13 +171,17 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                         || className.startsWith("org.apache.http")
                         || className.startsWith("org.elasticsearch.client")
                         || className.startsWith("org.hibernate")
+                        || className.startsWith("ch.qos")
                         || className.startsWith("io.dropwizard")
                         || className.contains("java.lang.reflect")
                         || className.startsWith("org.redis")
+                        || className.startsWith("co.elastic")
                         || className.startsWith("java.lang.Class")
                         || className.startsWith("org.glassfish")
                         || className.startsWith("org.slf4j")
                         || className.startsWith("java.io")
+                        || className.startsWith("java.util.regex")
+                        || className.startsWith("java.util.Base64")
                         || className.startsWith("java.util.concurrent")
                         || className.startsWith("com.amazon")
                 ) {
@@ -240,7 +244,7 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 //                if (value != null) {
 //                    kryo.register(value.getClass());
 //                    String message = e.getMessage();
-//                System.err.println("ThrowSerialized [" + value + "]" +
+//                System.err.println("ThrowSerialized [" + value.getClass().getCanonicalName() + "]" +
 //                        " [" + dataId + "] error -> " + e.getMessage() + " -> " + e.getClass()
 //                        .getCanonicalName());
 //                    if (message.startsWith("Class is not registered")) {

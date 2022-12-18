@@ -30,6 +30,7 @@ public class RawFileCollector implements Runnable {
     private final LinkedList<TypeInfoDocument> EMPTY_TYPE_LIST = new LinkedList<>();
     public int filesPerArchive = 0;
     private boolean shutdown = false;
+    private boolean shutdownComplete = false;
     private boolean skipUploads;
     private ArchivedIndexWriter archivedIndexWriter;
     private int fileCount = 0;
@@ -50,6 +51,7 @@ public class RawFileCollector implements Runnable {
         objectsToIndex = new ArrayBlockingQueue<>(1024 * 1024);
         stringsToIndex = new ArrayBlockingQueue<>(1024 * 1024);
 //        prepareIndexItemBuffers();
+        errorLogger.log("Created raw file collector, files per archive: " + filesPerArchive);
         finalizeArchiveAndUpload();
 
     }
@@ -85,17 +87,22 @@ public class RawFileCollector implements Runnable {
         shutdown = true;
         errorLogger.log("shutting down raw file collector");
 //        EXECUTOR_SERVICE.submit(() -> drainItemsToIndex(archivedIndexWriter));
-        upload();
         EXECUTOR_SERVICE.shutdown();
+//        upload();
 //        EXECUTOR_SERVICE.awaitTermination(1000, TimeUnit.MILLISECONDS);
     }
 
     public void upload() throws IOException {
+        if (shutdownComplete) {
+            return;
+        }
+        boolean doneFinalize = false;
         try {
             UploadFile logFile = fileList.poll(1, TimeUnit.SECONDS);
             if (logFile == null) {
                 if (fileCount > 0 || shutdown) {
                     errorLogger.log("files from queue, currently [" + fileCount + "] files in list : shutdown: " + shutdown );
+                    doneFinalize = true;
                     finalizeArchiveAndUpload();
                     return;
                 }
@@ -123,7 +130,12 @@ public class RawFileCollector implements Runnable {
             errorLogger.log("finally check can archive [" + archivedIndexWriter.getArchiveFile().getName() + "] can " +
                     "be closed: " + archivedIndexWriter.fileCount() + " >= " + filesPerArchive);
             if (archivedIndexWriter.fileCount() >= filesPerArchive || shutdown) {
-                finalizeArchiveAndUpload();
+                if (!doneFinalize) {
+                    finalizeArchiveAndUpload();
+                }
+            }
+            if (shutdown) {
+                shutdownComplete = true;
             }
         }
     }

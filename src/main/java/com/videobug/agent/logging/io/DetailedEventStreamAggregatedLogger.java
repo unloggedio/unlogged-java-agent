@@ -2,7 +2,9 @@ package com.videobug.agent.logging.io;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Output;
+import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.google.gson.Gson;
 import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.DataInfo;
@@ -12,10 +14,12 @@ import com.videobug.agent.logging.util.AggregatedFileLogger;
 import com.videobug.agent.logging.util.ObjectIdAggregatedStream;
 import com.videobug.agent.logging.util.TypeIdAggregatedStreamMap;
 import com.videobug.agent.weaver.WeaveLog;
+import org.nustaq.serialization.*;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
@@ -41,6 +45,7 @@ import java.util.stream.Collectors;
 public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 
     public static final Duration MILLI_1 = Duration.of(1, ChronoUnit.MILLIS);
+    final FSTConfiguration fstObjectMapper;
     private final AggregatedFileLogger aggregatedLogger;
     private final TypeIdAggregatedStreamMap typeToId;
     private final ObjectIdAggregatedStream objectIdMap;
@@ -59,14 +64,13 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
     private final Map<String, WeaveLog> classMap = new HashMap<>();
     private final Set<Integer> probesToRecord = new HashSet<>();
     private final Map<Integer, DataInfo> callProbes = new HashMap<>();
-    private final SerializationMode SERIALIZATION_MODE = SerializationMode.JACKSON;
+    private final SerializationMode SERIALIZATION_MODE = SerializationMode.FST;
     private final ThreadLocal<ByteArrayOutputStream> output =
             ThreadLocal.withInitial(() -> new ByteArrayOutputStream(1_000_000));
     private final Set<String> classesToIgnore = new HashSet<>();
     Kryo kryo = new Kryo();
     Gson gson = new Gson();
-    ObjectMapper objectMapper = new ObjectMapper();
-    private String className;
+    final ObjectMapper objectMapper;
 
     /**
      * Create an instance of logging object.
@@ -105,10 +109,38 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
         kryo.register(LinkedHashMap.class);
         kryo.register(LinkedHashSet.class);
 
+        JsonMapper.Builder jacksonBuilder = JsonMapper.builder();
         DateFormat df = new SimpleDateFormat("MMM d, yyyy HH:mm:ss aaa");
-        objectMapper.setDateFormat(df);
+        jacksonBuilder.defaultDateFormat(df);
+        jacksonBuilder.configure(MapperFeature.USE_ANNOTATIONS, false);
+//        objectMapper.setDateFormat(df);
+//        objectMapper.configure(MapperFeature.USE_ANNOTATIONS, false);
+        objectMapper = jacksonBuilder.build();
 
-        className = "";
+        FSTConfiguration defaultConfigMapper = FSTConfiguration.createDefaultConfiguration();
+        defaultConfigMapper.setForceSerializable(true);
+        defaultConfigMapper.registerSerializer(Timestamp.class, new FSTBasicObjectSerializer() {
+            @Override
+            public void writeObject(FSTObjectOutput out, Object toWrite, FSTClazzInfo clzInfo,
+                                    FSTClazzInfo.FSTFieldInfo referencedBy, int streamPosition) throws IOException {
+                out.writeLong(((Timestamp) toWrite).getTime());
+            }
+
+            @Override
+            public boolean alwaysCopy() {
+                return true;
+            }
+
+            @Override
+            public Object instantiate(Class objectClass, FSTObjectInput in, FSTClazzInfo serializationInfo,
+                                      FSTClazzInfo.FSTFieldInfo referencee, int streamPosition) throws Exception {
+                return new Timestamp(in.readLong());
+            }
+        }, true);
+
+        fstObjectMapper = defaultConfigMapper;
+
+
     }
 
     public ObjectIdAggregatedStream getObjectIdMap() {
@@ -156,9 +188,11 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
             // write data into OutputStream
             byte[] bytes = new byte[0];
             try {
+                String className;
                 if (value != null) {
                     className = value.getClass()
                             .getCanonicalName();
+//                    System.err.println("To serialize class: " + className);
                 } else {
                     className = "";
                 }
@@ -184,6 +218,7 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                         || className.startsWith("java.util.Base64")
                         || className.startsWith("java.util.concurrent")
                         || className.startsWith("com.amazon")
+                        || className.endsWith("[]")
                 ) {
                     probesToRecord.remove(dataId);
                 } else if (SERIALIZATION_MODE == SerializationMode.GSON) {
@@ -203,6 +238,20 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 //                    System.err.println(
 //                            "[" + dataId + "] record serialized value for probe [" + value.getClass() + "] [" + objectId + "] ->" +
 //                                    " " + outputStream.toString());
+                    // ######################################
+                } else if (SERIALIZATION_MODE == SerializationMode.FST) {
+                    // # using gson
+//                    objectMapper.writeValue(outputStream, value);
+//                    outputStream.flush();
+//                    bytes = outputStream.toByteArray();
+                    bytes = fstObjectMapper.asByteArray(value);
+                    if (bytes.length > 10000) {
+                        probesToRecord.remove(dataId);
+                        bytes = new byte[0];
+                    }
+//                    System.err.println(
+//                            "[" + dataId + "] record serialized value for probe [" + value.getClass() + "] [" + objectId + "] ->" +
+//                                    " " + bytes.length + " : " + Base64.getEncoder().encodeToString(bytes));
                     // ######################################
                 } else if (SERIALIZATION_MODE == SerializationMode.OOS) {
                     // ################# USING OOS #####################
@@ -244,9 +293,11 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 //                if (value != null) {
 //                    kryo.register(value.getClass());
 //                    String message = e.getMessage();
-//                System.err.println("ThrowSerialized [" + value.getClass().getCanonicalName() + "]" +
-//                        " [" + dataId + "] error -> " + e.getMessage() + " -> " + e.getClass()
-//                        .getCanonicalName());
+//                    System.err.println("ThrowSerialized [" + value.getClass()
+//                            .getCanonicalName() + "]" +
+//                            " [" + dataId + "] error -> " + e.getMessage() + " -> " + e.getClass()
+//                            .getCanonicalName());
+//                    e.printStackTrace();
 //                    if (message.startsWith("Class is not registered")) {
 //                        String className = message.split(":")[1];
 //                        try {

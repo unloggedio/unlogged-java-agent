@@ -2,9 +2,14 @@ package com.videobug.agent.logging.io;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Output;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
+import com.fasterxml.jackson.databind.introspect.AnnotationIntrospectorPair;
+import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
+//import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module;
 import com.google.gson.Gson;
 import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.DataInfo;
@@ -45,7 +50,7 @@ import java.util.stream.Collectors;
 public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 
     public static final Duration MILLI_1 = Duration.of(1, ChronoUnit.MILLIS);
-    final FSTConfiguration fstObjectMapper;
+    private final FSTConfiguration fstObjectMapper;
     private final AggregatedFileLogger aggregatedLogger;
     private final TypeIdAggregatedStreamMap typeToId;
     private final ObjectIdAggregatedStream objectIdMap;
@@ -64,13 +69,13 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
     private final Map<String, WeaveLog> classMap = new HashMap<>();
     private final Set<Integer> probesToRecord = new HashSet<>();
     private final Map<Integer, DataInfo> callProbes = new HashMap<>();
-    private final SerializationMode SERIALIZATION_MODE = SerializationMode.FST;
+    private final SerializationMode SERIALIZATION_MODE = SerializationMode.JACKSON;
     private final ThreadLocal<ByteArrayOutputStream> output =
             ThreadLocal.withInitial(() -> new ByteArrayOutputStream(1_000_000));
-    private final Set<String> classesToIgnore = new HashSet<>();
-    Kryo kryo = new Kryo();
-    Gson gson = new Gson();
-    final ObjectMapper objectMapper;
+    //    private final Set<String> classesToIgnore = new HashSet<>();
+    private final Kryo kryo;
+    private final Gson gson;
+    private final ObjectMapper objectMapper;
 
     /**
      * Create an instance of logging object.
@@ -98,47 +103,95 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 //                || className.contains("com.amazon")
 //
 
-        classesToIgnore.add("java.lang.reflect");
-        classesToIgnore.add("com.google");
-        classesToIgnore.add("org.apache.http");
-        classesToIgnore.add("org.elasticsearch.client");
-        classesToIgnore.add("org.hibernate");
-        classesToIgnore.add("com.amazon");
+//        classesToIgnore.add("java.lang.reflect");
+//        classesToIgnore.add("com.google");
+//        classesToIgnore.add("org.apache.http");
+//        classesToIgnore.add("org.elasticsearch.client");
+//        classesToIgnore.add("org.hibernate");
+//        classesToIgnore.add("com.amazon");
 
-        kryo.register(byte[].class);
-        kryo.register(LinkedHashMap.class);
-        kryo.register(LinkedHashSet.class);
+        if (SERIALIZATION_MODE == SerializationMode.KRYO) {
+            kryo = new Kryo();
+            kryo.register(byte[].class);
+            kryo.register(LinkedHashMap.class);
+            kryo.register(LinkedHashSet.class);
+            gson = null;
+            objectMapper = null;
+            fstObjectMapper = null;
+        } else if (SERIALIZATION_MODE == SerializationMode.GSON) {
+            gson = new Gson();
+            kryo = null;
+            objectMapper = null;
+            fstObjectMapper = null;
+//        } else if (SERIALIZATION_MODE == SerializationMode.JACKSON) {
+//            JsonMapper.Builder jacksonBuilder = JsonMapper.builder();
+//            jacksonBuilder.annotationIntrospector(new JacksonAnnotationIntrospector(){
+//                @Override
+//                public boolean hasIgnoreMarker(AnnotatedMember m) {
+//                    return false;
+//                }
+//            });
+//            DateFormat df = new SimpleDateFormat("MMM d, yyyy HH:mm:ss aaa");
+//            jacksonBuilder.defaultDateFormat(df);
+////            jacksonBuilder.configure(MapperFeature.USE_ANNOTATIONS, false);
+//            Hibernate5Module module = new Hibernate5Module();
+//            module.configure(Hibernate5Module.Feature.FORCE_LAZY_LOADING, true);
+//            module.configure(Hibernate5Module.Feature.REPLACE_PERSISTENT_COLLECTIONS, true);
+//            jacksonBuilder.addModule(module);
+//            objectMapper = jacksonBuilder.build();
+//            kryo = null;
+//            gson = null;
+//            fstObjectMapper = null;
+        }  else if (SERIALIZATION_MODE == SerializationMode.JACKSON) {
+            objectMapper = new ObjectMapper();
+            objectMapper.setAnnotationIntrospector(new JacksonAnnotationIntrospector(){
+                @Override
+                public boolean hasIgnoreMarker(AnnotatedMember m) {
+                    return false;
+                }
+            });
+            DateFormat df = new SimpleDateFormat("MMM d, yyyy HH:mm:ss aaa");
+            objectMapper.setDateFormat(df);
+            Hibernate5Module module = new Hibernate5Module();
+            module.configure(Hibernate5Module.Feature.FORCE_LAZY_LOADING, true);
+            module.configure(Hibernate5Module.Feature.REPLACE_PERSISTENT_COLLECTIONS, true);
+            objectMapper.registerModule(module);
+            kryo = null;
+            gson = null;
+            fstObjectMapper = null;
+        } else if (SERIALIZATION_MODE == SerializationMode.FST) {
 
-        JsonMapper.Builder jacksonBuilder = JsonMapper.builder();
-        DateFormat df = new SimpleDateFormat("MMM d, yyyy HH:mm:ss aaa");
-        jacksonBuilder.defaultDateFormat(df);
-        jacksonBuilder.configure(MapperFeature.USE_ANNOTATIONS, false);
-//        objectMapper.setDateFormat(df);
-//        objectMapper.configure(MapperFeature.USE_ANNOTATIONS, false);
-        objectMapper = jacksonBuilder.build();
+            FSTConfiguration defaultConfigMapper = FSTConfiguration.createDefaultConfiguration();
+            defaultConfigMapper.setForceSerializable(true);
+            defaultConfigMapper.registerSerializer(Timestamp.class, new FSTBasicObjectSerializer() {
+                @Override
+                public void writeObject(FSTObjectOutput out, Object toWrite, FSTClazzInfo clzInfo,
+                                        FSTClazzInfo.FSTFieldInfo referencedBy, int streamPosition) throws IOException {
+                    out.writeLong(((Timestamp) toWrite).getTime());
+                }
 
-        FSTConfiguration defaultConfigMapper = FSTConfiguration.createDefaultConfiguration();
-        defaultConfigMapper.setForceSerializable(true);
-        defaultConfigMapper.registerSerializer(Timestamp.class, new FSTBasicObjectSerializer() {
-            @Override
-            public void writeObject(FSTObjectOutput out, Object toWrite, FSTClazzInfo clzInfo,
-                                    FSTClazzInfo.FSTFieldInfo referencedBy, int streamPosition) throws IOException {
-                out.writeLong(((Timestamp) toWrite).getTime());
-            }
+                @Override
+                public boolean alwaysCopy() {
+                    return true;
+                }
 
-            @Override
-            public boolean alwaysCopy() {
-                return true;
-            }
+                @Override
+                public Object instantiate(Class objectClass, FSTObjectInput in, FSTClazzInfo serializationInfo,
+                                          FSTClazzInfo.FSTFieldInfo referencee, int streamPosition) throws Exception {
+                    return new Timestamp(in.readLong());
+                }
+            }, true);
 
-            @Override
-            public Object instantiate(Class objectClass, FSTObjectInput in, FSTClazzInfo serializationInfo,
-                                      FSTClazzInfo.FSTFieldInfo referencee, int streamPosition) throws Exception {
-                return new Timestamp(in.readLong());
-            }
-        }, true);
-
-        fstObjectMapper = defaultConfigMapper;
+            fstObjectMapper = defaultConfigMapper;
+            kryo = null;
+            gson = null;
+            objectMapper = null;
+        } else {
+            fstObjectMapper = null;
+            kryo = null;
+            gson = null;
+            objectMapper = null;
+        }
 
 
     }

@@ -147,19 +147,22 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
             kryo = null;
             gson = null;
             fstObjectMapper = null;
-//        }  else if (SERIALIZATION_MODE == SerializationMode.JACKSON) {
+//        } else if (SERIALIZATION_MODE == SerializationMode.JACKSON) {
 //            objectMapper = new ObjectMapper();
-//            objectMapper.setAnnotationIntrospector(new JacksonAnnotationIntrospector(){
+//            objectMapper.setAnnotationIntrospector(new JacksonAnnotationIntrospector() {
 //                @Override
 //                public boolean hasIgnoreMarker(AnnotatedMember m) {
-//                    if (m.getMember() instanceof Method) {
-//                        return true;
-//                    }
+////                    if (m.getMember() instanceof Method) {
+////                        return true;
+////                    }
 //                    return false;
 //                }
 //            });
 //            DateFormat df = new SimpleDateFormat("MMM d, yyyy HH:mm:ss aaa");
 //            objectMapper.setDateFormat(df);
+//            objectMapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
+//            objectMapper.configure(SerializationFeature.FAIL_ON_SELF_REFERENCES, false);
+//
 //            Hibernate5Module module = new Hibernate5Module();
 //            module.configure(Hibernate5Module.Feature.FORCE_LAZY_LOADING, true);
 //            module.configure(Hibernate5Module.Feature.REPLACE_PERSISTENT_COLLECTIONS, true);

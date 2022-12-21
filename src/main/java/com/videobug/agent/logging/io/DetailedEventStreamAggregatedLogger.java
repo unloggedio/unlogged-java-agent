@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
 import com.fasterxml.jackson.databind.introspect.AnnotationIntrospectorPair;
 import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
 //import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module;
 import com.google.gson.Gson;
 import com.insidious.common.weaver.ClassInfo;
@@ -24,6 +25,7 @@ import org.nustaq.serialization.*;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -123,42 +125,49 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
             kryo = null;
             objectMapper = null;
             fstObjectMapper = null;
-//        } else if (SERIALIZATION_MODE == SerializationMode.JACKSON) {
-//            JsonMapper.Builder jacksonBuilder = JsonMapper.builder();
-//            jacksonBuilder.annotationIntrospector(new JacksonAnnotationIntrospector(){
-//                @Override
-//                public boolean hasIgnoreMarker(AnnotatedMember m) {
-//                    return false;
-//                }
-//            });
-//            DateFormat df = new SimpleDateFormat("MMM d, yyyy HH:mm:ss aaa");
-//            jacksonBuilder.defaultDateFormat(df);
-////            jacksonBuilder.configure(MapperFeature.USE_ANNOTATIONS, false);
-//            Hibernate5Module module = new Hibernate5Module();
-//            module.configure(Hibernate5Module.Feature.FORCE_LAZY_LOADING, true);
-//            module.configure(Hibernate5Module.Feature.REPLACE_PERSISTENT_COLLECTIONS, true);
-//            jacksonBuilder.addModule(module);
-//            objectMapper = jacksonBuilder.build();
-//            kryo = null;
-//            gson = null;
-//            fstObjectMapper = null;
-        }  else if (SERIALIZATION_MODE == SerializationMode.JACKSON) {
-            objectMapper = new ObjectMapper();
-            objectMapper.setAnnotationIntrospector(new JacksonAnnotationIntrospector(){
+        } else if (SERIALIZATION_MODE == SerializationMode.JACKSON) {
+            JsonMapper.Builder jacksonBuilder = JsonMapper.builder();
+            jacksonBuilder.annotationIntrospector(new JacksonAnnotationIntrospector(){
                 @Override
                 public boolean hasIgnoreMarker(AnnotatedMember m) {
+//                    if (m.getMember() instanceof Method) {
+//                        return true;
+//                    }
                     return false;
                 }
             });
             DateFormat df = new SimpleDateFormat("MMM d, yyyy HH:mm:ss aaa");
-            objectMapper.setDateFormat(df);
+            jacksonBuilder.defaultDateFormat(df);
+//            jacksonBuilder.configure(MapperFeature.USE_ANNOTATIONS, false);
             Hibernate5Module module = new Hibernate5Module();
             module.configure(Hibernate5Module.Feature.FORCE_LAZY_LOADING, true);
             module.configure(Hibernate5Module.Feature.REPLACE_PERSISTENT_COLLECTIONS, true);
-            objectMapper.registerModule(module);
+            jacksonBuilder.addModule(module);
+//            objectMapper = jacksonBuilder.build();
+            objectMapper = new ObjectMapper();
             kryo = null;
             gson = null;
             fstObjectMapper = null;
+//        }  else if (SERIALIZATION_MODE == SerializationMode.JACKSON) {
+//            objectMapper = new ObjectMapper();
+//            objectMapper.setAnnotationIntrospector(new JacksonAnnotationIntrospector(){
+//                @Override
+//                public boolean hasIgnoreMarker(AnnotatedMember m) {
+//                    if (m.getMember() instanceof Method) {
+//                        return true;
+//                    }
+//                    return false;
+//                }
+//            });
+//            DateFormat df = new SimpleDateFormat("MMM d, yyyy HH:mm:ss aaa");
+//            objectMapper.setDateFormat(df);
+//            Hibernate5Module module = new Hibernate5Module();
+//            module.configure(Hibernate5Module.Feature.FORCE_LAZY_LOADING, true);
+//            module.configure(Hibernate5Module.Feature.REPLACE_PERSISTENT_COLLECTIONS, true);
+//            objectMapper.registerModule(module);
+//            kryo = null;
+//            gson = null;
+//            fstObjectMapper = null;
         } else if (SERIALIZATION_MODE == SerializationMode.FST) {
 
             FSTConfiguration defaultConfigMapper = FSTConfiguration.createDefaultConfiguration();
@@ -346,11 +355,11 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 //                if (value != null) {
 //                    kryo.register(value.getClass());
 //                    String message = e.getMessage();
-//                    System.err.println("ThrowSerialized [" + value.getClass()
-//                            .getCanonicalName() + "]" +
-//                            " [" + dataId + "] error -> " + e.getMessage() + " -> " + e.getClass()
-//                            .getCanonicalName());
-//                    e.printStackTrace();
+                    System.err.println("ThrowSerialized [" + value.getClass()
+                            .getCanonicalName() + "]" +
+                            " [" + dataId + "] error -> " + e.getMessage() + " -> " + e.getClass()
+                            .getCanonicalName());
+                    e.printStackTrace();
 //                    if (message.startsWith("Class is not registered")) {
 //                        String className = message.split(":")[1];
 //                        try {

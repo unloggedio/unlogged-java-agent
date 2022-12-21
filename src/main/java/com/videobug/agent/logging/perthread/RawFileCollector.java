@@ -10,6 +10,7 @@ import com.videobug.agent.logging.util.NetworkClient;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.*;
@@ -143,7 +144,7 @@ public class RawFileCollector implements Runnable {
     public void drainItemsToIndex(IndexOutputStream writer) {
 
         List<ObjectInfoDocument> objectInfoDocuments = EMPTY_LIST;
-        List<StringInfoDocument> stringInfoDocuments = new LinkedList<>();
+        List<StringInfoDocument> stringInfoDocuments = new ArrayList<>();
 
 
 //        System.err.println("Before drain got " + objectsToIndex.size() + " new object info");

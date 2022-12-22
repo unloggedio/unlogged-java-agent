@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>video.bug</groupId>
     <artifactId>java-agent</artifactId>
-    <version>1.8.18-SNAPSHOT</version>
+    <version>1.8.19-SNAPSHOT</version>
     <distributionManagement>
         <snapshotRepository>
             <id>ossrh</id>

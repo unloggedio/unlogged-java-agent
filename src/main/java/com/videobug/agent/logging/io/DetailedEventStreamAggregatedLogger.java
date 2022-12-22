@@ -283,7 +283,9 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                         || className.startsWith("java.util.concurrent")
                         || className.startsWith("com.amazon")
                         || className.endsWith("[]")
+                        || value instanceof Iterator
                 ) {
+//                    System.err.println("Removing probe: " + dataId);
                     probesToRecord.remove(dataId);
                 } else if (SERIALIZATION_MODE == SerializationMode.GSON) {
                     // # using gson
@@ -571,6 +573,14 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                                     e.getEventType() == EventType.METHOD_NORMAL_EXIT ||
                                     e.getEventType() == EventType.CALL_RETURN
                     )
+                    .filter(e -> {
+                        String type = e.getAttribute("Type", null);
+//                        System.err.println("Record probe: [" + e + "]" + type);
+                        if ("Ljava/util/Iterator;".equals(type)) {
+                            return false;
+                        }
+                        return true;
+                    })
                     .map(DataInfo::getDataId)
                     .collect(Collectors.toList());
 

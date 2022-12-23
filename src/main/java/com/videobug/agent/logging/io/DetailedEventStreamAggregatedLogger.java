@@ -256,7 +256,6 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                 if (value != null) {
                     className = value.getClass()
                             .getCanonicalName();
-//                    System.err.println("To serialize class: " + className);
                 } else {
                     className = "";
                 }
@@ -264,26 +263,30 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                 // ############### USING GSON #######################
 //                System.out.println("[" + dataId + "] Serialize class: " + value.getClass()
 //                        .getName());
-                if (className.startsWith("java.lang.reflect")
-                        || className.startsWith("com.google")
-                        || className.startsWith("org.apache.http")
-                        || className.startsWith("org.elasticsearch.client")
-                        || className.startsWith("org.hibernate")
-                        || className.startsWith("ch.qos")
-                        || className.startsWith("io.dropwizard")
-                        || className.contains("java.lang.reflect")
-                        || className.startsWith("org.redis")
-                        || className.startsWith("co.elastic")
-                        || className.startsWith("java.lang.Class")
-                        || className.startsWith("org.glassfish")
-                        || className.startsWith("org.slf4j")
-                        || className.startsWith("java.io")
-                        || className.startsWith("java.util.regex")
-                        || className.startsWith("java.util.Base64")
-                        || className.startsWith("java.util.concurrent")
-                        || className.startsWith("com.amazon")
-                        || className.endsWith("[]")
-                        || value instanceof Iterator
+                if (
+                        className.startsWith("com.google")
+                                || className.startsWith("org.apache.http")
+                                || className.startsWith("org.elasticsearch.client")
+                                || className.startsWith("org.hibernate")
+                                || className.startsWith("ch.qos")
+                                || className.startsWith("io.dropwizard")
+                                || className.contains("java.lang.reflect")
+                                || className.startsWith("org.redis")
+                                || className.startsWith("co.elastic")
+                                || className.startsWith("java.lang.Class")
+                                || className.startsWith("org.glassfish")
+                                || className.startsWith("com.fasterxml")
+                                || className.startsWith("org.slf4j")
+                                || className.startsWith("org.springframework")
+                                || className.startsWith("java.io")
+                                || className.startsWith("$Lambda$")
+                                || className.startsWith("$$EnhancerBySpringCGLIB$$")
+                                || className.startsWith("java.util.regex")
+                                || className.startsWith("java.util.Base64")
+                                || className.startsWith("java.util.concurrent")
+                                || className.startsWith("com.amazon")
+                                || className.endsWith("[]")
+                                || value instanceof Iterator
                 ) {
 //                    System.err.println("Removing probe: " + dataId);
                     probesToRecord.remove(dataId);
@@ -296,6 +299,7 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 //                                    " " + jsonValue);
                     // ######################################
                 } else if (SERIALIZATION_MODE == SerializationMode.JACKSON) {
+                    System.err.println("To serialize class: " + className);
                     // # using gson
 //                    objectMapper.writeValue(outputStream, value);
 //                    outputStream.flush();

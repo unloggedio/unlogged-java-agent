@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
 import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
+//import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module;
 import com.google.gson.Gson;
@@ -299,7 +300,7 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 //                                    " " + jsonValue);
                     // ######################################
                 } else if (SERIALIZATION_MODE == SerializationMode.JACKSON) {
-                    System.err.println("To serialize class: " + className);
+//                    System.err.println("To serialize class: " + className);
                     // # using gson
 //                    objectMapper.writeValue(outputStream, value);
 //                    outputStream.flush();

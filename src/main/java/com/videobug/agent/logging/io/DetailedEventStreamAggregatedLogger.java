@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
 import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
-//import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module;
 import com.google.gson.Gson;
@@ -339,22 +338,9 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                     Output output = outputContainer.get();
                     ByteArrayOutputStream buffer = (ByteArrayOutputStream) output.getOutputStream();
                     output.reset();
-//                    if (value.getClass().getCanonicalName().contains("Mono")) {
-//                        System.out.println("BGlocking for " + value);
-//
-//                        try {
-//                            Object block = ((Mono) value).block(MILLI_1);
-//                            System.out.println("BGlocking unlocked for " + block);
-//                            kryo.writeObject(output, block);
-//                        } catch (Exception e) {
-//                            System.out.println("BGlocking unlocked failed " + e.getMessage());
-//                        }
-//
-//                    } else {
                     kryo.writeObject(output, value);
-//                    }
                     output.flush();
-//                    bytes = buffer.toByteArray();
+                    bytes = output.toBytes();
                     // ######################################
                 }
 

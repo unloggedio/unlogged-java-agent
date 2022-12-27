@@ -231,6 +231,12 @@
                     <version>2.13.1</version>
                     <scope>provided</scope>
                 </dependency>
+                <dependency>
+                    <groupId>com.fasterxml.jackson.datatype</groupId>
+                    <artifactId>jackson-datatype-joda</artifactId>
+                    <version>2.13.1</version>
+                    <scope>provided</scope>
+                </dependency>
             </dependencies>
             <build>
                 <finalName>videobug-java-agent-jackson-2.13.1</finalName>

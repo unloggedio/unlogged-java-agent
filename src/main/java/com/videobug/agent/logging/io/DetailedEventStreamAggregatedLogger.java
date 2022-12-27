@@ -6,8 +6,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
 import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
-import com.fasterxml.jackson.databind.json.JsonMapper;
+//import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module;
+import com.fasterxml.jackson.datatype.joda.JodaModule;
 import com.google.gson.Gson;
 import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.DataInfo;
@@ -121,37 +122,13 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
             kryo = null;
             objectMapper = null;
             fstObjectMapper = null;
-        } else if (SERIALIZATION_MODE == SerializationMode.JACKSON) {
-            JsonMapper.Builder jacksonBuilder = JsonMapper.builder();
-            jacksonBuilder.annotationIntrospector(new JacksonAnnotationIntrospector() {
-                @Override
-                public boolean hasIgnoreMarker(AnnotatedMember m) {
-//                    System.err.println("[" + m.getMember()
-//                            .getClass() + "]" + "Check hasIngore marker: " + m.getMember());
-//                    if (m.getMember() instanceof Method) {
-//                        return true;
-//                    }
-                    return false;
-                }
-            });
-            DateFormat df = new SimpleDateFormat("MMM d, yyyy HH:mm:ss aaa");
-            jacksonBuilder.defaultDateFormat(df);
-            jacksonBuilder.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
-            jacksonBuilder.configure(SerializationFeature.FAIL_ON_SELF_REFERENCES, false);
-            jacksonBuilder.configure(SerializationFeature.WRITE_SELF_REFERENCES_AS_NULL, true);
-            Hibernate5Module module = new Hibernate5Module();
-            module.configure(Hibernate5Module.Feature.FORCE_LAZY_LOADING, true);
-            module.configure(Hibernate5Module.Feature.REPLACE_PERSISTENT_COLLECTIONS, true);
-            jacksonBuilder.addModule(module);
-            objectMapper = jacksonBuilder.build();
-            kryo = null;
-            gson = null;
-            fstObjectMapper = null;
 //        } else if (SERIALIZATION_MODE == SerializationMode.JACKSON) {
-//            objectMapper = new ObjectMapper();
-//            objectMapper.setAnnotationIntrospector(new JacksonAnnotationIntrospector() {
+//            JsonMapper.Builder jacksonBuilder = JsonMapper.builder();
+//            jacksonBuilder.annotationIntrospector(new JacksonAnnotationIntrospector() {
 //                @Override
 //                public boolean hasIgnoreMarker(AnnotatedMember m) {
+////                    System.err.println("[" + m.getMember()
+////                            .getClass() + "]" + "Check hasIngore marker: " + m.getMember());
 ////                    if (m.getMember() instanceof Method) {
 ////                        return true;
 ////                    }
@@ -159,17 +136,44 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 //                }
 //            });
 //            DateFormat df = new SimpleDateFormat("MMM d, yyyy HH:mm:ss aaa");
-//            objectMapper.setDateFormat(df);
-//            objectMapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
-//            objectMapper.configure(SerializationFeature.FAIL_ON_SELF_REFERENCES, false);
-//
+//            jacksonBuilder.defaultDateFormat(df);
+//            jacksonBuilder.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
+//            jacksonBuilder.configure(SerializationFeature.FAIL_ON_SELF_REFERENCES, false);
+//            jacksonBuilder.configure(SerializationFeature.WRITE_SELF_REFERENCES_AS_NULL, true);
 //            Hibernate5Module module = new Hibernate5Module();
 //            module.configure(Hibernate5Module.Feature.FORCE_LAZY_LOADING, true);
 //            module.configure(Hibernate5Module.Feature.REPLACE_PERSISTENT_COLLECTIONS, true);
-//            objectMapper.registerModule(module);
+//            jacksonBuilder.addModule(module);
+//            objectMapper = jacksonBuilder.build();
 //            kryo = null;
 //            gson = null;
 //            fstObjectMapper = null;
+        } else if (SERIALIZATION_MODE == SerializationMode.JACKSON) {
+            objectMapper = new ObjectMapper();
+            objectMapper.setAnnotationIntrospector(new JacksonAnnotationIntrospector() {
+                @Override
+                public boolean hasIgnoreMarker(AnnotatedMember m) {
+//                    if (m.getMember() instanceof Method) {
+//                        return true;
+//                    }
+                    return false;
+                }
+            });
+            DateFormat df = new SimpleDateFormat("MMM d, yyyy HH:mm:ss aaa");
+            objectMapper.setDateFormat(df);
+            objectMapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
+            objectMapper.configure(SerializationFeature.FAIL_ON_SELF_REFERENCES, false);
+
+            Hibernate5Module module = new Hibernate5Module();
+            module.configure(Hibernate5Module.Feature.FORCE_LAZY_LOADING, true);
+            module.configure(Hibernate5Module.Feature.REPLACE_PERSISTENT_COLLECTIONS, true);
+            objectMapper.registerModule(module);
+
+            objectMapper.registerModule(new JodaModule());
+
+            kryo = null;
+            gson = null;
+            fstObjectMapper = null;
         } else if (SERIALIZATION_MODE == SerializationMode.FST) {
 
             FSTConfiguration defaultConfigMapper = FSTConfiguration.createDefaultConfiguration();

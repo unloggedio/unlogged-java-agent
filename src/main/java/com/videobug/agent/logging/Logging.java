@@ -147,7 +147,7 @@ public class Logging {
         }    }
 
     public static void recordEvent(Boolean value, int dataId) {
-        if (value == null) {
+        if (value == null || !value) {
             INSTANCE.recordEvent(dataId, 0);
         } else {
             INSTANCE.recordEvent(dataId, 1);

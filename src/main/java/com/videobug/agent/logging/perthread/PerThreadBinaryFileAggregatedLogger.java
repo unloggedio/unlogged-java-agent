@@ -31,7 +31,7 @@ public class PerThreadBinaryFileAggregatedLogger implements
     /**
      * The number of events stored in a single file.
      */
-    public static final int MAX_EVENTS_PER_FILE = 10000 * 50 * 10;
+    public static final int MAX_EVENTS_PER_FILE = 100 * 1000;
     public static final int WRITE_BYTE_BUFFER_SIZE = 1024 * 1024 * 16;
     /**
      * This object records the number of threads observed by SELogger.
@@ -221,7 +221,7 @@ public class PerThreadBinaryFileAggregatedLogger implements
             return;
         }
 
-        int currentThreadId = threadId.get();
+//        int currentThreadId = threadId.get();
 
 //        OutputStream out = getStreamForThread(currentThreadId);
 
@@ -377,6 +377,10 @@ public class PerThreadBinaryFileAggregatedLogger implements
             fileCollector.addValueId(valueId);
             probeIdFilterSet.get(currentThreadId).add(probeId);
             fileCollector.addProbeId(probeId);
+            if (getThreadEventCount(currentThreadId).get() >= MAX_EVENTS_PER_FILE) {
+                prepareNextFile(currentThreadId);
+            }
+
 
 
         } catch (Exception e) {
@@ -444,6 +448,9 @@ public class PerThreadBinaryFileAggregatedLogger implements
             fileCollector.addValueId(valueId);
             probeIdFilterSet.get(currentThreadId).add(probeId);
             fileCollector.addProbeId(probeId);
+            if (getThreadEventCount(currentThreadId).get() >= MAX_EVENTS_PER_FILE) {
+                prepareNextFile(currentThreadId);
+            }
 
 
         } catch (IOException e) {

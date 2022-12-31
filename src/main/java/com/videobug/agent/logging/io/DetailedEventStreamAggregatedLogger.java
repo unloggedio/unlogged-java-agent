@@ -6,9 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
 import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
-//import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module;
-import com.fasterxml.jackson.datatype.joda.JodaModule;
 import com.google.gson.Gson;
 import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.DataInfo;
@@ -56,6 +54,7 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
     private final String includedPackage;
     private final ThreadLocal<ByteArrayOutputStream> threadOutputBuffer =
             ThreadLocal.withInitial(ByteArrayOutputStream::new);
+    private final ThreadLocal<Boolean> isRecording = ThreadLocal.withInitial(() -> false);
     final private boolean serializeValues = true;
     private final ThreadLocal<Output> outputContainer = ThreadLocal.withInitial(
             new Supplier<Output>() {
@@ -144,11 +143,13 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 //            module.configure(Hibernate5Module.Feature.FORCE_LAZY_LOADING, true);
 //            module.configure(Hibernate5Module.Feature.REPLACE_PERSISTENT_COLLECTIONS, true);
 //            jacksonBuilder.addModule(module);
+//            jacksonBuilder.addModule(new JodaModule());
 //            objectMapper = jacksonBuilder.build();
 //            kryo = null;
 //            gson = null;
 //            fstObjectMapper = null;
         } else if (SERIALIZATION_MODE == SerializationMode.JACKSON) {
+            // 2.9.7
             objectMapper = new ObjectMapper();
             objectMapper.setAnnotationIntrospector(new JacksonAnnotationIntrospector() {
                 @Override
@@ -168,9 +169,6 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
             module.configure(Hibernate5Module.Feature.FORCE_LAZY_LOADING, true);
             module.configure(Hibernate5Module.Feature.REPLACE_PERSISTENT_COLLECTIONS, true);
             objectMapper.registerModule(module);
-
-            objectMapper.registerModule(new JodaModule());
-
             kryo = null;
             gson = null;
             fstObjectMapper = null;
@@ -233,6 +231,10 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
      * The object is translated into an object ID.
      */
     public void recordEvent(int dataId, Object value) {
+        if (isRecording.get()) {
+            return;
+        }
+
 //        if (callProbes.containsKey(dataId)) {
 //        System.err.println("Record event: [" + dataId + "] " + callProbes.get(dataId)
 //                .getEventType());
@@ -256,6 +258,8 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
             // write data into OutputStream
             byte[] bytes = new byte[0];
             try {
+                isRecording.set(true);
+
                 String className;
                 if (value != null) {
                     className = value.getClass()
@@ -371,114 +375,27 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 //                e.printStackTrace();
 //                }
                 // ignore if we cannot record the variable information
+            } finally {
+                isRecording.set(false);
             }
             aggregatedLogger.writeEvent(dataId, objectId, bytes);
-            outputStream.reset();
+//            outputStream.reset();
         } else {
 //            System.err.println("No serialization for: " + dataId);
             aggregatedLogger.writeEvent(dataId, objectId);
         }
 
     }
-//
-//    /**
-//     * Record an event and an object.
-//     * The object is translated into an object ID.
-//     */
-//    public void recordEvent(int dataId, Integer value) {
-//        if (value == null) {
-//            aggregatedLogger.writeEvent(dataId, 0);
-//        } else {
-//            aggregatedLogger.writeEvent(dataId, value.longValue());
-//        }
-//    }
-//
-//    /**
-//     * Record an event and an object.
-//     * The object is translated into an object ID.
-//     */
-//    public void recordEvent(int dataId, Long value) {
-//        if (value == null) {
-//            aggregatedLogger.writeEvent(dataId, 0);
-//        } else {
-//            aggregatedLogger.writeEvent(dataId, value.longValue());
-//        }
-//
-//    }
-//
-//    /**
-//     * Record an event and an object.
-//     * The object is translated into an object ID.
-//     */
-//    public void recordEvent(int dataId, Short value) {
-//        if (value == null) {
-//            aggregatedLogger.writeEvent(dataId, 0);
-//        } else {
-//            aggregatedLogger.writeEvent(dataId, value.longValue());
-//        }
-//
-//    }
-//
-//    /**
-//     * Record an event and an object.
-//     * The object is translated into an object ID.
-//     */
-//    public void recordEvent(int dataId, Boolean value) {
-//        aggregatedLogger.writeEvent(dataId, value == null ? 0 : value ? 1 : 0);
-//    }
-//
-//    /**
-//     * Record an event and an object.
-//     * The object is translated into an object ID.
-//     */
-//    public void recordEvent(int dataId, Float value) {
-//        if (value == null) {
-//            aggregatedLogger.writeEvent(dataId, 0);
-//        } else {
-//            aggregatedLogger.writeEvent(dataId, value.longValue());
-//        }
-//
-//    }
-//
-//    /**
-//     * Record an event and an object.
-//     * The object is translated into an object ID.
-//     */
-//    public void recordEvent(int dataId, Byte value) {
-//        aggregatedLogger.writeEvent(dataId, value);
-//    }
-//
-//    /**
-//     * Record an event and an object.
-//     * The object is translated into an object ID.
-//     */
-//    public void recordEvent(int dataId, Date value) {
-//        if (value == null) {
-//            aggregatedLogger.writeEvent(dataId, 0);
-//        } else {
-//            aggregatedLogger.writeEvent(dataId, value.getTime());
-//        }
-//
-//    }
-//
-//    /**
-//     * Record an event and an object.
-//     * The object is translated into an object ID.
-//     */
-//    public void recordEvent(int dataId, Double value) {
-//        if (value != null) {
-//            long longValue = Double.doubleToRawLongBits(value);
-//            aggregatedLogger.writeEvent(dataId, longValue);
-//        } else {
-//            aggregatedLogger.writeEvent(dataId, 0);
-//        }
-//    }
 
     /**
      * Record an event and an integer value.
      * To simplify the file writing process, the value is translated into a long value.
      */
     public void recordEvent(int dataId, int value) {
+        if (isRecording.get()) {
+            return;
+        }
+
 //        System.out.printf("Record event in event stream aggregated logger %s -> %s\n", dataId, value);
         aggregatedLogger.writeEvent(dataId, value);
     }
@@ -487,6 +404,10 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
      * Record an event and an integer value.
      */
     public void recordEvent(int dataId, long value) {
+        if (isRecording.get()) {
+            return;
+        }
+
 //        System.out.printf("Record event in event stream aggregated logger %s -> %s\n", dataId, value);
         aggregatedLogger.writeEvent(dataId, value);
     }
@@ -496,6 +417,10 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
      * To simplify the file writing process, the value is translated into a long value.
      */
     public void recordEvent(int dataId, byte value) {
+        if (isRecording.get()) {
+            return;
+        }
+
 //        System.out.printf("Record event in event stream aggregated logger %s -> %s\n", dataId, value);
         aggregatedLogger.writeEvent(dataId, value);
     }
@@ -505,6 +430,10 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
      * To simplify the file writing process, the value is translated into a long value.
      */
     public void recordEvent(int dataId, short value) {
+        if (isRecording.get()) {
+            return;
+        }
+
 //        System.out.printf("Record event in event stream aggregated logger %s -> %s\n", dataId, value);
         aggregatedLogger.writeEvent(dataId, value);
     }
@@ -514,6 +443,10 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
      * To simplify the file writing process, the value is translated into a long value.
      */
     public void recordEvent(int dataId, char value) {
+        if (isRecording.get()) {
+            return;
+        }
+
 //        System.out.printf("Record event in event stream aggregated logger %s -> %s\n", dataId, value);
         aggregatedLogger.writeEvent(dataId, value);
     }
@@ -523,6 +456,10 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
      * To simplify the file writing process, the value is translated into a long value (true = 1, false = 0).
      */
     public void recordEvent(int dataId, boolean value) {
+        if (isRecording.get()) {
+            return;
+        }
+
         int longValue = value ? 1 : 0;
 //        System.out.printf("Record event in event stream aggregated logger %s -> %s\n", dataId, longValue);
         aggregatedLogger.writeEvent(dataId, longValue);
@@ -533,6 +470,10 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
      * To simplify the file writing process, the value is translated into a long value preserving the information.
      */
     public void recordEvent(int dataId, double value) {
+        if (isRecording.get()) {
+            return;
+        }
+
         long longValue = Double.doubleToRawLongBits(value);
 //        System.out.printf("Record event in event stream aggregated logger %s -> %s\n", dataId, longValue);
         aggregatedLogger.writeEvent(dataId, longValue);
@@ -543,6 +484,10 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
      * To simplify the file writing process, the value is translated into a long value preserving the information.
      */
     public void recordEvent(int dataId, float value) {
+        if (isRecording.get()) {
+            return;
+        }
+
         int longValue = Float.floatToRawIntBits(value);
 //        System.out.printf("Record event in event stream aggregated logger %s -> %s\n", dataId, longValue);
         aggregatedLogger.writeEvent(dataId, longValue);

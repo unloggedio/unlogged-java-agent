@@ -18,7 +18,7 @@ import java.util.concurrent.*;
 public class RawFileCollector implements Runnable {
     public static final int MAX_CONSECUTIVE_FAILURE_COUNT = 10;
     public static final int FAILURE_SLEEP_DELAY = 10;
-    public static final ExecutorService EXECUTOR_SERVICE = Executors.newFixedThreadPool(1);
+    public static final ExecutorService EXECUTOR_SERVICE = Executors.newFixedThreadPool(4);
     private final IErrorLogger errorLogger;
     private final BlockingQueue<UploadFile> fileList;
     private final FileNameGenerator indexFileNameGenerator;
@@ -61,14 +61,23 @@ public class RawFileCollector implements Runnable {
 
         ArchivedIndexWriter archivedIndexWriterOld = archivedIndexWriter;
 
-        archivedIndexWriter = new ArchivedIndexWriter(indexFileNameGenerator.getNextFile(), this.classWeaves, errorLogger);
+        archivedIndexWriter = new ArchivedIndexWriter(indexFileNameGenerator.getNextFile(), this.classWeaves,
+                errorLogger);
         fileCount = 0;
         if (archivedIndexWriterOld != null) {
             EXECUTOR_SERVICE.submit(() -> {
-                errorLogger.log("closing archive: " + archivedIndexWriterOld.getArchiveFile().getName());
-                drainItemsToIndex(archivedIndexWriterOld);
-                archivedIndexWriterOld.drainQueueToIndex(EMPTY_LIST, typeInfoDocuments, EMPTY_STRING_LIST);
-                archivedIndexWriterOld.close();
+                try {
+                    errorLogger.log("closing archive: " + archivedIndexWriterOld.getArchiveFile()
+                            .getName());
+                    drainItemsToIndex(archivedIndexWriterOld);
+                    archivedIndexWriterOld.drainQueueToIndex(EMPTY_LIST, typeInfoDocuments, EMPTY_STRING_LIST);
+                    archivedIndexWriterOld.close();
+                    errorLogger.log("closed archive: " + archivedIndexWriterOld.getArchiveFile()
+                            .getName());
+                }catch (Throwable e) {
+                    e.printStackTrace();
+                }
+
                 if (networkClient != null && !"localhost-token".equals(networkClient.getToken())) {
                     File archiveFile = archivedIndexWriterOld.getArchiveFile();
                     try {
@@ -102,7 +111,8 @@ public class RawFileCollector implements Runnable {
             UploadFile logFile = fileList.poll(1, TimeUnit.SECONDS);
             if (logFile == null) {
                 if (fileCount > 0 || shutdown) {
-                    errorLogger.log("files from queue, currently [" + fileCount + "] files in list : shutdown: " + shutdown );
+                    errorLogger.log(
+                            "files from queue, currently [" + fileCount + "] files in list : shutdown: " + shutdown);
                     doneFinalize = true;
                     finalizeArchiveAndUpload();
                     return;
@@ -128,7 +138,8 @@ public class RawFileCollector implements Runnable {
         } catch (InterruptedException e) {
             errorLogger.log("file upload cron interrupted, shutting down");
         } finally {
-            errorLogger.log("finally check can archive [" + archivedIndexWriter.getArchiveFile().getName() + "] can " +
+            errorLogger.log("finally check can archive [" + archivedIndexWriter.getArchiveFile()
+                    .getName() + "] can " +
                     "be closed: " + archivedIndexWriter.fileCount() + " >= " + filesPerArchive);
             if (archivedIndexWriter.fileCount() >= filesPerArchive || shutdown) {
                 if (!doneFinalize) {

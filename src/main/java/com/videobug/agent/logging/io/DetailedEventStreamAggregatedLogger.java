@@ -142,10 +142,18 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
             jacksonBuilder.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
             jacksonBuilder.configure(SerializationFeature.FAIL_ON_SELF_REFERENCES, false);
             jacksonBuilder.configure(SerializationFeature.WRITE_SELF_REFERENCES_AS_NULL, true);
-            Hibernate5Module module = new Hibernate5Module();
-            module.configure(Hibernate5Module.Feature.FORCE_LAZY_LOADING, true);
-            module.configure(Hibernate5Module.Feature.REPLACE_PERSISTENT_COLLECTIONS, true);
-            jacksonBuilder.addModule(module);
+
+            try {
+                Class<?> hibernameModule = Class.forName("com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module");
+                Hibernate5Module module = new Hibernate5Module();
+                module.configure(Hibernate5Module.Feature.FORCE_LAZY_LOADING, true);
+                module.configure(Hibernate5Module.Feature.REPLACE_PERSISTENT_COLLECTIONS, true);
+                jacksonBuilder.addModule(module);
+            } catch (ClassNotFoundException e) {
+                // hibernate module not found
+            }
+
+
             try {
                 Class<?> jodaModule = Class.forName("com.fasterxml.jackson.datatype.joda.JodaModule");
                 jacksonBuilder.addModule((Module) jodaModule.getDeclaredConstructor()
@@ -154,7 +162,7 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 
             } catch (ClassNotFoundException e) {
                 // joda not present
-                e.printStackTrace();
+//                e.printStackTrace();
             } catch (InvocationTargetException
                      | InstantiationException
                      | IllegalAccessException

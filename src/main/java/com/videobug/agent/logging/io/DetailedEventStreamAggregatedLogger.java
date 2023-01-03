@@ -24,6 +24,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -55,6 +56,7 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
     private final TypeIdAggregatedStreamMap typeToId;
     private final ObjectIdAggregatedStream objectIdMap;
     private final String includedPackage;
+    private final Boolean DEBUG = Boolean.parseBoolean(System.getProperty("UNLOGGED_DEBUG"));
     private final ThreadLocal<ByteArrayOutputStream> threadOutputBuffer =
             ThreadLocal.withInitial(ByteArrayOutputStream::new);
     private final ThreadLocal<Boolean> isRecording = ThreadLocal.withInitial(() -> false);
@@ -144,13 +146,14 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
             jacksonBuilder.configure(SerializationFeature.WRITE_SELF_REFERENCES_AS_NULL, true);
 
             try {
-                Class<?> hibernameModule = Class.forName("com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module");
+                Class<?> hibernateModule = Class.forName("com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module");
                 Hibernate5Module module = new Hibernate5Module();
                 module.configure(Hibernate5Module.Feature.FORCE_LAZY_LOADING, true);
                 module.configure(Hibernate5Module.Feature.REPLACE_PERSISTENT_COLLECTIONS, true);
                 jacksonBuilder.addModule(module);
             } catch (ClassNotFoundException e) {
                 // hibernate module not found
+                // add a warning in System.err here ?
             }
 
 
@@ -271,9 +274,9 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 
         if (serializeValues && probesToRecord.size() > 0 && probesToRecord.contains(dataId)) {
 
-//            if (value != null) {
-//            System.out.println("record serialized value for probe [" + dataId + "] -> " + value.getClass());
-//            }
+            if (DEBUG && value != null) {
+                System.out.println("record serialized value for probe [" + dataId + "] -> " + value.getClass());
+            }
 //            if (SERIALIZATION_MODE == SerializationMode.KRYO && value instanceof Class) {
 //                kryo.register((Class) value);
 //            }
@@ -296,30 +299,32 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                 // ############### USING GSON #######################
 //                System.out.println("[" + dataId + "] Serialize class: " + value.getClass()
 //                        .getName());
-                if (
-                        className.startsWith("com.google")
-                                || className.startsWith("org.apache.http")
-                                || className.startsWith("org.elasticsearch.client")
-                                || className.startsWith("org.hibernate")
-                                || className.startsWith("ch.qos")
-                                || className.startsWith("io.dropwizard")
-                                || className.contains("java.lang.reflect")
-                                || className.startsWith("org.redis")
-                                || className.startsWith("co.elastic")
-                                || className.startsWith("java.lang.Class")
-                                || className.startsWith("org.glassfish")
-                                || className.startsWith("com.fasterxml")
-                                || className.startsWith("org.slf4j")
-                                || className.startsWith("org.springframework")
-                                || className.startsWith("java.io")
-                                || className.contains("$Lambda$")
-                                || className.contains("$$EnhancerBySpringCGLIB$$")
-                                || className.startsWith("java.util.regex")
-                                || className.startsWith("java.util.Base64")
-                                || className.startsWith("java.util.concurrent")
-                                || className.startsWith("com.amazon")
-                                || className.endsWith("[]")
-                                || value instanceof Iterator
+                if (value instanceof Class) {
+                    bytes = ((Class<?>) value).getCanonicalName()
+                            .getBytes(StandardCharsets.UTF_8);
+                } else if (className.startsWith("com.google")
+                        || className.startsWith("org.apache.http")
+                        || className.startsWith("org.elasticsearch.client")
+                        || className.startsWith("org.hibernate")
+                        || className.startsWith("ch.qos")
+                        || className.startsWith("io.dropwizard")
+                        || className.contains("java.lang.reflect")
+                        || className.startsWith("org.redis")
+                        || className.startsWith("co.elastic")
+                        || className.startsWith("java.lang.Class")
+                        || className.startsWith("org.glassfish")
+                        || className.startsWith("com.fasterxml")
+                        || className.startsWith("org.slf4j")
+                        || className.startsWith("org.springframework")
+                        || className.startsWith("java.io")
+                        || className.contains("$Lambda$")
+                        || className.contains("$$EnhancerBySpringCGLIB$$")
+                        || className.startsWith("java.util.regex")
+                        || className.startsWith("java.util.Base64")
+                        || className.startsWith("java.util.concurrent")
+                        || className.startsWith("com.amazon")
+                        || className.endsWith("[]")
+                        || value instanceof Iterator
                 ) {
 //                    System.err.println("Removing probe: " + dataId);
                     probesToRecord.remove(dataId);
@@ -327,9 +332,11 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                     // # using gson
                     String jsonValue = gson.toJson(value);
                     bytes = jsonValue.getBytes();
-//                    System.err.println(
-//                            "[" + dataId + "] record serialized value for probe [" + value.getClass() + "] [" + objectId + "] ->" +
-//                                    " " + jsonValue);
+                    if (DEBUG) {
+                        System.err.println(
+                                "[" + dataId + "] record serialized value for probe [" + value.getClass() + "] [" + objectId + "] ->" +
+                                        " " + jsonValue);
+                    }
                     // ######################################
                 } else if (SERIALIZATION_MODE == SerializationMode.JACKSON) {
 //                    System.err.println("To serialize class: " + className);
@@ -338,9 +345,11 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 //                    outputStream.flush();
 //                    bytes = outputStream.toByteArray();
                     bytes = objectMapper.writeValueAsBytes(value);
-//                    System.err.println(
-//                            "[" + dataId + "] record serialized value for probe [" + value.getClass() + "] [" + objectId + "] ->" +
-//                                    " " + new String(bytes));
+                    if (DEBUG) {
+                        System.err.println(
+                                "[" + dataId + "] record serialized value for probe [" + value.getClass() + "] [" + objectId + "] ->" +
+                                        " " + new String(bytes));
+                    }
                     // ######################################
                 } else if (SERIALIZATION_MODE == SerializationMode.FST) {
                     // # using gson

@@ -188,33 +188,9 @@
             <build>
                 <finalName>videobug-java-agent-gson</finalName>
             </build>
-
         </profile>
         <profile>
-            <id>jackson-2.9.7</id>
-            <properties>
-                <jackson.version>2.9.7</jackson.version>
-            </properties>
-            <dependencies>
-                <dependency>
-                    <groupId>com.fasterxml.jackson.core</groupId>
-                    <artifactId>jackson-databind</artifactId>
-                    <version>2.9.7</version>
-                    <scope>provided</scope>
-                </dependency>
-                <dependency>
-                    <groupId>com.fasterxml.jackson.datatype</groupId>
-                    <artifactId>jackson-datatype-hibernate5</artifactId>
-                    <version>2.9.7</version>
-                    <scope>provided</scope>
-                </dependency>
-            </dependencies>
-            <build>
-                <finalName>videobug-java-agent-jackson-2.9.7</finalName>
-            </build>
-        </profile>
-        <profile>
-            <id>jackson-2.13.1</id>
+            <id>jackson-2.13</id>
             <properties>
                 <jackson.version>2.13.1</jackson.version>
             </properties>
@@ -239,36 +215,117 @@
                 </dependency>
             </dependencies>
             <build>
-                <finalName>videobug-java-agent-jackson-2.13.1</finalName>
+                <finalName>videobug-java-agent-jackson-2.13</finalName>
             </build>
         </profile>
         <profile>
-            <id>jackson-2.10.2</id>
+            <id>jackson-2.12</id>
             <properties>
-                <jackson.version>2.10.2</jackson.version>
+                <jackson.version>2.12.7</jackson.version>
             </properties>
             <dependencies>
                 <dependency>
                     <groupId>com.fasterxml.jackson.core</groupId>
                     <artifactId>jackson-databind</artifactId>
-                    <version>2.10.2</version>
+                    <version>2.12.7</version>
                     <scope>provided</scope>
                 </dependency>
                 <dependency>
                     <groupId>com.fasterxml.jackson.datatype</groupId>
                     <artifactId>jackson-datatype-hibernate5</artifactId>
-                    <version>2.10.2</version>
+                    <version>2.12.7</version>
                     <scope>provided</scope>
                 </dependency>
                 <dependency>
                     <groupId>com.fasterxml.jackson.datatype</groupId>
                     <artifactId>jackson-datatype-joda</artifactId>
-                    <version>2.10.2</version>
+                    <version>2.12.7</version>
                     <scope>provided</scope>
                 </dependency>
             </dependencies>
             <build>
-                <finalName>videobug-java-agent-jackson-2.10.2</finalName>
+                <finalName>videobug-java-agent-jackson-2.12</finalName>
+            </build>
+        </profile>
+        <profile>
+            <id>jackson-2.11</id>
+            <properties>
+                <jackson.version>2.11.4</jackson.version>
+            </properties>
+            <dependencies>
+                <dependency>
+                    <groupId>com.fasterxml.jackson.core</groupId>
+                    <artifactId>jackson-databind</artifactId>
+                    <version>2.11.4</version>
+                    <scope>provided</scope>
+                </dependency>
+                <dependency>
+                    <groupId>com.fasterxml.jackson.datatype</groupId>
+                    <artifactId>jackson-datatype-hibernate5</artifactId>
+                    <version>2.11.4</version>
+                    <scope>provided</scope>
+                </dependency>
+                <dependency>
+                    <groupId>com.fasterxml.jackson.datatype</groupId>
+                    <artifactId>jackson-datatype-joda</artifactId>
+                    <version>2.11.4</version>
+                    <scope>provided</scope>
+                </dependency>
+            </dependencies>
+            <build>
+                <finalName>videobug-java-agent-jackson-2.11</finalName>
+            </build>
+        </profile>
+        <profile>
+            <id>jackson-2.10</id>
+            <properties>
+                <jackson.version>2.10.5</jackson.version>
+            </properties>
+            <dependencies>
+                <dependency>
+                    <groupId>com.fasterxml.jackson.core</groupId>
+                    <artifactId>jackson-databind</artifactId>
+                    <version>2.10.5</version>
+                    <scope>provided</scope>
+                </dependency>
+                <dependency>
+                    <groupId>com.fasterxml.jackson.datatype</groupId>
+                    <artifactId>jackson-datatype-hibernate5</artifactId>
+                    <version>2.10.5</version>
+                    <scope>provided</scope>
+                </dependency>
+                <dependency>
+                    <groupId>com.fasterxml.jackson.datatype</groupId>
+                    <artifactId>jackson-datatype-joda</artifactId>
+                    <version>2.10.5</version>
+                    <scope>provided</scope>
+                </dependency>
+            </dependencies>
+            <build>
+                <finalName>videobug-java-agent-jackson-2.10</finalName>
+            </build>
+        </profile>
+        <profile>
+            <id>jackson-2.9</id>
+            <properties>
+                <jackson.version>2.9.7</jackson.version>
+            </properties>
+            <dependencies>
+                <dependency>
+                    <groupId>com.fasterxml.jackson.core</groupId>
+                    <artifactId>jackson-databind</artifactId>
+                    <version>2.9.7</version>
+                    <scope>provided</scope>
+                </dependency>
+                <dependency>
+                    <groupId>com.fasterxml.jackson.datatype</groupId>
+                    <artifactId>jackson-datatype-hibernate5</artifactId>
+                    <version>2.9.7</version>
+                    <scope>provided</scope>
+                </dependency>
+            </dependencies>
+            <build>
+                <finalName>videobug-java-agent-jackson-2.9</finalName>
             </build>
         </profile>
     </profiles>

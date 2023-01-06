@@ -63,8 +63,8 @@ verify:jdk8:
 deploy:jdk8:
   stage: deploy
   script:
-    - 'apt-get install rename'
     - 'mkdir build'
+    - 'mkdir build/gson'
     - 'mvn $MAVEN_CLI_OPTS -DskipTests clean package -Pgson,fst,jackson-2.13'
     - 'cp target/*.jar build/'
     - 'mvn $MAVEN_CLI_OPTS -DskipTests clean package -Pgson,fst,jackson-2.12'
@@ -81,8 +81,7 @@ deploy:jdk8:
     - 'cp src/main/resources/gson/DetailedEventStreamAggregatedLogger.java 
     src/main/java/com/videobug/agent/logging/io/DetailedEventStreamAggregatedLogger.java'
     - 'mvn $MAVEN_CLI_OPTS -DskipTests clean package -Pgson,fst,jackson-2.13'
-    - 'rename -v "s/jackson-2.13/gson/" target/*.jar'
-    - 'cp target/*.jar build/'
+    - 'cp target/*.jar build/gson/'
   only:
     variables:
       - $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH

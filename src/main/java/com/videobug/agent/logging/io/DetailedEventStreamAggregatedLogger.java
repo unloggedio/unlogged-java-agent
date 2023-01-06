@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
 import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
 //import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.gson.Gson;
 import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.DataInfo;
@@ -126,62 +127,14 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
             kryo = null;
             objectMapper = null;
             fstObjectMapper = null;
-//        } else if (SERIALIZATION_MODE == SerializationMode.JACKSON) {
-//            JsonMapper.Builder jacksonBuilder = JsonMapper.builder();
-//            jacksonBuilder.annotationIntrospector(new JacksonAnnotationIntrospector() {
-//                @Override
-//                public boolean hasIgnoreMarker(AnnotatedMember m) {
-////                    System.err.println("[" + m.getMember()
-////                            .getClass() + "]" + "Check hasIngore marker: " + m.getMember());
-////                    if (m.getMember() instanceof Method) {
-////                        return true;
-////                    }
-//                    return false;
-//                }
-//            });
-//            DateFormat df = new SimpleDateFormat("MMM d, yyyy HH:mm:ss aaa");
-//            jacksonBuilder.defaultDateFormat(df);
-//            jacksonBuilder.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
-//            jacksonBuilder.configure(SerializationFeature.FAIL_ON_SELF_REFERENCES, false);
-//            jacksonBuilder.configure(SerializationFeature.WRITE_SELF_REFERENCES_AS_NULL, true);
-//
-//            try {
-//                Class<?> hibernateModule = Class.forName("com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module");
-//                Hibernate5Module module = new Hibernate5Module();
-//                module.configure(Hibernate5Module.Feature.FORCE_LAZY_LOADING, true);
-//                module.configure(Hibernate5Module.Feature.REPLACE_PERSISTENT_COLLECTIONS, true);
-//                jacksonBuilder.addModule(module);
-//            } catch (ClassNotFoundException e) {
-//                // hibernate module not found
-//                // add a warning in System.err here ?
-//            }
-//
-//
-//            try {
-//                Class<?> jodaModule = Class.forName("com.fasterxml.jackson.datatype.joda.JodaModule");
-//                jacksonBuilder.addModule((Module) jodaModule.getDeclaredConstructor()
-//                        .newInstance());
-////                System.err.println("Loaded JodaModule");
-//
-//            } catch (ClassNotFoundException e) {
-//                // joda not present
-////                e.printStackTrace();
-//            } catch (InvocationTargetException
-//                     | InstantiationException
-//                     | IllegalAccessException
-//                     | NoSuchMethodException e) {
-//                throw new RuntimeException(e);
-//            }
-//            objectMapper = jacksonBuilder.build();
-//            kryo = null;
-//            gson = null;
-//            fstObjectMapper = null;
         } else if (SERIALIZATION_MODE == SerializationMode.JACKSON) {
-            // 2.9.7
-            objectMapper = new ObjectMapper();
-            objectMapper.setAnnotationIntrospector(new JacksonAnnotationIntrospector() {
+            // For 2.13.1
+            JsonMapper.Builder jacksonBuilder = JsonMapper.builder();
+            jacksonBuilder.annotationIntrospector(new JacksonAnnotationIntrospector() {
                 @Override
                 public boolean hasIgnoreMarker(AnnotatedMember m) {
+//                    System.err.println("[" + m.getMember()
+//                            .getClass() + "]" + "Check hasIngore marker: " + m.getMember());
 //                    if (m.getMember() instanceof Method) {
 //                        return true;
 //                    }
@@ -189,17 +142,105 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                 }
             });
             DateFormat df = new SimpleDateFormat("MMM d, yyyy HH:mm:ss aaa");
-            objectMapper.setDateFormat(df);
-            objectMapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
-            objectMapper.configure(SerializationFeature.FAIL_ON_SELF_REFERENCES, false);
+            jacksonBuilder.defaultDateFormat(df);
+            jacksonBuilder.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
+            jacksonBuilder.configure(SerializationFeature.FAIL_ON_SELF_REFERENCES, false);
+            jacksonBuilder.configure(SerializationFeature.WRITE_SELF_REFERENCES_AS_NULL, true);
 
-            Hibernate5Module module = new Hibernate5Module();
-            module.configure(Hibernate5Module.Feature.FORCE_LAZY_LOADING, true);
-            module.configure(Hibernate5Module.Feature.REPLACE_PERSISTENT_COLLECTIONS, true);
-            objectMapper.registerModule(module);
+            try {
+                Class<?> hibernateModule = Class.forName("com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module");
+                Hibernate5Module module = new Hibernate5Module();
+                module.configure(Hibernate5Module.Feature.FORCE_LAZY_LOADING, true);
+                module.configure(Hibernate5Module.Feature.REPLACE_PERSISTENT_COLLECTIONS, true);
+                jacksonBuilder.addModule(module);
+            } catch (ClassNotFoundException e) {
+                // hibernate module not found
+                // add a warning in System.err here ?
+            }
+
+            try {
+                //checks for presence of this module class, if not present throws exception
+                Class<?> jdk8Module = Class.forName("com.fasterxml.jackson.datatype.jdk8.Jdk8Module");
+                jacksonBuilder.addModule(new Jdk8Module());
+            }catch (ClassNotFoundException e){
+                // jdk8 module not found
+            }
+
+
+            try {
+                Class<?> jodaModule = Class.forName("com.fasterxml.jackson.datatype.joda.JodaModule");
+                jacksonBuilder.addModule((Module) jodaModule.getDeclaredConstructor()
+                        .newInstance());
+//                System.err.println("Loaded JodaModule");
+
+            } catch (ClassNotFoundException e) {
+                // joda not present
+//                e.printStackTrace();
+            } catch (InvocationTargetException
+                     | InstantiationException
+                     | IllegalAccessException
+                     | NoSuchMethodException e) {
+                throw new RuntimeException(e);
+            }
+            objectMapper = jacksonBuilder.build();
             kryo = null;
             gson = null;
             fstObjectMapper = null;
+//        } else if (SERIALIZATION_MODE == SerializationMode.JACKSON) {
+//            // 2.9.7
+//            objectMapper = new ObjectMapper();
+//            objectMapper.setAnnotationIntrospector(new JacksonAnnotationIntrospector() {
+//                @Override
+//                public boolean hasIgnoreMarker(AnnotatedMember m) {
+////                    if (m.getMember() instanceof Method) {
+////                        return true;
+////                    }
+//                    return false;
+//                }
+//            });
+//            DateFormat df = new SimpleDateFormat("MMM d, yyyy HH:mm:ss aaa");
+//            objectMapper.setDateFormat(df);
+//            objectMapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
+//            objectMapper.configure(SerializationFeature.FAIL_ON_SELF_REFERENCES, false);
+//
+//
+//            try {
+//                Class<?> hibernateModule = Class.forName("com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module");
+//                Hibernate5Module module = new Hibernate5Module();
+//                module.configure(Hibernate5Module.Feature.FORCE_LAZY_LOADING, true);
+//                module.configure(Hibernate5Module.Feature.REPLACE_PERSISTENT_COLLECTIONS, true);
+//                objectMapper.registerModule(module);
+//            } catch (ClassNotFoundException e) {
+//                // hibernate module not found
+//                // add a warning in System.err here ?
+//            }
+//
+//            try {
+//                //checks for presence of this module class, if not present throws exception
+//                Class<?> jdk8Module = Class.forName("com.fasterxml.jackson.datatype.jdk8.Jdk8Module");
+//                objectMapper.registerModule(new Jdk8Module());
+//             } catch (ClassNotFoundException e){
+//                // jdk8 module not found
+//             }
+//
+//            try {
+//                Class<?> jodaModule = Class.forName("com.fasterxml.jackson.datatype.joda.JodaModule");
+//                objectMapper.registerModule((Module) jodaModule.getDeclaredConstructor()
+//                        .newInstance());
+////                System.err.println("Loaded JodaModule");
+//             } catch (ClassNotFoundException e) {
+//                // joda not present
+////                e.printStackTrace();
+//              } catch (InvocationTargetException
+//                     | InstantiationException
+//                     | IllegalAccessException
+//                     | NoSuchMethodException e) {
+//                  throw new RuntimeException(e);
+//              }
+//
+//            kryo = null;
+//            gson = null;
+//            fstObjectMapper = null;
         } else if (SERIALIZATION_MODE == SerializationMode.FST) {
 
             FSTConfiguration defaultConfigMapper = FSTConfiguration.createDefaultConfiguration();

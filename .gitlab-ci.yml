@@ -63,10 +63,28 @@ verify:jdk8:
 deploy:jdk8:
   stage: deploy
   script:
+    - 'mkdir build'
     - 'mvn $MAVEN_CLI_OPTS -DskipTests clean package -Pgson,fst,jackson-2.13'
+    - 'cp target/*.jar build/'
+    - 'mvn $MAVEN_CLI_OPTS -DskipTests clean package -Pgson,fst,jackson-2.12'
+    - 'cp target/*.jar build/'
+    - 'mvn $MAVEN_CLI_OPTS -DskipTests clean package -Pgson,fst,jackson-2.11'
+    - 'cp target/*.jar build/'
+    - 'cp src/main/resources/jackson/2.10/DetailedEventStreamAggregatedLogger.java 
+    src/main/java/com/videobug/agent/logging/io/DetailedEventStreamAggregatedLogger.java'
+    - 'mvn $MAVEN_CLI_OPTS -DskipTests clean package -Pgson,fst,jackson-2.10'
+    - 'cp target/*.jar build/'
+    - 'cp src/main/resources/jackson/2.9/DetailedEventStreamAggregatedLogger.java src/main/java/com/videobug/agent/logging/io/DetailedEventStreamAggregatedLogger.java'
+    - 'mvn $MAVEN_CLI_OPTS -DskipTests clean package -Pgson,fst,jackson-2.9'
+    - 'cp target/*.jar build/'
+    - 'cp src/main/resources/gson/DetailedEventStreamAggregatedLogger.java 
+    src/main/java/com/videobug/agent/logging/io/DetailedEventStreamAggregatedLogger.java'
+    - 'mvn $MAVEN_CLI_OPTS -DskipTests clean package -Pgson,fst,jackson-2.13'
+    - 'rename -v "s/jackson-2.13/gson/" target/*.jar'
+    - 'cp target/*.jar build/'
   only:
     variables:
       - $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   artifacts:
     paths:
-      - target/*.jar
+      - build/*.jar

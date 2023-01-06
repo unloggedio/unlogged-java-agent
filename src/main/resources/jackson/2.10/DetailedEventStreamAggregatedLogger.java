@@ -1,4 +1,4 @@
-package com.videobug.agent.logging.io;
+package jackson
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Output;
@@ -73,7 +73,7 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
     private final Map<String, WeaveLog> classMap = new HashMap<>();
     private final Set<Integer> probesToRecord = new HashSet<>();
     private final Map<Integer, DataInfo> callProbes = new HashMap<>();
-    private final SerializationMode SERIALIZATION_MODE = SerializationMode.GSON;
+    private final SerializationMode SERIALIZATION_MODE = SerializationMode.JACKSON;
     private final ThreadLocal<ByteArrayOutputStream> output =
             ThreadLocal.withInitial(() -> new ByteArrayOutputStream(1_000_000));
     //    private final Set<String> classesToIgnore = new HashSet<>();
@@ -145,7 +145,7 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
             jacksonBuilder.defaultDateFormat(df);
             jacksonBuilder.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
             jacksonBuilder.configure(SerializationFeature.FAIL_ON_SELF_REFERENCES, false);
-            jacksonBuilder.configure(SerializationFeature.WRITE_SELF_REFERENCES_AS_NULL, true);
+//            jacksonBuilder.configure(SerializationFeature.WRITE_SELF_REFERENCES_AS_NULL, true);
 
             try {
                 Class<?> hibernateModule = Class.forName("com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module");

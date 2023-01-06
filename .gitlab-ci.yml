@@ -42,7 +42,7 @@ cache:
 .verify: &verify
   stage: test
   script:
-    - 'mvn $MAVEN_CLI_OPTS test -s ci_settings.xml'
+    - 'mvn $MAVEN_CLI_OPTS test -s ci_settings.xml -Pgson,fst,jackson-2.13'
   artifacts:
     expose_as: 'code coverage'
     paths:

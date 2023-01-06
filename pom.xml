@@ -170,7 +170,7 @@
                 </dependency>
             </dependencies>
             <build>
-                <finalName>videobug-java-agent-fst</finalName>
+                <finalName>videobug-java-agent-${version}-fst</finalName>
             </build>
         </profile>
         <profile>
@@ -186,7 +186,7 @@
                 </dependency>
             </dependencies>
             <build>
-                <finalName>videobug-java-agent-gson</finalName>
+                <finalName>videobug-java-agent-${version}-gson</finalName>
             </build>
         </profile>
         <profile>
@@ -195,6 +195,12 @@
                 <jackson.version>2.13.4</jackson.version>
             </properties>
             <dependencies>
+                <dependency>
+                    <groupId>com.fasterxml.jackson.core</groupId>
+                    <artifactId>jackson-core</artifactId>
+                    <version>2.13.4</version>
+                    <scope>provided</scope>
+                </dependency>
                 <dependency>
                     <groupId>com.fasterxml.jackson.core</groupId>
                     <artifactId>jackson-databind</artifactId>
@@ -221,7 +227,7 @@
                 </dependency>
             </dependencies>
             <build>
-                <finalName>videobug-java-agent-jackson-2.13</finalName>
+                <finalName>videobug-java-agent-${version}-jackson-2.13</finalName>
             </build>
         </profile>
         <profile>
@@ -233,6 +239,12 @@
                 <dependency>
                     <groupId>com.fasterxml.jackson.core</groupId>
                     <artifactId>jackson-databind</artifactId>
+                    <version>2.12.7</version>
+                    <scope>provided</scope>
+                </dependency>
+                <dependency>
+                    <groupId>com.fasterxml.jackson.core</groupId>
+                    <artifactId>jackson-core</artifactId>
                     <version>2.12.7</version>
                     <scope>provided</scope>
                 </dependency>
@@ -257,7 +269,7 @@
 
             </dependencies>
             <build>
-                <finalName>videobug-java-agent-jackson-2.12</finalName>
+                <finalName>videobug-java-agent-${version}-jackson-2.12</finalName>
             </build>
         </profile>
         <profile>
@@ -273,6 +285,12 @@
                     <scope>provided</scope>
                 </dependency>
                 <dependency>
+                    <groupId>com.fasterxml.jackson.core</groupId>
+                    <artifactId>jackson-core</artifactId>
+                    <version>2.11.4</version>
+                    <scope>provided</scope>
+                </dependency>
+                <dependency>
                     <groupId>com.fasterxml.jackson.datatype</groupId>
                     <artifactId>jackson-datatype-hibernate5</artifactId>
                     <version>2.11.4</version>
@@ -292,7 +310,7 @@
                 </dependency>
             </dependencies>
             <build>
-                <finalName>videobug-java-agent-jackson-2.11</finalName>
+                <finalName>videobug-java-agent-${version}-jackson-2.11</finalName>
             </build>
         </profile>
         <profile>
@@ -308,6 +326,12 @@
                     <scope>provided</scope>
                 </dependency>
                 <dependency>
+                    <groupId>com.fasterxml.jackson.core</groupId>
+                    <artifactId>jackson-core</artifactId>
+                    <version>2.10.5</version>
+                    <scope>provided</scope>
+                </dependency>
+                <dependency>
                     <groupId>com.fasterxml.jackson.datatype</groupId>
                     <artifactId>jackson-datatype-hibernate5</artifactId>
                     <version>2.10.5</version>
@@ -327,7 +351,7 @@
                 </dependency>
             </dependencies>
             <build>
-                <finalName>videobug-java-agent-jackson-2.10</finalName>
+                <finalName>videobug-java-agent-${version}-jackson-2.10</finalName>
             </build>
         </profile>
         <profile>
@@ -339,6 +363,12 @@
                 <dependency>
                     <groupId>com.fasterxml.jackson.core</groupId>
                     <artifactId>jackson-databind</artifactId>
+                    <version>2.9.7</version>
+                    <scope>provided</scope>
+                </dependency>
+                <dependency>
+                    <groupId>com.fasterxml.jackson.core</groupId>
+                    <artifactId>jackson-core</artifactId>
                     <version>2.9.7</version>
                     <scope>provided</scope>
                 </dependency>
@@ -356,7 +386,7 @@
                 </dependency>
             </dependencies>
             <build>
-                <finalName>videobug-java-agent-jackson-2.9</finalName>
+                <finalName>videobug-java-agent-${version}-jackson-2.9</finalName>
             </build>
         </profile>
     </profiles>

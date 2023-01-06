@@ -1,6 +1,5 @@
 package com.videobug.agent.logging.io;
 
-import com.sun.javafx.logging.JFRInputEvent;
 import com.videobug.agent.logging.Logging;
 import com.videobug.agent.logging.perthread.PerThreadBinaryFileAggregatedLogger;
 import com.videobug.agent.logging.perthread.RawFileCollector;

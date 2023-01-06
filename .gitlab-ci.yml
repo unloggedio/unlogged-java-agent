@@ -63,6 +63,7 @@ verify:jdk8:
 deploy:jdk8:
   stage: deploy
   script:
+    - 'apt install rename'
     - 'mkdir build'
     - 'mvn $MAVEN_CLI_OPTS -DskipTests clean package -Pgson,fst,jackson-2.13'
     - 'cp target/*.jar build/'

@@ -135,8 +135,6 @@ public class ArchivedIndexWriter implements IndexOutputStream {
         }
 
         objectInfoIndex.addAll(objectsToIndex);
-//        System.err.println("Wrote " + objectsToIndex.size() + " object information to " +
-//                objectInfoDocumentIntegerDiskPersistence.getFile().getName());
         typeInfoIndex.addAll(typesToIndex);
         stringInfoIndex.addAll(stringsToIndex);
 

@@ -65,6 +65,8 @@ deploy:jdk8:
   script:
     - 'mkdir build'
     - 'mkdir build/gson'
+    - 'mvn $MAVEN_CLI_OPTS -DskipTests clean package -Pgson,fst,jackson-2.14'
+    - 'cp target/*.jar build/'
     - 'mvn $MAVEN_CLI_OPTS -DskipTests clean package -Pgson,fst,jackson-2.13'
     - 'cp target/*.jar build/'
     - 'mvn $MAVEN_CLI_OPTS -DskipTests clean package -Pgson,fst,jackson-2.12'

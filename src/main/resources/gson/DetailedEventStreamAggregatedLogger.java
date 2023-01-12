@@ -98,21 +98,6 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
         objectIdMap = new ObjectIdAggregatedStream(this.aggregatedLogger, typeToId, outputDir);
 
 
-//        className.contains("java.lang.reflect")
-//                || className.contains("com.google")
-//                || className.contains("org.apache.http")
-//                || className.contains("org.elasticsearch.client")
-//                || className.contains("org.hibernate")
-//                || className.contains("com.amazon")
-//
-
-//        classesToIgnore.add("java.lang.reflect");
-//        classesToIgnore.add("com.google");
-//        classesToIgnore.add("org.apache.http");
-//        classesToIgnore.add("org.elasticsearch.client");
-//        classesToIgnore.add("org.hibernate");
-//        classesToIgnore.add("com.amazon");
-
         if (SERIALIZATION_MODE == SerializationMode.KRYO) {
             kryo = new Kryo();
             kryo.register(byte[].class);

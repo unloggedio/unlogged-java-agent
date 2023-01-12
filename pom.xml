@@ -230,6 +230,7 @@
                 <finalName>videobug-java-agent-${version}-jackson-2.13</finalName>
             </build>
         </profile>
+
         <profile>
             <id>jackson-2.12</id>
             <properties>

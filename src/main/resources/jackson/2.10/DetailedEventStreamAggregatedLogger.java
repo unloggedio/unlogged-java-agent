@@ -8,7 +8,6 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
 import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
 import com.fasterxml.jackson.databind.json.JsonMapper;
-import com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.gson.Gson;
 import com.insidious.common.weaver.ClassInfo;
@@ -25,6 +24,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.text.DateFormat;
@@ -149,9 +149,13 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 
             try {
                 Class<?> hibernateModule = Class.forName("com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module");
-                Hibernate5Module module = new Hibernate5Module();
-                module.configure(Hibernate5Module.Feature.FORCE_LAZY_LOADING, true);
-                module.configure(Hibernate5Module.Feature.REPLACE_PERSISTENT_COLLECTIONS, true);
+                Module module = (Module) hibernateModule.getDeclaredConstructor()
+                        .newInstance();
+                Method configureMethod = hibernateModule.getMethod("configure",
+                        Class.forName("com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module$Feature"),
+                        boolean.class);
+                configureMethod.invoke(module, Hibernate5Module.Feature.FORCE_LAZY_LOADING, true);
+                configureMethod.invoke(module, Hibernate5Module.Feature.REPLACE_PERSISTENT_COLLECTIONS, true);
                 jacksonBuilder.addModule(module);
             } catch (ClassNotFoundException e) {
                 // hibernate module not found

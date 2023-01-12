@@ -9,7 +9,6 @@ import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
 import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.gson.Gson;
 import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.DataInfo;
@@ -25,6 +24,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.text.DateFormat;
@@ -73,7 +73,7 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
     private final Map<String, WeaveLog> classMap = new HashMap<>();
     private final Set<Integer> probesToRecord = new HashSet<>();
     private final Map<Integer, DataInfo> callProbes = new HashMap<>();
-    private final SerializationMode SERIALIZATION_MODE = SerializationMode.GSON;
+    private final SerializationMode SERIALIZATION_MODE = SerializationMode.JACKSON;
     private final ThreadLocal<ByteArrayOutputStream> output =
             ThreadLocal.withInitial(() -> new ByteArrayOutputStream(1_000_000));
     //    private final Set<String> classesToIgnore = new HashSet<>();
@@ -92,7 +92,7 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
             String includedPackage, File outputDir,
             AggregatedFileLogger aggregatedLogger
     ) throws IOException {
-//        System.out.printf("[videobug] new event stream aggregated logger\n");
+        System.out.printf("[videobug] new event stream aggregated logger\n");
         this.includedPackage = includedPackage;
         this.aggregatedLogger = aggregatedLogger;
         typeToId = new TypeIdAggregatedStreamMap(this.aggregatedLogger, this);
@@ -149,21 +149,44 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 
             try {
                 Class<?> hibernateModule = Class.forName("com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module");
-                Hibernate5Module module = new Hibernate5Module();
-                module.configure(Hibernate5Module.Feature.FORCE_LAZY_LOADING, true);
-                module.configure(Hibernate5Module.Feature.REPLACE_PERSISTENT_COLLECTIONS, true);
+                Module module = (Module) hibernateModule.getDeclaredConstructor()
+                        .newInstance();
+                Method configureMethod = hibernateModule.getMethod("configure",
+                        Class.forName("com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module$Feature"),
+                        boolean.class);
+                configureMethod.invoke(module, Hibernate5Module.Feature.FORCE_LAZY_LOADING, true);
+                configureMethod.invoke(module, Hibernate5Module.Feature.REPLACE_PERSISTENT_COLLECTIONS, true);
                 jacksonBuilder.addModule(module);
             } catch (ClassNotFoundException e) {
                 // hibernate module not found
                 // add a warning in System.err here ?
+                System.out.println("[videobug] Failed Loaded Hibernate5Jackson Module, class not found on classpath. " +
+                        "Include the following dependency to enable recording Fetch.LAZY/EAGER fields\n" +
+                        "<dependency>\n" +
+                        "  <groupId>com.fasterxml.jackson.datatype</groupId>\n" +
+                        "  <artifactId>jackson-datatype-hibernate5</artifactId>\n" +
+                        "</dependency>");
+//                throw new RuntimeException(e);
+            } catch (InvocationTargetException
+                     | InstantiationException
+                     | IllegalAccessException
+                     | NoSuchMethodException e) {
+//                System.out.println("Failed Loaded Hibernate5Jackson Module: " + e.getMessage());
+                throw new RuntimeException(e);
             }
 
             try {
                 //checks for presence of this module class, if not present throws exception
                 Class<?> jdk8Module = Class.forName("com.fasterxml.jackson.datatype.jdk8.Jdk8Module");
-                jacksonBuilder.addModule(new Jdk8Module());
-            }catch (ClassNotFoundException e){
+                jacksonBuilder.addModule((Module) jdk8Module.getDeclaredConstructor()
+                        .newInstance());
+            } catch (ClassNotFoundException e) {
                 // jdk8 module not found
+            } catch (InvocationTargetException
+                     | InstantiationException
+                     | IllegalAccessException
+                     | NoSuchMethodException e) {
+                throw new RuntimeException(e);
             }
 
 

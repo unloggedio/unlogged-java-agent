@@ -7,8 +7,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
 import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
-import com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.gson.Gson;
 import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.DataInfo;
@@ -98,22 +96,6 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
         typeToId = new TypeIdAggregatedStreamMap(this.aggregatedLogger, this);
         objectIdMap = new ObjectIdAggregatedStream(this.aggregatedLogger, typeToId, outputDir);
 
-
-//        className.contains("java.lang.reflect")
-//                || className.contains("com.google")
-//                || className.contains("org.apache.http")
-//                || className.contains("org.elasticsearch.client")
-//                || className.contains("org.hibernate")
-//                || className.contains("com.amazon")
-//
-
-//        classesToIgnore.add("java.lang.reflect");
-//        classesToIgnore.add("com.google");
-//        classesToIgnore.add("org.apache.http");
-//        classesToIgnore.add("org.elasticsearch.client");
-//        classesToIgnore.add("org.hibernate");
-//        classesToIgnore.add("com.amazon");
-
         if (SERIALIZATION_MODE == SerializationMode.KRYO) {
             kryo = new Kryo();
             kryo.register(byte[].class);
@@ -133,9 +115,6 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
             objectMapper.setAnnotationIntrospector(new JacksonAnnotationIntrospector() {
                 @Override
                 public boolean hasIgnoreMarker(AnnotatedMember m) {
-//                    if (m.getMember() instanceof Method) {
-//                        return true;
-//                    }
                     return false;
                 }
             });
@@ -149,39 +128,54 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                 Class<?> hibernateModule = Class.forName("com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module");
                 Module module = (Module) hibernateModule.getDeclaredConstructor()
                         .newInstance();
-                Method configureMethod = hibernateModule.getMethod("configure",
-                        Class.forName("com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module$Feature"),
-                        boolean.class);
-                configureMethod.invoke(module, Hibernate5Module.Feature.FORCE_LAZY_LOADING, true);
-                configureMethod.invoke(module, Hibernate5Module.Feature.REPLACE_PERSISTENT_COLLECTIONS, true);
+                Class<?> featureClass = Class.forName("com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module$Feature");
+                Method configureMethod = hibernateModule.getMethod("configure", featureClass, boolean.class);
+                configureMethod.invoke(module, featureClass.getDeclaredField("FORCE_LAZY_LOADING").get(null), true);
+                configureMethod.invoke(module, featureClass.getDeclaredField("REPLACE_PERSISTENT_COLLECTIONS").get(null), true);
                 objectMapper.registerModule(module);
-            } catch (ClassNotFoundException e) {
+            } catch (ClassNotFoundException | NoSuchMethodException e) {
+//                e.printStackTrace();
+//                System.out.println("Failed to load hibernate module: " + e.getMessage());
                 // hibernate module not found
                 // add a warning in System.err here ?
+            } catch (InvocationTargetException e) {
+                throw new RuntimeException(e);
+            } catch (InstantiationException e) {
+                throw new RuntimeException(e);
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException(e);
+            } catch (NoSuchFieldException e) {
+                throw new RuntimeException(e);
             }
+
 
             try {
                 //checks for presence of this module class, if not present throws exception
                 Class<?> jdk8Module = Class.forName("com.fasterxml.jackson.datatype.jdk8.Jdk8Module");
-                objectMapper.registerModule(new Jdk8Module());
-             } catch (ClassNotFoundException e){
+                objectMapper.registerModule((Module) jdk8Module.getDeclaredConstructor().newInstance());
+            } catch (ClassNotFoundException e){
                 // jdk8 module not found
-             }
+            } catch (InvocationTargetException
+                     | InstantiationException
+                     | IllegalAccessException
+                     | NoSuchMethodException e) {
+                throw new RuntimeException(e);
+            }
 
             try {
                 Class<?> jodaModule = Class.forName("com.fasterxml.jackson.datatype.joda.JodaModule");
                 objectMapper.registerModule((Module) jodaModule.getDeclaredConstructor()
                         .newInstance());
 //                System.err.println("Loaded JodaModule");
-             } catch (ClassNotFoundException e) {
+            } catch (ClassNotFoundException e) {
                 // joda not present
 //                e.printStackTrace();
-              } catch (InvocationTargetException
+            } catch (InvocationTargetException
                      | InstantiationException
                      | IllegalAccessException
                      | NoSuchMethodException e) {
-                  throw new RuntimeException(e);
-              }
+                throw new RuntimeException(e);
+            }
 
             kryo = null;
             gson = null;

@@ -1,3 +1,5 @@
+#videobug common pkg registry
+https://gitlab.com/insidious1/videobug-common/-/packages
 
 # SELogger
 

@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>video.bug</groupId>
     <artifactId>java-agent</artifactId>
-    <version>1.8.29-SNAPSHOT</version>
+    <version>1.8.29-SNAPSHOT-${projectVersion}</version>
     <distributionManagement>
         <snapshotRepository>
             <id>ossrh</id>
@@ -176,6 +176,7 @@
         <profile>
             <id>gson</id>
             <properties>
+                <projectVersion>gson</projectVersion>
                 <gson.version>2.10</gson.version>
             </properties>
             <dependencies>
@@ -185,13 +186,14 @@
                     <version>2.10</version>
                 </dependency>
             </dependencies>
-            <build>
-                <finalName>videobug-java-agent-${project.version}-gson</finalName>
-            </build>
+<!--            <build>-->
+<!--                <finalName>videobug-java-agent-${project.version}-gson</finalName>-->
+<!--            </build>-->
         </profile>
         <profile>
             <id>jackson-2.14</id>
             <properties>
+                <projectVersion>jackson-2.14</projectVersion>
                 <jackson.version>2.14.1</jackson.version>
             </properties>
             <dependencies>
@@ -226,14 +228,15 @@
                     <scope>provided</scope>
                 </dependency>
             </dependencies>
-            <build>
-                <finalName>videobug-java-agent-${project.version}-jackson-2.14</finalName>
-            </build>
+<!--            <build>-->
+<!--                <finalName>videobug-java-agent-${project.version}-jackson-2.14</finalName>-->
+<!--            </build>-->
         </profile>
 
         <profile>
             <id>jackson-2.13</id>
             <properties>
+                <projectVersion>jackson-2.13</projectVersion>
                 <jackson.version>2.13.4</jackson.version>
             </properties>
             <dependencies>
@@ -268,14 +271,15 @@
                     <scope>provided</scope>
                 </dependency>
             </dependencies>
-            <build>
-                <finalName>videobug-java-agent-${project.version}-jackson-2.13</finalName>
-            </build>
+<!--            <build>-->
+<!--                <finalName>videobug-java-agent-${project.version}-jackson-2.13</finalName>-->
+<!--            </build>-->
         </profile>
 
         <profile>
             <id>jackson-2.12</id>
             <properties>
+                <projectVersion>jackson-2.12</projectVersion>
                 <jackson.version>2.12.7</jackson.version>
             </properties>
             <dependencies>
@@ -311,13 +315,14 @@
                 </dependency>
 
             </dependencies>
-            <build>
-                <finalName>videobug-java-agent-${project.version}-jackson-2.12</finalName>
-            </build>
+<!--            <build>-->
+<!--                <finalName>videobug-java-agent-${project.version}-jackson-2.12</finalName>-->
+<!--            </build>-->
         </profile>
         <profile>
             <id>jackson-2.11</id>
             <properties>
+                <projectVersion>jackson-2.11</projectVersion>
                 <jackson.version>2.11.4</jackson.version>
             </properties>
             <dependencies>
@@ -352,13 +357,14 @@
                     <scope>provided</scope>
                 </dependency>
             </dependencies>
-            <build>
-                <finalName>videobug-java-agent-${project.version}-jackson-2.11</finalName>
-            </build>
+<!--            <build>-->
+<!--                <finalName>videobug-java-agent-${project.version}-jackson-2.11</finalName>-->
+<!--            </build>-->
         </profile>
         <profile>
             <id>jackson-2.10</id>
             <properties>
+                <projectVersion>jackson-2.10</projectVersion>
                 <jackson.version>2.10.5</jackson.version>
             </properties>
             <dependencies>
@@ -393,13 +399,14 @@
                     <scope>provided</scope>
                 </dependency>
             </dependencies>
-            <build>
-                <finalName>videobug-java-agent-${project.version}-jackson-2.10</finalName>
-            </build>
+<!--            <build>-->
+<!--                <finalName>videobug-java-agent-${project.version}-jackson-2.10</finalName>-->
+<!--            </build>-->
         </profile>
         <profile>
             <id>jackson-2.9</id>
             <properties>
+                <projectVersion>jackson-2.9</projectVersion>
                 <jackson.version>2.9.7</jackson.version>
             </properties>
             <dependencies>
@@ -428,9 +435,9 @@
                     <scope>provided</scope>
                 </dependency>
             </dependencies>
-            <build>
-                <finalName>videobug-java-agent-${project.version}-jackson-2.9</finalName>
-            </build>
+<!--            <build>-->
+<!--                <finalName>videobug-java-agent-${project.version}-jackson-2.9</finalName>-->
+<!--            </build>-->
         </profile>
     </profiles>
 

@@ -129,7 +129,7 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                 configureMethod.invoke(module, featureClass.getDeclaredField("REPLACE_PERSISTENT_COLLECTIONS")
                         .get(null), true);
                 jacksonBuilder.addModule(module);
-                System.out.println("Loaded hibernate module");
+//                System.out.println("Loaded hibernate module");
             } catch (ClassNotFoundException | NoSuchMethodException e) {
 //                e.printStackTrace();
 //                System.out.println("Failed to load hibernate module: " + e.getMessage());

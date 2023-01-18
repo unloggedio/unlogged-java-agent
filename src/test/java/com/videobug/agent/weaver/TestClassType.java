@@ -1,11 +1,9 @@
 package com.videobug.agent.weaver;
 
-import com.videobug.agent.logging.IErrorLogger;
 import com.videobug.agent.logging.IEventLogger;
 import com.videobug.agent.logging.Logging;
 import com.videobug.agent.logging.perthread.PerThreadBinaryFileAggregatedLogger;
 import com.videobug.agent.logging.perthread.RawFileCollector;
-import com.videobug.agent.logging.util.AggregatedFileLogger;
 import com.videobug.agent.logging.util.FileNameGenerator;
 import org.junit.Test;
 
@@ -27,7 +25,7 @@ public class TestClassType {
 
         FileNameGenerator fileNameGenerator = new FileNameGenerator(outputDir, "log-", ".selog");
         RawFileCollector fileCollector = new RawFileCollector(64,
-                new FileNameGenerator(outputDir, "index-", ".zip"), null, weaver);
+                new FileNameGenerator(outputDir, "index-", ".zip"), null, weaver, outputDir);
         PerThreadBinaryFileAggregatedLogger perThreadBinaryFileAggregatedLogger
                 = new PerThreadBinaryFileAggregatedLogger(fileNameGenerator, weaver, fileCollector);
 

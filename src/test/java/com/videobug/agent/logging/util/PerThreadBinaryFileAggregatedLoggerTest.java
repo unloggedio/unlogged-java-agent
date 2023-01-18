@@ -62,7 +62,7 @@ public class PerThreadBinaryFileAggregatedLoggerTest {
         File outputDir = new File(outputDirName);
         outputDir.mkdirs();
         RawFileCollector fileCollector = new RawFileCollector(64,
-                new FileNameGenerator(outputDir, "index-", ".zip"), networkClient, errorLogger);
+                new FileNameGenerator(outputDir, "index-", ".zip"), networkClient, errorLogger, outputDir);
 
         FileNameGenerator fileNameGenerator1 = new FileNameGenerator(outputDir, "index-", ".zip");
 
@@ -118,7 +118,7 @@ public class PerThreadBinaryFileAggregatedLoggerTest {
         File outputDir = new File(outputDirName);
         outputDir.mkdirs();
         RawFileCollector fileCollector = new RawFileCollector(64,
-                new FileNameGenerator(outputDir, "index-", ".zip"), networkClient, errorLogger);
+                new FileNameGenerator(outputDir, "index-", ".zip"), networkClient, errorLogger, outputDir);
 
         FileNameGenerator fileNameGenerator1 = new FileNameGenerator(outputDir, "index-", ".zip");
 
@@ -202,7 +202,8 @@ public class PerThreadBinaryFileAggregatedLoggerTest {
                 config.getSessionId(), params.getAuthToken(), weaver);
 
         FileNameGenerator fileNameGenerator1 = new FileNameGenerator(outputDir, "index-", ".zip");
-        RawFileCollector fileCollector = new RawFileCollector(params.getFilesPerIndex(), fileNameGenerator1, networkClient, weaver);
+        RawFileCollector fileCollector = new RawFileCollector(params.getFilesPerIndex(), fileNameGenerator1, networkClient, weaver,
+                outputDir);
 
         outputDir.mkdirs();
         FileNameGenerator fileNameGenerator = new FileNameGenerator(outputDir, "log-", ".selog");

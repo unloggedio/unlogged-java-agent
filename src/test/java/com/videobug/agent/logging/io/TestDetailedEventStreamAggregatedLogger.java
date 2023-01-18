@@ -38,7 +38,7 @@ public class TestDetailedEventStreamAggregatedLogger {
 
         FileNameGenerator fileNameGenerator = new FileNameGenerator(outputDir, "log-", ".selog");
         RawFileCollector fileCollector = new RawFileCollector(64,
-                new FileNameGenerator(outputDir, "index-", ".zip"), null, weaver);
+                new FileNameGenerator(outputDir, "index-", ".zip"), null, weaver, outputDir);
         PerThreadBinaryFileAggregatedLogger perThreadBinaryFileAggregatedLogger
                 = new PerThreadBinaryFileAggregatedLogger(fileNameGenerator, weaver, fileCollector);
 

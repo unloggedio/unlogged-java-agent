@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>video.bug</groupId>
     <artifactId>java-agent</artifactId>
-    <version>1.8.29-SNAPSHOT-${projectVersion}</version>
+    <version>1.8.30-SNAPSHOT-${projectVersion}</version>
     <distributionManagement>
         <snapshotRepository>
             <id>ossrh</id>
@@ -169,9 +169,6 @@
                     <version>2.57</version>
                 </dependency>
             </dependencies>
-            <build>
-                <finalName>videobug-java-agent-${project.version}-fst</finalName>
-            </build>
         </profile>
         <profile>
             <id>gson</id>

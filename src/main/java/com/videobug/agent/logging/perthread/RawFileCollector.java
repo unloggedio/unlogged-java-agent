@@ -9,11 +9,13 @@ import com.videobug.agent.logging.util.FileNameGenerator;
 import com.videobug.agent.logging.util.NetworkClient;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class RawFileCollector implements Runnable {
     public static final int MAX_CONSECUTIVE_FAILURE_COUNT = 10;
@@ -22,13 +24,16 @@ public class RawFileCollector implements Runnable {
     private final IErrorLogger errorLogger;
     private final BlockingQueue<UploadFile> fileList;
     private final FileNameGenerator indexFileNameGenerator;
-    private final List<byte[]> classWeaves = new LinkedList<>();
+    //    private final List<byte[]> classWeaves = new LinkedList<>();
     private final List<TypeInfoDocument> typeInfoDocuments;
     private final NetworkClient networkClient;
     private final BlockingQueue<TypeInfoDocument> typesToIndex;
     private final LinkedList<ObjectInfoDocument> EMPTY_LIST = new LinkedList<>();
     private final LinkedList<StringInfoDocument> EMPTY_STRING_LIST = new LinkedList<>();
     private final LinkedList<TypeInfoDocument> EMPTY_TYPE_LIST = new LinkedList<>();
+    private final FileOutputStream classWeaveFileRaw;
+    private final File outputDir;
+    private final List<ObjectInfoDocument> objectInfoDocuments = new ArrayList<>();
     public int filesPerArchive = 0;
     private boolean shutdown = false;
     private boolean shutdownComplete = false;
@@ -37,11 +42,13 @@ public class RawFileCollector implements Runnable {
     private int fileCount = 0;
     private BlockingQueue<StringInfoDocument> stringsToIndex;
     private BlockingQueue<ObjectInfoDocument> objectsToIndex;
+    private AtomicBoolean isDraining = new AtomicBoolean(false);
 
     public RawFileCollector(int filesPerArchive,
                             FileNameGenerator indexFileNameGenerator,
-                            NetworkClient networkClient, IErrorLogger errorLogger
-    ) throws IOException {
+                            NetworkClient networkClient,
+                            IErrorLogger errorLogger,
+                            File outputDir) throws IOException {
         this.filesPerArchive = filesPerArchive;
         this.networkClient = networkClient;
         this.indexFileNameGenerator = indexFileNameGenerator;
@@ -51,9 +58,11 @@ public class RawFileCollector implements Runnable {
         typesToIndex = new ArrayBlockingQueue<>(1024 * 1024);
         objectsToIndex = new ArrayBlockingQueue<>(1024 * 1024);
         stringsToIndex = new ArrayBlockingQueue<>(1024 * 1024);
-//        prepareIndexItemBuffers();
+
+        this.outputDir = outputDir;
         errorLogger.log("Created raw file collector, files per archive: " + filesPerArchive);
         finalizeArchiveAndUpload();
+        classWeaveFileRaw = new FileOutputStream(new File(outputDir + "/" + "class.weave.dat"));
 
     }
 
@@ -61,8 +70,8 @@ public class RawFileCollector implements Runnable {
 
         ArchivedIndexWriter archivedIndexWriterOld = archivedIndexWriter;
 
-        archivedIndexWriter = new ArchivedIndexWriter(indexFileNameGenerator.getNextFile(), this.classWeaves,
-                errorLogger);
+        archivedIndexWriter = new ArchivedIndexWriter(indexFileNameGenerator.getNextFile(),
+                outputDir + "/class.weave.dat", errorLogger);
         fileCount = 0;
         if (archivedIndexWriterOld != null) {
             EXECUTOR_SERVICE.submit(() -> {
@@ -74,7 +83,7 @@ public class RawFileCollector implements Runnable {
                     archivedIndexWriterOld.close();
                     errorLogger.log("closed archive: " + archivedIndexWriterOld.getArchiveFile()
                             .getName());
-                }catch (Throwable e) {
+                } catch (Throwable e) {
                     e.printStackTrace();
                 }
 
@@ -96,10 +105,7 @@ public class RawFileCollector implements Runnable {
     public void shutdown() throws IOException {
         shutdown = true;
         errorLogger.log("shutting down raw file collector");
-//        EXECUTOR_SERVICE.submit(() -> drainItemsToIndex(archivedIndexWriter));
         EXECUTOR_SERVICE.shutdown();
-//        upload();
-//        EXECUTOR_SERVICE.awaitTermination(1000, TimeUnit.MILLISECONDS);
     }
 
     public void upload() throws IOException {
@@ -153,21 +159,16 @@ public class RawFileCollector implements Runnable {
     }
 
     public void drainItemsToIndex(IndexOutputStream writer) {
-
-        List<ObjectInfoDocument> objectInfoDocuments = EMPTY_LIST;
+        if (isDraining.compareAndSet(false, true)) {
+            return;
+        }
+        errorLogger.log("Drain items to index: ");
         List<StringInfoDocument> stringInfoDocuments = new ArrayList<>();
 
 
-//        System.err.println("Before drain got " + objectsToIndex.size() + " new object info");
-//        BlockingQueue<ObjectInfoDocument> objectsToIndexRef = objectsToIndex;
-//        BlockingQueue<TypeInfoDocument> typesToIndexRef = typesToIndex;
-//        BlockingQueue<StringInfoDocument> stringsToIndexRef = stringsToIndex;
-
-//        prepareIndexItemBuffers();
-
         objectsToIndex.drainTo(objectInfoDocuments);
 
-        List<TypeInfoDocument> newTypes = new LinkedList<>();
+        List<TypeInfoDocument> newTypes = new ArrayList<>();
         typesToIndex.drainTo(newTypes);
 
         typeInfoDocuments.addAll(newTypes);
@@ -178,10 +179,9 @@ public class RawFileCollector implements Runnable {
             errorLogger.log("no new data to record, return");
             return;
         }
-
-//        prepareIndexItemBuffers();
         writer.drainQueueToIndex(objectInfoDocuments, EMPTY_TYPE_LIST, stringInfoDocuments);
 
+        isDraining.set(false);
 
     }
 
@@ -195,8 +195,8 @@ public class RawFileCollector implements Runnable {
     public void run() {
         try {
             while (true) {
-                errorLogger.log("run raw file collector cron: " + shutdown);
-//                long start = System.currentTimeMillis();
+                long start = System.currentTimeMillis();
+                errorLogger.log(start + " : run raw file collector cron: " + shutdown);
                 if (shutdown) {
                     return;
                 }
@@ -206,6 +206,7 @@ public class RawFileCollector implements Runnable {
                 } catch (IOException e) {
                     errorLogger.log(e);
                 }
+                Thread.sleep(1000);
 //                long timeToProcessFile = System.currentTimeMillis() - start;
 //            errorLogger.log("adding file took [" + timeToProcessFile + "] ms");
             }
@@ -239,8 +240,12 @@ public class RawFileCollector implements Runnable {
         typesToIndex.offer(new TypeInfoDocument(typeId, typeName, typeInfoBytes));
     }
 
-    public void addClassWeaveInfo(byte[] byteArray) {
-        classWeaves.add(byteArray);
+    synchronized public void addClassWeaveInfo(byte[] byteArray) {
+        try {
+            classWeaveFileRaw.write(byteArray);
+        } catch (IOException e) {
+            errorLogger.log("Failed to write class weave information: " + e.getMessage());
+        }
     }
 
     public BlockingQueue<UploadFile> getFileQueue() {

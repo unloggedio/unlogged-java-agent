@@ -72,9 +72,8 @@ public class RuntimeWeaver implements ClassFileTransformer {
                             FileNameGenerator fileNameGenerator1 = new FileNameGenerator(outputDir, "index-", ".zip");
                             RawFileCollector fileCollector =
                                     new RawFileCollector(params.getFilesPerIndex(), fileNameGenerator1, networkClient,
-                                            weaver);
+                                            weaver, outputDir);
 
-                            outputDir.mkdirs();
                             FileNameGenerator fileNameGenerator = new FileNameGenerator(outputDir, "log-", ".selog");
                             PerThreadBinaryFileAggregatedLogger perThreadBinaryFileAggregatedLogger
                                     = new PerThreadBinaryFileAggregatedLogger(fileNameGenerator, weaver, fileCollector);
@@ -93,9 +92,8 @@ public class RuntimeWeaver implements ClassFileTransformer {
                                     new FileNameGenerator(outputDir, "index-", ".zip");
                             RawFileCollector fileCollector1 =
                                     new RawFileCollector(params.getFilesPerIndex(), fileNameGenerator2, networkClient1,
-                                            weaver);
+                                            weaver, outputDir);
 
-                            outputDir.mkdirs();
                             FileNameGenerator fileNameGenerator3 =
                                     new FileNameGenerator(outputDir, "log-", ".selog");
                             PerThreadBinaryFileAggregatedLogger perThreadBinaryFileAggregatedLogger1

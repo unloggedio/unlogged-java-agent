@@ -160,6 +160,7 @@
         <profile>
             <id>fst</id>
             <properties>
+                <projectVersion>fst</projectVersion>
                 <fst.version>2.57</fst.version>
             </properties>
             <dependencies>
@@ -169,9 +170,9 @@
                     <version>2.57</version>
                 </dependency>
             </dependencies>
-            <build>
-                <finalName>videobug-java-agent-${project.version}-fst</finalName>
-            </build>
+<!--            <build>-->
+<!--                <finalName>videobug-java-agent-${project.version}-fst</finalName>-->
+<!--            </build>-->
         </profile>
         <profile>
             <id>gson</id>

@@ -20,6 +20,7 @@ import java.nio.file.Path;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.locks.Lock;
@@ -87,7 +88,8 @@ public class ArchivedIndexWriter implements IndexOutputStream {
 
     private void initialiseIndexes() {
 
-        String archiveName = currentArchiveFile.getName().split(".zip")[0];
+        String archiveName = currentArchiveFile.getName()
+                .split(".zip")[0];
 
         File typeIndexFile = new File(outputDir + archiveName + "-" + INDEX_TYPE_DAT_FILE);
         File stringIndexFile = new File(outputDir + archiveName + "-" + INDEX_STRING_DAT_FILE);
@@ -120,8 +122,8 @@ public class ArchivedIndexWriter implements IndexOutputStream {
     }
 
     public void drainQueueToIndex(
-            List<ObjectInfoDocument> objectsToIndex,
-            List<TypeInfoDocument> typesToIndex,
+            Queue<ObjectInfoDocument> objectsToIndex,
+            Queue<TypeInfoDocument> typesToIndex,
             List<StringInfoDocument> stringsToIndex
     ) {
         errorLogger.log("drain queue to index: " + currentArchiveFile.getName() + ":"
@@ -153,17 +155,6 @@ public class ArchivedIndexWriter implements IndexOutputStream {
         return fileListToUpload.size();
     }
 
-    public void indexObjectTypeEntry(long objectId, int typeId) {
-        objectsToIndex.offer(new ObjectInfoDocument(objectId, typeId));
-    }
-
-    public void indexTypeEntry(int id, String typeName, byte[] typeInfoBytes) {
-        typesToIndex.offer(new TypeInfoDocument(id, typeName, typeInfoBytes));
-    }
-
-    public void indexStringEntry(long id, String string) {
-        stringsToIndex.offer(new StringInfoDocument(id, string));
-    }
 
     public void completeArchive(
             BlockingQueue<StringInfoDocument> stringsToIndexTemp,
@@ -245,8 +236,8 @@ public class ArchivedIndexWriter implements IndexOutputStream {
                 outputStream.flush();
                 archivedIndexOutputStream.closeEntry();
 
-                List<ObjectInfoDocument> pendingObjects = new LinkedList<>();
-                List<TypeInfoDocument> pendingTypes = new LinkedList<>();
+                Queue<ObjectInfoDocument> pendingObjects = new ArrayBlockingQueue<>(objectsToIndexTemp.size() + 1);
+                Queue<TypeInfoDocument> pendingTypes = new ArrayBlockingQueue<>(typesToIndexTemp.size() + 1);
                 List<StringInfoDocument> pendingStrings = new LinkedList<>();
                 stringsToIndexTemp.drainTo(pendingStrings);
                 objectsToIndexTemp.drainTo(pendingObjects);
@@ -264,8 +255,7 @@ public class ArchivedIndexWriter implements IndexOutputStream {
                 Path stringIndexFilePath = FileSystems.getDefault()
                         .getPath(outputDir + currentArchiveName + "-" + INDEX_STRING_DAT_FILE);
                 Files.copy(stringIndexFilePath, archivedIndexOutputStream);
-                stringIndexFilePath.toFile()
-                        .delete();
+                stringIndexFilePath.toFile().delete();
                 archivedIndexOutputStream.closeEntry();
 
                 ZipEntry typeIndexEntry = new ZipEntry(INDEX_TYPE_DAT_FILE);
@@ -273,8 +263,7 @@ public class ArchivedIndexWriter implements IndexOutputStream {
                 Path typeIndexFilePath = FileSystems.getDefault()
                         .getPath(outputDir + currentArchiveName + "-" + INDEX_TYPE_DAT_FILE);
                 Files.copy(typeIndexFilePath, archivedIndexOutputStream);
-                typeIndexFilePath.toFile()
-                        .delete();
+                typeIndexFilePath.toFile().delete();
                 archivedIndexOutputStream.closeEntry();
 
                 ZipEntry objectIndexEntry = new ZipEntry(INDEX_OBJECT_DAT_FILE);
@@ -282,8 +271,7 @@ public class ArchivedIndexWriter implements IndexOutputStream {
                 Path objectIndexFilePath = FileSystems.getDefault()
                         .getPath(outputDir + currentArchiveName + "-" + INDEX_OBJECT_DAT_FILE);
                 Files.copy(objectIndexFilePath, archivedIndexOutputStream);
-                objectIndexFilePath.toFile()
-                        .delete();
+                objectIndexFilePath.toFile().delete();
                 archivedIndexOutputStream.closeEntry();
 
             } catch (IOException e) {

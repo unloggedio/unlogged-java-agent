@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -25,15 +26,15 @@ public class RawFileCollector implements Runnable {
     private final BlockingQueue<UploadFile> fileList;
     private final FileNameGenerator indexFileNameGenerator;
     //    private final List<byte[]> classWeaves = new LinkedList<>();
-    private final List<TypeInfoDocument> typeInfoDocuments;
+    private final Queue<TypeInfoDocument> typeInfoDocuments;
     private final NetworkClient networkClient;
     private final BlockingQueue<TypeInfoDocument> typesToIndex;
-    private final LinkedList<ObjectInfoDocument> EMPTY_LIST = new LinkedList<>();
+    private final Queue<ObjectInfoDocument> EMPTY_LIST = new ArrayBlockingQueue<>(1);
     private final LinkedList<StringInfoDocument> EMPTY_STRING_LIST = new LinkedList<>();
     private final LinkedList<TypeInfoDocument> EMPTY_TYPE_LIST = new LinkedList<>();
     private final FileOutputStream classWeaveFileRaw;
     private final File outputDir;
-    private final List<ObjectInfoDocument> objectInfoDocuments = new ArrayList<>();
+    private final Queue<ObjectInfoDocument> objectInfoDocuments = new ArrayBlockingQueue<>(1024 * 1024);
     public int filesPerArchive = 0;
     private boolean shutdown = false;
     private boolean shutdownComplete = false;
@@ -54,7 +55,7 @@ public class RawFileCollector implements Runnable {
         this.indexFileNameGenerator = indexFileNameGenerator;
         this.errorLogger = errorLogger;
         this.fileList = new ArrayBlockingQueue<>(1024 * 128);
-        this.typeInfoDocuments = new LinkedList<>();
+        this.typeInfoDocuments = new ArrayBlockingQueue<>(1024 * 1024);
         typesToIndex = new ArrayBlockingQueue<>(1024 * 1024);
         objectsToIndex = new ArrayBlockingQueue<>(1024 * 1024);
         stringsToIndex = new ArrayBlockingQueue<>(1024 * 1024);
@@ -188,7 +189,6 @@ public class RawFileCollector implements Runnable {
     void prepareIndexItemBuffers() {
         objectsToIndex = new ArrayBlockingQueue<>(1024 * 1024);
         stringsToIndex = new ArrayBlockingQueue<>(1024 * 1024);
-//        typesToIndex = new ArrayBlockingQueue<>(1024 * 1024);
     }
 
     @Override

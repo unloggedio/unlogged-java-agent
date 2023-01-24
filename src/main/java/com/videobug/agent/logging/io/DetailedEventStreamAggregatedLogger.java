@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
 import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
 import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.google.gson.Gson;
 import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.EventType;
@@ -175,6 +176,9 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                      | NoSuchMethodException e) {
                 throw new RuntimeException(e);
             }
+
+
+
             objectMapper = jacksonBuilder.build();
             kryo = null;
             fstObjectMapper = null;

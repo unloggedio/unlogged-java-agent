@@ -2,7 +2,6 @@ package com.videobug.agent.logging.io;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Output;
-import com.fasterxml.jackson.databind.Module;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
@@ -154,7 +153,7 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                 //checks for presence of this module class, if not present throws exception
                 Class<?> jdk8Module = Class.forName("com.fasterxml.jackson.datatype.jdk8.Jdk8Module");
                 jacksonBuilder.addModule((Module) jdk8Module.getDeclaredConstructor().newInstance());
-            }catch (ClassNotFoundException e){
+            } catch (ClassNotFoundException e) {
                 // jdk8 module not found
             } catch (InvocationTargetException
                      | InstantiationException
@@ -178,6 +177,22 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                      | NoSuchMethodException e) {
                 throw new RuntimeException(e);
             }
+
+            try {
+                Class<?> jstJavaTimeModule = Class.forName("com.fasterxml.jackson.datatype.jsr310.JavaTimeModule");
+                objectMapper.registerModule((Module) jstJavaTimeModule.getDeclaredConstructor()
+                        .newInstance());
+            } catch (ClassNotFoundException e) {
+                // Java Time Module Not Found
+//                e.printStackTrace();
+            } catch (InvocationTargetException
+                     | InstantiationException
+                     | IllegalAccessException
+                     | NoSuchMethodException e) {
+                throw new RuntimeException(e);
+            }
+
+
             objectMapper = jacksonBuilder.build();
             kryo = null;
             gson = null;

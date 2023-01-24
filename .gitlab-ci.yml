@@ -73,15 +73,16 @@ deploy:jdk8:
     - 'cp target/*.jar build/'
     - 'mvn $MAVEN_CLI_OPTS -DskipTests clean package -Pgson,fst,jackson-2.11'
     - 'cp target/*.jar build/'
-    - 'cp src/main/resources/jackson/2.10/DetailedEventStreamAggregatedLogger.java 
-    src/main/java/com/videobug/agent/logging/io/DetailedEventStreamAggregatedLogger.java'
+    - 'cp src/main/resources/jackson/2.10/DetailedEventStreamAggregatedLogger.java src/main/java/com/videobug/agent/logging/io/DetailedEventStreamAggregatedLogger.java'
     - 'mvn $MAVEN_CLI_OPTS -DskipTests clean package -Pgson,fst,jackson-2.10'
     - 'cp target/*.jar build/'
     - 'cp src/main/resources/jackson/2.9/DetailedEventStreamAggregatedLogger.java src/main/java/com/videobug/agent/logging/io/DetailedEventStreamAggregatedLogger.java'
     - 'mvn $MAVEN_CLI_OPTS -DskipTests clean package -Pgson,fst,jackson-2.9'
     - 'cp target/*.jar build/'
-    - 'cp src/main/resources/gson/DetailedEventStreamAggregatedLogger.java 
-    src/main/java/com/videobug/agent/logging/io/DetailedEventStreamAggregatedLogger.java'
+    - 'cp src/main/resources/jackson/2.8/DetailedEventStreamAggregatedLogger.java src/main/java/com/videobug/agent/logging/io/DetailedEventStreamAggregatedLogger.java'
+    - 'mvn $MAVEN_CLI_OPTS -DskipTests clean package -Pgson,fst,jackson-2.8'
+    - 'cp target/*.jar build/'
+    - 'cp src/main/resources/gson/DetailedEventStreamAggregatedLogger.java src/main/java/com/videobug/agent/logging/io/DetailedEventStreamAggregatedLogger.java'
     - 'mvn $MAVEN_CLI_OPTS -DskipTests clean package -Pgson,fst,jackson-2.13'
     - 'mv target/videobug-java-agent-*-SNAPSHOT-jackson-2.13.jar build/videobug-java-agent-SNAPSHOT-gson.jar'
   only:

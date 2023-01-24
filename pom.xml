@@ -481,37 +481,37 @@
             <id>jackson-2.8</id>
             <properties>
                 <projectVersion>jackson-2.8</projectVersion>
-                <jackson.version>2.8.3</jackson.version>
+                <jackson.version>2.8.11</jackson.version>
             </properties>
             <dependencies>
                 <dependency>
                     <groupId>com.fasterxml.jackson.core</groupId>
                     <artifactId>jackson-databind</artifactId>
-                    <version>2.8.3</version>
+                    <version>2.8.11</version>
                     <scope>provided</scope>
                 </dependency>
                 <dependency>
                     <groupId>com.fasterxml.jackson.core</groupId>
                     <artifactId>jackson-core</artifactId>
-                    <version>2.8.3</version>
+                    <version>2.8.11</version>
                     <scope>provided</scope>
                 </dependency>
                 <dependency>
                     <groupId>com.fasterxml.jackson.datatype</groupId>
                     <artifactId>jackson-datatype-hibernate5</artifactId>
-                    <version>2.8.3</version>
+                    <version>2.8.11</version>
                     <scope>provided</scope>
                 </dependency>
                 <dependency>
                     <groupId>com.fasterxml.jackson.datatype</groupId>
                     <artifactId>jackson-datatype-jdk8</artifactId>
-                    <version>2.8.3</version>
+                    <version>2.8.11</version>
                     <scope>provided</scope>
                 </dependency>
                 <dependency>
                     <groupId>com.fasterxml.jackson.datatype</groupId>
                     <artifactId>jackson-datatype-jsr310</artifactId>
-                    <version>2.8.3</version>
+                    <version>2.8.11</version>
                     <scope>provided</scope>
                 </dependency>
             </dependencies>

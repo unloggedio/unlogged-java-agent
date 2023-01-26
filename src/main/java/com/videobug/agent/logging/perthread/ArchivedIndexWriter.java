@@ -255,7 +255,8 @@ public class ArchivedIndexWriter implements IndexOutputStream {
                 Path stringIndexFilePath = FileSystems.getDefault()
                         .getPath(outputDir + currentArchiveName + "-" + INDEX_STRING_DAT_FILE);
                 Files.copy(stringIndexFilePath, archivedIndexOutputStream);
-                stringIndexFilePath.toFile().delete();
+                stringIndexFilePath.toFile()
+                        .delete();
                 archivedIndexOutputStream.closeEntry();
 
                 ZipEntry typeIndexEntry = new ZipEntry(INDEX_TYPE_DAT_FILE);
@@ -263,7 +264,8 @@ public class ArchivedIndexWriter implements IndexOutputStream {
                 Path typeIndexFilePath = FileSystems.getDefault()
                         .getPath(outputDir + currentArchiveName + "-" + INDEX_TYPE_DAT_FILE);
                 Files.copy(typeIndexFilePath, archivedIndexOutputStream);
-                typeIndexFilePath.toFile().delete();
+                typeIndexFilePath.toFile()
+                        .delete();
                 archivedIndexOutputStream.closeEntry();
 
                 ZipEntry objectIndexEntry = new ZipEntry(INDEX_OBJECT_DAT_FILE);
@@ -271,7 +273,8 @@ public class ArchivedIndexWriter implements IndexOutputStream {
                 Path objectIndexFilePath = FileSystems.getDefault()
                         .getPath(outputDir + currentArchiveName + "-" + INDEX_OBJECT_DAT_FILE);
                 Files.copy(objectIndexFilePath, archivedIndexOutputStream);
-                objectIndexFilePath.toFile().delete();
+                objectIndexFilePath.toFile()
+                        .delete();
                 archivedIndexOutputStream.closeEntry();
 
             } catch (IOException e) {

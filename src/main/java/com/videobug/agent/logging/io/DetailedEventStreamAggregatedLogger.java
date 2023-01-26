@@ -60,14 +60,14 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
             ThreadLocal.withInitial(ByteArrayOutputStream::new);
     private final ThreadLocal<Boolean> isRecording = ThreadLocal.withInitial(() -> false);
     final private boolean serializeValues = true;
-    private final ThreadLocal<Output> outputContainer = ThreadLocal.withInitial(
-            new Supplier<Output>() {
-                @Override
-                public Output get() {
-                    return new Output(threadOutputBuffer.get());
-                }
-            }
-    );
+//    private final ThreadLocal<Output> outputContainer = ThreadLocal.withInitial(
+//            new Supplier<Output>() {
+//                @Override
+//                public Output get() {
+//                    return new Output(threadOutputBuffer.get());
+//                }
+//            }
+//    );
     private final Map<String, WeaveLog> classMap = new HashMap<>();
     private final Set<Integer> probesToRecord = new HashSet<>();
     private final Map<Integer, DataInfo> callProbes = new HashMap<>();
@@ -115,19 +115,16 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
             jacksonBuilder.defaultDateFormat(df);
             jacksonBuilder.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
             jacksonBuilder.configure(SerializationFeature.FAIL_ON_SELF_REFERENCES, false);
-            jacksonBuilder.configure(SerializationFeature.WRITE_SELF_REFERENCES_AS_NULL, true);
+//            jacksonBuilder.configure(SerializationFeature.WRITE_SELF_REFERENCES_AS_NULL, true);
 
             try {
                 Class<?> hibernateModule = Class.forName("com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module");
                 Module module = (Module) hibernateModule.getDeclaredConstructor()
                         .newInstance();
-                Class<?> featureClass = Class.forName(
-                        "com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module$Feature");
+                Class<?> featureClass = Class.forName("com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module$Feature");
                 Method configureMethod = hibernateModule.getMethod("configure", featureClass, boolean.class);
-                configureMethod.invoke(module, featureClass.getDeclaredField("FORCE_LAZY_LOADING")
-                        .get(null), true);
-                configureMethod.invoke(module, featureClass.getDeclaredField("REPLACE_PERSISTENT_COLLECTIONS")
-                        .get(null), true);
+                configureMethod.invoke(module, featureClass.getDeclaredField("FORCE_LAZY_LOADING").get(null), true);
+                configureMethod.invoke(module, featureClass.getDeclaredField("REPLACE_PERSISTENT_COLLECTIONS").get(null), true);
                 jacksonBuilder.addModule(module);
 //                System.out.println("Loaded hibernate module");
             } catch (ClassNotFoundException | NoSuchMethodException e) {
@@ -165,7 +162,6 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                          | NoSuchMethodException e) {
                     throw new RuntimeException(e);
                 }
-
             }
 
 
@@ -336,12 +332,12 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                 } else if (SERIALIZATION_MODE == SerializationMode.KRYO) {
                     // # using kryo
                     // ################ USING KRYO ######################
-                    Output output = outputContainer.get();
-                    ByteArrayOutputStream buffer = (ByteArrayOutputStream) output.getOutputStream();
-                    output.reset();
-                    kryo.writeObject(output, value);
-                    output.flush();
-                    bytes = output.toBytes();
+//                    Output output = outputContainer.get();
+//                    ByteArrayOutputStream buffer = (ByteArrayOutputStream) output.getOutputStream();
+//                    output.reset();
+//                    kryo.writeObject(output, value);
+//                    output.flush();
+//                    bytes = output.toBytes();
                     // ######################################
                 }
 

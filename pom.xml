@@ -116,19 +116,6 @@
                     </execution>
                 </executions>
             </plugin>
-            <!--            <plugin>-->
-            <!--                <groupId>org.apache.maven.plugins</groupId>-->
-            <!--                <artifactId>maven-javadoc-plugin</artifactId>-->
-            <!--                <version>2.9.1</version>-->
-            <!--                <executions>-->
-            <!--                    <execution>-->
-            <!--                        <id>attach-javadocs</id>-->
-            <!--                        <goals>-->
-            <!--                            <goal>jar</goal>-->
-            <!--                        </goals>-->
-            <!--                    </execution>-->
-            <!--                </executions>-->
-            <!--            </plugin>-->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-release-plugin</artifactId>
@@ -170,9 +157,6 @@
                     <version>2.57</version>
                 </dependency>
             </dependencies>
-<!--            <build>-->
-<!--                <finalName>videobug-java-agent-${project.version}-fst</finalName>-->
-<!--            </build>-->
         </profile>
         <profile>
             <id>gson</id>
@@ -187,9 +171,6 @@
                     <version>2.10</version>
                 </dependency>
             </dependencies>
-<!--            <build>-->
-<!--                <finalName>videobug-java-agent-${project.version}-gson</finalName>-->
-<!--            </build>-->
         </profile>
         <profile>
             <id>jackson-2.14</id>
@@ -235,9 +216,6 @@
                     <scope>provided</scope>
                 </dependency>
             </dependencies>
-<!--            <build>-->
-<!--                <finalName>videobug-java-agent-${project.version}-jackson-2.14</finalName>-->
-<!--            </build>-->
         </profile>
 
         <profile>

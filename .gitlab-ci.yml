@@ -82,7 +82,7 @@ deploy:jdk8:
     - 'mvn $MAVEN_CLI_OPTS -DskipTests clean package -Pgson,fst,jackson-2.8'
     - 'cp target/*.jar build/'
     - 'cp src/main/resources/gson/DetailedEventStreamAggregatedLogger.java src/main/java/com/videobug/agent/logging/io/DetailedEventStreamAggregatedLogger.java'
-    - 'mvn $MAVEN_CLI_OPTS -DskipTests clean package -Pgson,fst,jackson-2.13'
+    - 'mvn $MAVEN_CLI_OPTS -DskipTests clean package -Pgson,fst'
     - 'mv target/videobug-java-agent-*-SNAPSHOT-jackson-2.13.jar build/videobug-java-agent-SNAPSHOT-gson.jar'
   only:
     variables:

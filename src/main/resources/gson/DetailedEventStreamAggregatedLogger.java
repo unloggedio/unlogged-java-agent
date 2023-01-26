@@ -2,13 +2,6 @@ package com.videobug.agent.logging.io;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Output;
-import com.fasterxml.jackson.databind.Module;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
-import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
-import com.fasterxml.jackson.databind.json.JsonMapper;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.gson.Gson;
 import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.DataInfo;
@@ -78,7 +71,6 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
     //    private final Set<String> classesToIgnore = new HashSet<>();
     private final Kryo kryo;
     private final Gson gson;
-    private final ObjectMapper objectMapper;
 
     /**
      * Create an instance of logging object.
@@ -104,12 +96,10 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
             kryo.register(LinkedHashMap.class);
             kryo.register(LinkedHashSet.class);
             gson = null;
-            objectMapper = null;
             fstObjectMapper = null;
         } else if (SERIALIZATION_MODE == SerializationMode.GSON) {
             gson = new Gson();
             kryo = null;
-            objectMapper = null;
             fstObjectMapper = null;
         } else if (SERIALIZATION_MODE == SerializationMode.FST) {
 
@@ -137,12 +127,10 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
             fstObjectMapper = defaultConfigMapper;
             kryo = null;
             gson = null;
-            objectMapper = null;
         } else {
             fstObjectMapper = null;
             kryo = null;
             gson = null;
-            objectMapper = null;
         }
 
 
@@ -248,19 +236,6 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                         System.err.println(
                                 "[" + dataId + "] record serialized value for probe [" + value.getClass() + "] [" + objectId + "] ->" +
                                         " " + jsonValue);
-                    }
-                    // ######################################
-                } else if (SERIALIZATION_MODE == SerializationMode.JACKSON) {
-//                    System.err.println("To serialize class: " + className);
-                    // # using gson
-//                    objectMapper.writeValue(outputStream, value);
-//                    outputStream.flush();
-//                    bytes = outputStream.toByteArray();
-                    bytes = objectMapper.writeValueAsBytes(value);
-                    if (DEBUG) {
-                        System.err.println(
-                                "[" + dataId + "] record serialized value for probe [" + value.getClass() + "] [" + objectId + "] ->" +
-                                        " " + new String(bytes));
                     }
                     // ######################################
                 } else if (SERIALIZATION_MODE == SerializationMode.FST) {

@@ -7,7 +7,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
 import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
-import com.google.gson.Gson;
 import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.EventType;
@@ -76,7 +75,6 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
             ThreadLocal.withInitial(() -> new ByteArrayOutputStream(1_000_000));
     //    private final Set<String> classesToIgnore = new HashSet<>();
     private final Kryo kryo;
-    private final Gson gson;
     private final ObjectMapper objectMapper;
 
     /**
@@ -101,12 +99,6 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
             kryo.register(byte[].class);
             kryo.register(LinkedHashMap.class);
             kryo.register(LinkedHashSet.class);
-            gson = null;
-            objectMapper = null;
-            fstObjectMapper = null;
-        } else if (SERIALIZATION_MODE == SerializationMode.GSON) {
-            gson = new Gson();
-            kryo = null;
             objectMapper = null;
             fstObjectMapper = null;
         } else if (SERIALIZATION_MODE == SerializationMode.JACKSON) {
@@ -184,7 +176,6 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
             }
 
             kryo = null;
-            gson = null;
             fstObjectMapper = null;
         } else if (SERIALIZATION_MODE == SerializationMode.FST) {
 
@@ -211,12 +202,10 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 
             fstObjectMapper = defaultConfigMapper;
             kryo = null;
-            gson = null;
             objectMapper = null;
         } else {
             fstObjectMapper = null;
             kryo = null;
-            gson = null;
             objectMapper = null;
         }
 
@@ -282,7 +271,6 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                     className = "";
                 }
 
-                // ############### USING GSON #######################
 //                System.out.println("[" + dataId + "] Serialize class: " + value.getClass()
 //                        .getName());
                 if (value instanceof Class) {
@@ -315,19 +303,8 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                 ) {
 //                    System.err.println("Removing probe: " + dataId);
                     probesToRecord.remove(dataId);
-                } else if (SERIALIZATION_MODE == SerializationMode.GSON) {
-                    // # using gson
-                    String jsonValue = gson.toJson(value);
-                    bytes = jsonValue.getBytes();
-                    if (DEBUG) {
-                        System.err.println(
-                                "[" + dataId + "] record serialized value for probe [" + value.getClass() + "] [" + objectId + "] ->" +
-                                        " " + jsonValue);
-                    }
-                    // ######################################
                 } else if (SERIALIZATION_MODE == SerializationMode.JACKSON) {
 //                    System.err.println("To serialize class: " + className);
-                    // # using gson
 //                    objectMapper.writeValue(outputStream, value);
 //                    outputStream.flush();
 //                    bytes = outputStream.toByteArray();
@@ -339,7 +316,6 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                     }
                     // ######################################
                 } else if (SERIALIZATION_MODE == SerializationMode.FST) {
-                    // # using gson
 //                    objectMapper.writeValue(outputStream, value);
 //                    outputStream.flush();
 //                    bytes = outputStream.toByteArray();

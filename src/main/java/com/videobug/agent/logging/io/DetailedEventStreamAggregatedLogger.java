@@ -8,7 +8,6 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
 import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
 import com.fasterxml.jackson.databind.json.JsonMapper;
-import com.google.gson.Gson;
 import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.EventType;
@@ -268,7 +267,6 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                     className = "";
                 }
 
-                // ############### USING GSON #######################
 //                System.out.println("[" + dataId + "] Serialize class: " + value.getClass()
 //                        .getName());
                 if (value instanceof Class) {
@@ -303,7 +301,6 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                     probesToRecord.remove(dataId);
                 } else if (SERIALIZATION_MODE == SerializationMode.JACKSON) {
 //                    System.err.println("To serialize class: " + className);
-                    // # using gson
 //                    objectMapper.writeValue(outputStream, value);
 //                    outputStream.flush();
 //                    bytes = outputStream.toByteArray();
@@ -315,7 +312,6 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                     }
                     // ######################################
                 } else if (SERIALIZATION_MODE == SerializationMode.FST) {
-                    // # using gson
 //                    objectMapper.writeValue(outputStream, value);
 //                    outputStream.flush();
 //                    bytes = outputStream.toByteArray();

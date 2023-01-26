@@ -2,12 +2,12 @@ package com.videobug.agent.logging.io;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Output;
+import com.fasterxml.jackson.databind.Module;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
 import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
 import com.fasterxml.jackson.databind.json.JsonMapper;
-import com.google.gson.Gson;
 import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.EventType;
@@ -76,7 +76,6 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
             ThreadLocal.withInitial(() -> new ByteArrayOutputStream(1_000_000));
     //    private final Set<String> classesToIgnore = new HashSet<>();
     private final Kryo kryo;
-    private final Gson gson;
     private final ObjectMapper objectMapper;
 
     /**
@@ -101,12 +100,6 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
             kryo.register(byte[].class);
             kryo.register(LinkedHashMap.class);
             kryo.register(LinkedHashSet.class);
-            gson = null;
-            objectMapper = null;
-            fstObjectMapper = null;
-        } else if (SERIALIZATION_MODE == SerializationMode.GSON) {
-            gson = new Gson();
-            kryo = null;
             objectMapper = null;
             fstObjectMapper = null;
         } else if (SERIALIZATION_MODE == SerializationMode.JACKSON) {
@@ -122,7 +115,7 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
             jacksonBuilder.defaultDateFormat(df);
             jacksonBuilder.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
             jacksonBuilder.configure(SerializationFeature.FAIL_ON_SELF_REFERENCES, false);
-//            jacksonBuilder.configure(SerializationFeature.WRITE_SELF_REFERENCES_AS_NULL, true);
+            jacksonBuilder.configure(SerializationFeature.WRITE_SELF_REFERENCES_AS_NULL, true);
 
             try {
                 Class<?> hibernateModule = Class.forName("com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module");
@@ -149,53 +142,32 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                 throw new RuntimeException(e);
             }
 
-            try {
-                //checks for presence of this module class, if not present throws exception
-                Class<?> jdk8Module = Class.forName("com.fasterxml.jackson.datatype.jdk8.Jdk8Module");
-                jacksonBuilder.addModule((Module) jdk8Module.getDeclaredConstructor().newInstance());
-            } catch (ClassNotFoundException e) {
-                // jdk8 module not found
-            } catch (InvocationTargetException
-                     | InstantiationException
-                     | IllegalAccessException
-                     | NoSuchMethodException e) {
-                throw new RuntimeException(e);
+            // potentially
+//            jacksonBuilder.findAndAddModules();
+            List<String> jacksonModules = Arrays.asList(
+                    "com.fasterxml.jackson.datatype.jdk8.Jdk8Module",
+                    "com.fasterxml.jackson.datatype.jsr310.JavaTimeModule",
+                    "com.fasterxml.jackson.datatype.joda.JodaModule"
+            );
+            for (String jacksonModule : jacksonModules) {
+                try {
+                    //checks for presence of this module class, if not present throws exception
+                    Class<?> jdk8Module = Class.forName(jacksonModule);
+                    jacksonBuilder.addModule((Module) jdk8Module.getDeclaredConstructor().newInstance());
+                } catch (ClassNotFoundException e) {
+                    // jdk8 module not found
+                } catch (InvocationTargetException
+                         | InstantiationException
+                         | IllegalAccessException
+                         | NoSuchMethodException e) {
+                    throw new RuntimeException(e);
+                }
             }
 
-
-            try {
-                Class<?> jodaModule = Class.forName("com.fasterxml.jackson.datatype.joda.JodaModule");
-                jacksonBuilder.addModule((Module) jodaModule.getDeclaredConstructor().newInstance());
-//                System.err.println("Loaded JodaModule");
-
-            } catch (ClassNotFoundException e) {
-                // joda not present
-//                e.printStackTrace();
-            } catch (InvocationTargetException
-                     | InstantiationException
-                     | IllegalAccessException
-                     | NoSuchMethodException e) {
-                throw new RuntimeException(e);
-            }
-
-            try {
-                Class<?> jstJavaTimeModule = Class.forName("com.fasterxml.jackson.datatype.jsr310.JavaTimeModule");
-                objectMapper.registerModule((Module) jstJavaTimeModule.getDeclaredConstructor()
-                        .newInstance());
-            } catch (ClassNotFoundException e) {
-                // Java Time Module Not Found
-//                e.printStackTrace();
-            } catch (InvocationTargetException
-                     | InstantiationException
-                     | IllegalAccessException
-                     | NoSuchMethodException e) {
-                throw new RuntimeException(e);
-            }
 
 
             objectMapper = jacksonBuilder.build();
             kryo = null;
-            gson = null;
             fstObjectMapper = null;
         } else if (SERIALIZATION_MODE == SerializationMode.FST) {
 
@@ -222,12 +194,10 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 
             fstObjectMapper = defaultConfigMapper;
             kryo = null;
-            gson = null;
             objectMapper = null;
         } else {
             fstObjectMapper = null;
             kryo = null;
-            gson = null;
             objectMapper = null;
         }
 
@@ -293,7 +263,6 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                     className = "";
                 }
 
-                // ############### USING GSON #######################
 //                System.out.println("[" + dataId + "] Serialize class: " + value.getClass()
 //                        .getName());
                 if (value instanceof Class) {
@@ -326,19 +295,8 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                 ) {
 //                    System.err.println("Removing probe: " + dataId);
                     probesToRecord.remove(dataId);
-                } else if (SERIALIZATION_MODE == SerializationMode.GSON) {
-                    // # using gson
-                    String jsonValue = gson.toJson(value);
-                    bytes = jsonValue.getBytes();
-                    if (DEBUG) {
-                        System.err.println(
-                                "[" + dataId + "] record serialized value for probe [" + value.getClass() + "] [" + objectId + "] ->" +
-                                        " " + jsonValue);
-                    }
-                    // ######################################
                 } else if (SERIALIZATION_MODE == SerializationMode.JACKSON) {
 //                    System.err.println("To serialize class: " + className);
-                    // # using gson
 //                    objectMapper.writeValue(outputStream, value);
 //                    outputStream.flush();
 //                    bytes = outputStream.toByteArray();
@@ -350,7 +308,6 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                     }
                     // ######################################
                 } else if (SERIALIZATION_MODE == SerializationMode.FST) {
-                    // # using gson
 //                    objectMapper.writeValue(outputStream, value);
 //                    outputStream.flush();
 //                    bytes = outputStream.toByteArray();

@@ -83,7 +83,7 @@ deploy:jdk8:
     - 'cp target/*.jar build/'
     - 'cp src/main/resources/gson/DetailedEventStreamAggregatedLogger.java src/main/java/com/videobug/agent/logging/io/DetailedEventStreamAggregatedLogger.java'
     - 'mvn $MAVEN_CLI_OPTS -DskipTests clean package -Pgson,fst'
-    - 'mv target/*.jar build/videobug-java-agent-SNAPSHOT-gson.jar'
+    - 'cp target/*.jar build/videobug-java-agent-SNAPSHOT-gson.jar'
   only:
     variables:
       - $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH

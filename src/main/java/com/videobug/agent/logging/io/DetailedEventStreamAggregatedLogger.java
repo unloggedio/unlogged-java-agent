@@ -146,35 +146,27 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                 throw new RuntimeException(e);
             }
 
-            try {
-                //checks for presence of this module class, if not present throws exception
-                Class<?> jdk8Module = Class.forName("com.fasterxml.jackson.datatype.jdk8.Jdk8Module");
-                jacksonBuilder.addModule((Module) jdk8Module.getDeclaredConstructor()
-                        .newInstance());
-            } catch (ClassNotFoundException e) {
-                // jdk8 module not found
-            } catch (InvocationTargetException
-                     | InstantiationException
-                     | IllegalAccessException
-                     | NoSuchMethodException e) {
-                throw new RuntimeException(e);
-            }
+            // potentially
+//            jacksonBuilder.findAndAddModules();
+            List<String> jacksonModules = Arrays.asList(
+                    "com.fasterxml.jackson.datatype.jdk8.Jdk8Module",
+                    "com.fasterxml.jackson.datatype.jsr310.JavaTimeModule",
+                    "com.fasterxml.jackson.datatype.joda.JodaModule"
+            );
+            for (String jacksonModule : jacksonModules) {
+                try {
+                    //checks for presence of this module class, if not present throws exception
+                    Class<?> jdk8Module = Class.forName(jacksonModule);
+                    jacksonBuilder.addModule((Module) jdk8Module.getDeclaredConstructor().newInstance());
+                } catch (ClassNotFoundException e) {
+                    // jdk8 module not found
+                } catch (InvocationTargetException
+                         | InstantiationException
+                         | IllegalAccessException
+                         | NoSuchMethodException e) {
+                    throw new RuntimeException(e);
+                }
 
-
-            try {
-                Class<?> jodaModule = Class.forName("com.fasterxml.jackson.datatype.joda.JodaModule");
-                jacksonBuilder.addModule((Module) jodaModule.getDeclaredConstructor()
-                        .newInstance());
-//                System.err.println("Loaded JodaModule");
-
-            } catch (ClassNotFoundException e) {
-                // joda not present
-//                e.printStackTrace();
-            } catch (InvocationTargetException
-                     | InstantiationException
-                     | IllegalAccessException
-                     | NoSuchMethodException e) {
-                throw new RuntimeException(e);
             }
 
 

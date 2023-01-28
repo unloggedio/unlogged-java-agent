@@ -277,6 +277,7 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                         || className.startsWith("io.dropwizard")
                         || className.contains("java.lang.reflect")
                         || className.startsWith("org.redis")
+                        || className.startsWith("redis")
                         || className.startsWith("co.elastic")
                         || className.startsWith("java.lang.Class")
                         || className.startsWith("org.glassfish")

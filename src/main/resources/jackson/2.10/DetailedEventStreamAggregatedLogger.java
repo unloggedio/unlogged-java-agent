@@ -118,6 +118,7 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 //            jacksonBuilder.configure(SerializationFeature.WRITE_SELF_REFERENCES_AS_NULL, true);
 
             try {
+                Class<?> hibernateClassPresent = Class.forName("org.hibernate.SessionFactory");
                 Class<?> hibernateModule = Class.forName("com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module");
                 Module module = (Module) hibernateModule.getDeclaredConstructor()
                         .newInstance();

@@ -239,37 +239,78 @@ public class RuntimeWeaver implements ClassFileTransformer {
     public synchronized byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined,
                                          ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
 
-//        System.out.printf("Load class: [%s]\n", className);
-        if (isExcludedFromLogging(className)) {
-//            weaver.log("Excluded by name filter: " + className);
+        if (className.startsWith("sun/")) {
             return null;
         }
+        if (className.startsWith("jdk/")) {
+            return null;
+        }
+        if (className.startsWith("java/")) {
+            return null;
+        }
+        if (className.startsWith("javax/")) {
+            return null;
+        }
+        if (className.startsWith("com/fasterxml")) {
+            return null;
+        }
+        if (className.startsWith("io/micrometer")) {
+            return null;
+        }
+        if (className.startsWith("org/wildfly/")) {
+            return null;
+        }
+        if (className.startsWith("org/xnio/")) {
+            return null;
+        }
+        if (className.startsWith("org/springframework/")) {
+            return null;
+        }
+        if (className.startsWith("com/google/")) {
+            return null;
+        }
+        if (className.startsWith("io/undertow/")) {
+            return null;
+        }
+//        System.err.println("transform class: " + className);
 
-        if (protectionDomain != null) {
-            CodeSource s = protectionDomain.getCodeSource();
-            String l;
-            if (s != null) {
-                l = s.getLocation()
-                        .toExternalForm();
+        try {
+
+            if (isExcludedFromLogging(className)) {
+//            weaver.log("Excluded by name filter: " + className);
+                return null;
+            }
+
+            if (protectionDomain != null) {
+                CodeSource s = protectionDomain.getCodeSource();
+                String l;
+                if (s != null) {
+                    l = s.getLocation()
+                            .toExternalForm();
+                } else {
+                    l = "(Unknown Source)";
+                }
+
+                if (isExcludedLocation(l)) {
+                    weaver.log("Excluded by location filter: " + className + " loaded from " + l);
+                    return null;
+                }
+
+                if (isSecurityManagerClass(className, loader) && !params.isWeaveSecurityManagerClassEnabled()) {
+                    weaver.log("Excluded security manager subclass: " + className);
+                    return null;
+                }
+
+//                weaver.log("[" + new Date().toString() + "] Weaving executed: " + className + " loaded from " + l);
+                byte[] buffer = weaver.weave(l, className, classfileBuffer, loader);
+
+                return buffer;
             } else {
-                l = "(Unknown Source)";
-            }
-
-            if (isExcludedLocation(l)) {
-                weaver.log("Excluded by location filter: " + className + " loaded from " + l);
                 return null;
             }
 
-            if (isSecurityManagerClass(className, loader) && !params.isWeaveSecurityManagerClassEnabled()) {
-                weaver.log("Excluded security manager subclass: " + className);
-                return null;
-            }
-
-            weaver.log("Weaving executed: " + className + " loaded from " + l);
-            byte[] buffer = weaver.weave(l, className, classfileBuffer, loader);
-
-            return buffer;
-        } else {
+        } catch (Throwable e) {
+//            System.err.printf("[unlogged] Failed to instrument class: [%s]\n", className);
             return null;
         }
     }

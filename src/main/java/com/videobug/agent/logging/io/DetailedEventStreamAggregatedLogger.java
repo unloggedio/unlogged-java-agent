@@ -281,6 +281,11 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                         || className.startsWith("redis")
                         || className.startsWith("co.elastic")
                         || className.startsWith("java.lang.Class")
+//                        || className.startsWith("io.undertow")
+//                        || className.startsWith("org.thymeleaf")
+//                        || className.startsWith("tech.jhipster")
+//                        || className.startsWith("com.github")
+//                        || className.startsWith("com.zaxxer")
                         || className.startsWith("org.glassfish")
                         || className.startsWith("com.fasterxml")
                         || className.startsWith("org.slf4j")
@@ -349,10 +354,10 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 //                if (value != null) {
 //                    kryo.register(value.getClass());
 //                    String message = e.getMessage();
-//                System.err.println("ThrowSerialized [" + value.getClass()
-//                        .getCanonicalName() + "]" +
-//                        " [" + dataId + "] error -> " + e.getMessage() + " -> " + e.getClass()
-//                        .getCanonicalName());
+                System.err.println("ThrowSerialized [" + value.getClass()
+                        .getCanonicalName() + "]" +
+                        " [" + dataId + "] error -> " + e.getMessage() + " -> " + e.getClass()
+                        .getCanonicalName());
 //                e.printStackTrace();
 //                    if (message.startsWith("Class is not registered")) {
 //                        String className = message.split(":")[1];

@@ -1,7 +1,7 @@
 package com.videobug.agent.logging.io;
 
 import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.io.Output;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.Module;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -19,6 +19,7 @@ import com.videobug.agent.weaver.WeaveLog;
 import org.nustaq.serialization.*;
 
 import java.io.ByteArrayOutputStream;
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -30,7 +31,6 @@ import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 
@@ -60,7 +60,7 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
             ThreadLocal.withInitial(ByteArrayOutputStream::new);
     private final ThreadLocal<Boolean> isRecording = ThreadLocal.withInitial(() -> false);
     final private boolean serializeValues = true;
-//    private final ThreadLocal<Output> outputContainer = ThreadLocal.withInitial(
+    //    private final ThreadLocal<Output> outputContainer = ThreadLocal.withInitial(
 //            new Supplier<Output>() {
 //                @Override
 //                public Output get() {
@@ -104,6 +104,8 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
             fstObjectMapper = null;
         } else if (SERIALIZATION_MODE == SerializationMode.JACKSON) {
             // For 2.13.1
+            JsonMappingException jme = new JsonMappingException(new DummyClosable(), "load class");
+            jme.prependPath(new JsonMappingException.Reference("from dummy"));
             JsonMapper.Builder jacksonBuilder = JsonMapper.builder();
             jacksonBuilder.annotationIntrospector(new JacksonAnnotationIntrospector() {
                 @Override
@@ -122,10 +124,13 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                 Class<?> hibernateModule = Class.forName("com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module");
                 Module module = (Module) hibernateModule.getDeclaredConstructor()
                         .newInstance();
-                Class<?> featureClass = Class.forName("com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module$Feature");
+                Class<?> featureClass = Class.forName(
+                        "com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module$Feature");
                 Method configureMethod = hibernateModule.getMethod("configure", featureClass, boolean.class);
-                configureMethod.invoke(module, featureClass.getDeclaredField("FORCE_LAZY_LOADING").get(null), true);
-                configureMethod.invoke(module, featureClass.getDeclaredField("REPLACE_PERSISTENT_COLLECTIONS").get(null), true);
+                configureMethod.invoke(module, featureClass.getDeclaredField("FORCE_LAZY_LOADING")
+                        .get(null), true);
+                configureMethod.invoke(module, featureClass.getDeclaredField("REPLACE_PERSISTENT_COLLECTIONS")
+                        .get(null), true);
                 jacksonBuilder.addModule(module);
 //                System.out.println("Loaded hibernate module");
             } catch (ClassNotFoundException | NoSuchMethodException e) {
@@ -154,7 +159,8 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                 try {
                     //checks for presence of this module class, if not present throws exception
                     Class<?> jdk8Module = Class.forName(jacksonModule);
-                    jacksonBuilder.addModule((Module) jdk8Module.getDeclaredConstructor().newInstance());
+                    jacksonBuilder.addModule((Module) jdk8Module.getDeclaredConstructor()
+                            .newInstance());
                 } catch (ClassNotFoundException e) {
                     // jdk8 module not found
                 } catch (InvocationTargetException
@@ -164,7 +170,6 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                     throw new RuntimeException(e);
                 }
             }
-
 
 
             objectMapper = jacksonBuilder.build();
@@ -263,13 +268,16 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                 } else {
                     className = "";
                 }
+//                if (className == null) {
+//                    System.err.println("Class name is null: " + value + " - " + value.getClass());
+//                }
 
 //                System.out.println("[" + dataId + "] Serialize class: " + value.getClass()
 //                        .getName());
                 if (value instanceof Class) {
                     bytes = ((Class<?>) value).getCanonicalName()
                             .getBytes(StandardCharsets.UTF_8);
-                } else if (className.startsWith("com.google")
+                } else if (className == null || className.startsWith("com.google")
                         || className.startsWith("org.apache.http")
                         || className.startsWith("java.util.stream")
                         || className.startsWith("org.elasticsearch.client")
@@ -281,11 +289,11 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                         || className.startsWith("redis")
                         || className.startsWith("co.elastic")
                         || className.startsWith("java.lang.Class")
-//                        || className.startsWith("io.undertow")
-//                        || className.startsWith("org.thymeleaf")
-//                        || className.startsWith("tech.jhipster")
-//                        || className.startsWith("com.github")
-//                        || className.startsWith("com.zaxxer")
+                        || className.startsWith("io.undertow")
+                        || className.startsWith("org.thymeleaf")
+                        || className.startsWith("tech.jhipster")
+                        || className.startsWith("com.github")
+                        || className.startsWith("com.zaxxer")
                         || className.startsWith("org.glassfish")
                         || className.startsWith("com.fasterxml")
                         || className.startsWith("org.slf4j")
@@ -543,6 +551,14 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 //                        " -> " + th.getMessage());
 //            }
 //        }
+    }
+
+    private class DummyClosable implements Closeable {
+
+        @Override
+        public void close() throws IOException {
+
+        }
     }
 
 

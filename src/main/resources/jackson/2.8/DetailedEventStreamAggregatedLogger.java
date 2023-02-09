@@ -2,6 +2,7 @@ package com.videobug.agent.logging.io;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Output;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.Module;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -103,6 +104,8 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
             fstObjectMapper = null;
         } else if (SERIALIZATION_MODE == SerializationMode.JACKSON) {
             // 2.9.7
+            JsonMappingException jme = new JsonMappingException(new DetailedEventStreamAggregatedLogger.DummyClosable(), "load class");
+            jme.prependPath(new JsonMappingException.Reference("from dummy"));
             objectMapper = new ObjectMapper();
             objectMapper.setAnnotationIntrospector(new JacksonAnnotationIntrospector() {
                 @Override

@@ -33,7 +33,7 @@ public class ClassTypeUtil {
 
 
     public static Class<?> getClassNameFromDescriptor(String descriptor) {
-        System.err.println("Get class for: [" + descriptor + "]");
+//        System.err.println("Get class for: [" + descriptor + "]");
         char firstChar = descriptor.charAt(0);
         switch (firstChar) {
             case 'V':

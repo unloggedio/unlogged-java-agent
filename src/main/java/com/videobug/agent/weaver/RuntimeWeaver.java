@@ -434,7 +434,7 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
 
             for (int i = 0; i < methodSignatureParts.size(); i++) {
                 String methodSignaturePart = methodSignatureParts.get(i);
-                System.err.println("Method parameter [" + i + "] type: " + methodSignaturePart);
+//                System.err.println("Method parameter [" + i + "] type: " + methodSignaturePart);
                 methodParameterTypes[i] = ClassTypeUtil.getClassNameFromDescriptor(methodSignaturePart);
             }
 
@@ -457,8 +457,6 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
 
             Method[] methods = objectClass.getMethods();
             for (Method method : methods) {
-                System.err.println(
-                        "Compare method [" + method.getName() + "] - " + String.valueOf(method.getParameterTypes()));
                 if (method.getName().equals(agentCommandRequest.getMethodName())) {
                     methodToExecute = method;
                     break;
@@ -466,14 +464,15 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
             }
 
             Class<?>[] parameterTypesClass = methodToExecute.getParameterTypes();
-            Object[] parameters = new Object[]{methodParameters.size()};
+            Object[] parameters = new Object[methodParameters.size()];
 
             for (int i = 0; i < methodParameters.size(); i++) {
                 String methodParameter = methodParameters.get(i);
                 Class<?> parameterType = parameterTypesClass[i];
+                System.err.println("Make value of type [" + parameterType + "] from value: " + methodParameter);
                 Object parameterObject = objectMapper.readValue(methodParameter, parameterType);
-                System.err.println(
-                        "Assign parameter [" + i + "] value type [" + parameterType + "] -> " + parameterObject);
+//                System.err.println(
+//                        "Assign parameter [" + i + "] value type [" + parameterType + "] -> " + parameterObject);
                 parameters[i] = parameterObject;
             }
 

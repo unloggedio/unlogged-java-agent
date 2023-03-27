@@ -22,6 +22,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
@@ -60,14 +61,6 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
             ThreadLocal.withInitial(ByteArrayOutputStream::new);
     private final ThreadLocal<Boolean> isRecording = ThreadLocal.withInitial(() -> false);
     final private boolean serializeValues = true;
-    //    private final ThreadLocal<Output> outputContainer = ThreadLocal.withInitial(
-//            new Supplier<Output>() {
-//                @Override
-//                public Output get() {
-//                    return new Output(threadOutputBuffer.get());
-//                }
-//            }
-//    );
     private final Map<String, WeaveLog> classMap = new HashMap<>();
     private final Set<Integer> probesToRecord = new HashSet<>();
     private final Map<Integer, DataInfo> callProbes = new HashMap<>();
@@ -77,6 +70,8 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
     //    private final Set<String> classesToIgnore = new HashSet<>();
     private final Kryo kryo;
     private final ObjectMapper objectMapper;
+
+    private final Map<String, WeakReference<Object>> objectMap = new HashMap<>();
 
     /**
      * Create an instance of logging object.
@@ -89,7 +84,7 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
             String includedPackage, File outputDir,
             AggregatedFileLogger aggregatedLogger
     ) throws IOException {
-//        System.out.printf("[videobug] new event stream aggregated logger\n");
+
         this.includedPackage = includedPackage;
         this.aggregatedLogger = aggregatedLogger;
         typeToId = new TypeIdAggregatedStreamMap(this.aggregatedLogger, this);
@@ -138,13 +133,8 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 //                System.out.println("Failed to load hibernate module: " + e.getMessage());
                 // hibernate module not found
                 // add a warning in System.err here ?
-            } catch (InvocationTargetException e) {
-                throw new RuntimeException(e);
-            } catch (InstantiationException e) {
-                throw new RuntimeException(e);
-            } catch (IllegalAccessException e) {
-                throw new RuntimeException(e);
-            } catch (NoSuchFieldException e) {
+            } catch (InvocationTargetException | InstantiationException | IllegalAccessException |
+                     NoSuchFieldException e) {
                 throw new RuntimeException(e);
             }
 
@@ -227,6 +217,19 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
         }
     }
 
+    public Object getObjectByClassName(String className) {
+        if (!objectMap.containsKey(className)) {
+            return null;
+        }
+        WeakReference<Object> objectWeakReference = objectMap.get(className);
+        Object objectInstance = objectWeakReference.get();
+        if (objectInstance == null) {
+            objectMap.remove(className);
+            return null;
+        }
+        return objectInstance;
+    }
+
     /**
      * Record an event and an object.
      * The object is translated into an object ID.
@@ -235,6 +238,20 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
         if (isRecording.get()) {
             return;
         }
+        String className;
+        if (value != null) {
+            className = value.getClass().getCanonicalName();
+        } else {
+            className = "";
+        }
+        if (className != null && !className.contains("Lambda")) {
+            if (className.contains("$")) {
+                System.err.println("Normalizing classname: " + className);
+                className = className.substring(0, className.indexOf('$'));
+            }
+            objectMap.put(className, new WeakReference<>(value));
+        }
+
 
 //        if (callProbes.containsKey(dataId)) {
 //        System.err.println("Record event: [" + dataId + "] " + callProbes.get(dataId)
@@ -242,18 +259,14 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 //        }
         long objectId = objectIdMap.getId(value);
 //        byte[] bytes = new byte[0];
-        ByteArrayOutputStream outputStream = output.get();
-        outputStream.reset();
+//        ByteArrayOutputStream outputStream = output.get();
+//        outputStream.reset();
 
         if (serializeValues && probesToRecord.size() > 0 && probesToRecord.contains(dataId)) {
 
             if (DEBUG && value != null) {
                 System.out.println("record serialized value for probe [" + dataId + "] -> " + value.getClass());
             }
-//            if (SERIALIZATION_MODE == SerializationMode.KRYO && value instanceof Class) {
-//                kryo.register((Class) value);
-//            }
-//            }
 
 
             // write data into OutputStream
@@ -261,22 +274,16 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
             try {
                 isRecording.set(true);
 
-                String className;
-                if (value != null) {
-                    className = value.getClass()
-                            .getCanonicalName();
-                } else {
-                    className = "";
-                }
+
 //                if (className == null) {
 //                    System.err.println("Class name is null: " + value + " - " + value.getClass());
 //                }
 
-//                System.out.println("[" + dataId + "] Serialize class: " + value.getClass()
-//                        .getName());
+                if (value != null) {
+                    System.out.println("[" + dataId + "] Serialize class: " + value.getClass().getName());
+                }
                 if (value instanceof Class) {
-                    bytes = ((Class<?>) value).getCanonicalName()
-                            .getBytes(StandardCharsets.UTF_8);
+                    bytes = ((Class<?>) value).getCanonicalName().getBytes(StandardCharsets.UTF_8);
                 } else if (className == null || className.startsWith("com.google")
                         || className.startsWith("org.apache.http")
                         || className.startsWith("java.util.stream")

@@ -1,11 +1,18 @@
 package com.videobug.agent.weaver;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.videobug.agent.command.AgentCommandExecutor;
+import com.videobug.agent.command.AgentCommandRequest;
+import com.videobug.agent.command.AgentCommandResponse;
+import com.videobug.agent.command.AgentCommandServer;
 import com.videobug.agent.logging.IEventLogger;
 import com.videobug.agent.logging.Logging;
 import com.videobug.agent.logging.perthread.PerThreadBinaryFileAggregatedLogger;
 import com.videobug.agent.logging.perthread.RawFileCollector;
 import com.videobug.agent.logging.util.FileNameGenerator;
 import com.videobug.agent.logging.util.NetworkClient;
+import com.videobug.agent.util.ClassTypeUtil;
+import fi.iki.elonen.NanoHTTPD;
 import org.objectweb.asm.ClassReader;
 
 import java.io.File;
@@ -15,17 +22,19 @@ import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
 import java.lang.instrument.Instrumentation;
 import java.lang.management.ManagementFactory;
+import java.lang.reflect.Method;
+import java.nio.file.WatchService;
 import java.security.CodeSource;
 import java.security.ProtectionDomain;
-import java.util.ArrayList;
-import java.util.Date;
+import java.util.*;
 import java.util.regex.Pattern;
 
 /**
  * This class is the main program of SELogger as a javaagent.
  */
-public class RuntimeWeaver implements ClassFileTransformer {
+public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor {
 
+    public static final int AGENT_SERVER_PORT = 12100;
     private static boolean initialized = false;
     /**
      * The weaver injects logging instructions into target classes.
@@ -36,6 +45,9 @@ public class RuntimeWeaver implements ClassFileTransformer {
      * The logger receives method calls from injected instructions via selogger.logging.Logging class.
      */
     private IEventLogger logger;
+    private Map<String, String> existingClass = new HashMap<String, String>();
+    private Map<String, WatchService> watchedLocations = new HashMap<String, WatchService>();
+    private ObjectMapper objectMapper = new ObjectMapper();
 
 
     /**
@@ -52,14 +64,20 @@ public class RuntimeWeaver implements ClassFileTransformer {
             if (!outputDir.exists()) {
                 outputDir.mkdirs();
             }
+            AgentCommandServer httpServer = new AgentCommandServer(AGENT_SERVER_PORT);
+            httpServer.setAgentCommandExecutor(this);
+            httpServer.start(NanoHTTPD.SOCKET_READ_TIMEOUT, false);
+            System.err.println("unlogged agent server started at port " + AGENT_SERVER_PORT);
+
 
             if (outputDir.isDirectory() && outputDir.canWrite()) {
                 WeaveConfig config = new WeaveConfig(params);
                 if (config.isValid()) {
                     weaver = new Weaver(outputDir, config);
                     weaver.setDumpEnabled(params.isDumpClassEnabled());
-                    System.out.println("[videobug] session Id: [" + config.getSessionId() +
-                            "] on hostname [" + NetworkClient.getHostname() + "]");
+                    System.out.println("[videobug]" +
+                            " session Id: [" + config.getSessionId() + "]" +
+                            " on hostname [" + NetworkClient.getHostname() + "]");
                     weaver.log("Params: " + args);
 
                     switch (params.getMode()) {
@@ -100,10 +118,9 @@ public class RuntimeWeaver implements ClassFileTransformer {
                                     = new PerThreadBinaryFileAggregatedLogger(fileNameGenerator3, weaver,
                                     fileCollector1);
 
-                            logger =
-                                    Logging.initialiseDetailedAggregatedLogger(this.params.getIncludedNames()
-                                                    .get(0),
-                                            perThreadBinaryFileAggregatedLogger1, outputDir);
+                            logger = Logging.initialiseDetailedAggregatedLogger(
+                                    this.params.getIncludedNames().get(0), perThreadBinaryFileAggregatedLogger1,
+                                    outputDir);
                             break;
 
                     }
@@ -193,8 +210,9 @@ public class RuntimeWeaver implements ClassFileTransformer {
         if (
                 className.startsWith("com/videobug/agent/")
                         && !className.startsWith("com/videobug/agent/testdata/")
-        )
+        ) {
             return true;
+        }
         ArrayList<String> includedNames = params.getIncludedNames();
         for (String ex : params.getExcludedNames()) {
             if (className.startsWith(ex)) {
@@ -203,11 +221,7 @@ public class RuntimeWeaver implements ClassFileTransformer {
         }
         if (includedNames.size() > 0) {
             for (String ex : includedNames) {
-                if (className.startsWith(ex) ||
-                        "*".equals(ex) ||
-                        Pattern.compile(ex)
-                                .matcher(className)
-                                .matches()) {
+                if (className.startsWith(ex) || "*".equals(ex) || Pattern.compile(ex).matcher(className).matches()) {
                     return false;
                 }
             }
@@ -282,17 +296,16 @@ public class RuntimeWeaver implements ClassFileTransformer {
             }
 
             if (protectionDomain != null) {
-                CodeSource s = protectionDomain.getCodeSource();
-                String l;
-                if (s != null) {
-                    l = s.getLocation()
-                            .toExternalForm();
+                CodeSource codeSource = protectionDomain.getCodeSource();
+                String classLoadLocation;
+                if (codeSource != null) {
+                    classLoadLocation = codeSource.getLocation().toExternalForm();
                 } else {
-                    l = "(Unknown Source)";
+                    classLoadLocation = "(Unknown Source)";
                 }
 
-                if (isExcludedLocation(l)) {
-                    weaver.log("Excluded by location filter: " + className + " loaded from " + l);
+                if (isExcludedLocation(classLoadLocation)) {
+                    weaver.log("Excluded by location filter: " + className + " loaded from " + classLoadLocation);
                     return null;
                 }
 
@@ -301,8 +314,22 @@ public class RuntimeWeaver implements ClassFileTransformer {
                     return null;
                 }
 
-//                weaver.log("[" + new Date().toString() + "] Weaving executed: " + className + " loaded from " + l);
-                byte[] buffer = weaver.weave(l, className, classfileBuffer, loader);
+                System.err.println(
+                        "[" + new Date() + "] Weaving executed: " + className + " loaded from " + classLoadLocation);
+                if (existingClass.containsKey(className)) {
+                    Exception exception = new Exception();
+                    exception.printStackTrace(System.err);
+                }
+                existingClass.put(className, classLoadLocation);
+
+//                if (!watchedLocations.containsKey(classLoadLocation)) {
+//                    Path loaderPath = FileSystems.getDefault().getPath(classLoadLocation);
+//                    WatchService watcher = FileSystems.getDefault().newWatchService();
+//                    loaderPath.register(watcher, ENTRY_MODIFY);
+//                    watchedLocations.put(classLoadLocation, watcher);
+//                }
+
+                byte[] buffer = weaver.weave(classLoadLocation, className, classfileBuffer, loader);
 
                 return buffer;
             } else {
@@ -362,6 +389,121 @@ public class RuntimeWeaver implements ClassFileTransformer {
             loader = loader.getParent();
         }
         return null;
+    }
+
+    @Override
+    public AgentCommandResponse executeCommand(AgentCommandRequest agentCommandRequest) throws Exception {
+        System.err.println("AgentCommandRequest: " + agentCommandRequest);
+
+
+        Object hibernateSessionFactory = logger.getObjectByClassName("org.hibernate.internal.SessionFactoryImpl");
+        Object sessionInstance = null;
+        if (hibernateSessionFactory != null) {
+            System.err.println("Hibernate session factory: " + hibernateSessionFactory);
+            Method openSessionMethod = hibernateSessionFactory.getClass().getMethod("openSession");
+            sessionInstance = openSessionMethod.invoke(hibernateSessionFactory);
+            System.err.println("Hibernate session opened: " + sessionInstance);
+            Class<?> managedSessionContextClass = Class.forName("org.hibernate.context.internal.ManagedSessionContext");
+            Method bindMethod = managedSessionContextClass.getMethod("bind", Class.forName("org.hibernate.Session"));
+            bindMethod.invoke(null, sessionInstance);
+
+
+            Method beginTransactionMethod = sessionInstance.getClass().getMethod("beginTransaction");
+            beginTransactionMethod.invoke(sessionInstance);
+        }
+        try {
+
+
+            Object objectByClass = logger.getObjectByClassName(agentCommandRequest.getClassName());
+            if (objectByClass == null) {
+                System.err.println("No object by classname: " + agentCommandRequest.getClassName());
+                throw new Exception("No object by classname: " + agentCommandRequest.getClassName());
+            }
+            System.err.println("Object instance: " + objectByClass);
+
+            Method methodToExecute = null;
+            Class<?> objectClass = objectByClass.getClass();
+
+            List<String> methodSignatureParts = ClassTypeUtil.splitMethodDesc(agentCommandRequest.getMethodSignature());
+            String methodReturnType = methodSignatureParts.remove(methodSignatureParts.size() - 1);
+
+            List<String> methodParameters = agentCommandRequest.getMethodParameters();
+            System.err.println("Method parameters from received signature: " + methodSignatureParts + " => " + methodParameters);
+
+            Class<?>[] methodParameterTypes = new Class[methodSignatureParts.size()];
+
+            for (int i = 0; i < methodSignatureParts.size(); i++) {
+                String methodSignaturePart = methodSignatureParts.get(i);
+                System.err.println("Method parameter [" + i + "] type: " + methodSignaturePart);
+                methodParameterTypes[i] = ClassTypeUtil.getClassNameFromDescriptor(methodSignaturePart);
+            }
+
+
+            try {
+                methodToExecute = objectClass.getMethod(agentCommandRequest.getMethodName(), methodParameterTypes);
+            } catch (NoSuchMethodException noSuchMethodException) {
+                System.err.println("method not found matching name [" + agentCommandRequest.getMethodName() + "]" +
+                        " with parameters [" + methodSignatureParts + "]" +
+                        " in class [" + agentCommandRequest.getClassName() + "]");
+                System.err.println("NoSuchMethodException: " + noSuchMethodException.getMessage());
+            }
+
+//            if (methodToExecute == null) {
+//                throw new IllegalArgumentException(
+//                        "method not found matching name [" + agentCommandRequest.getMethodName() + "]" +
+//                                " with parameters [" + methodSignatureParts + "]" +
+//                                " in class [" + agentCommandRequest.getClassName() + "]");
+//            }
+
+            Method[] methods = objectClass.getMethods();
+            for (Method method : methods) {
+                System.err.println(
+                        "Compare method [" + method.getName() + "] - " + String.valueOf(method.getParameterTypes()));
+                if (method.getName().equals(agentCommandRequest.getMethodName())) {
+                    methodToExecute = method;
+                    break;
+                }
+            }
+
+            Class<?>[] parameterTypesClass = methodToExecute.getParameterTypes();
+            Object[] parameters = new Object[]{methodParameters.size()};
+
+            for (int i = 0; i < methodParameters.size(); i++) {
+                String methodParameter = methodParameters.get(i);
+                Class<?> parameterType = parameterTypesClass[i];
+                Object parameterObject = objectMapper.readValue(methodParameter, parameterType);
+                System.err.println(
+                        "Assign parameter [" + i + "] value type [" + parameterType + "] -> " + parameterObject);
+                parameters[i] = parameterObject;
+            }
+
+
+            if (methodToExecute == null) {
+                throw new Exception("Method [" + agentCommandRequest.getMethodName() + "]" +
+                        " not found in class [" + agentCommandRequest.getClassName() + "]");
+            }
+
+
+            Object methodReturnValue = methodToExecute.invoke(objectByClass, parameters);
+            AgentCommandResponse agentCommandResponse = new AgentCommandResponse();
+            agentCommandResponse.setMethodReturnValue(methodReturnValue);
+            return agentCommandResponse;
+        } finally {
+            if (sessionInstance != null) {
+
+                Method getTransactionMethod = sessionInstance.getClass().getMethod("getTransaction");
+                Object transactionInstance = getTransactionMethod.invoke(sessionInstance);
+                System.err.println("Transaction to commit: " + transactionInstance);
+                Method commitMethod = transactionInstance.getClass().getMethod("commit");
+                commitMethod.invoke(transactionInstance);
+
+
+                Method sessionCloseMethod = sessionInstance.getClass().getMethod("close");
+                sessionCloseMethod.invoke(sessionInstance);
+            }
+        }
+
+
     }
 
     public enum Mode {Stream, Frequency, FixedSize, Discard, Network, PerThread, Testing}

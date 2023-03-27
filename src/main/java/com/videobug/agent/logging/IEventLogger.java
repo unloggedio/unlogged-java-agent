@@ -18,6 +18,8 @@ public interface IEventLogger {
 	 * An implementation class may use this method to release any resources used for logging. 
 	 */
 	public void close();
+
+	public Object getObjectByClassName(String name);
 	
 	/**
 	 * Record an event occurrence and a value.

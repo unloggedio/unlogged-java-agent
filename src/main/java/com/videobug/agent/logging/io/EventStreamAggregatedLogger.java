@@ -62,6 +62,11 @@ public class EventStreamAggregatedLogger implements IEventLogger {
         }
     }
 
+    @Override
+    public Object getObjectByClassName(String name) {
+        return null;
+    }
+
     /**
      * Record an event and an object.
      * The object is translated into an object ID.

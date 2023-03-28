@@ -28,6 +28,7 @@ import java.security.CodeSource;
 import java.security.ProtectionDomain;
 import java.util.*;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * This class is the main program of SELogger as a javaagent.
@@ -428,7 +429,8 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
             String methodReturnType = methodSignatureParts.remove(methodSignatureParts.size() - 1);
 
             List<String> methodParameters = agentCommandRequest.getMethodParameters();
-            System.err.println("Method parameters from received signature: " + methodSignatureParts + " => " + methodParameters);
+            System.err.println(
+                    "Method parameters from received signature: " + methodSignatureParts + " => " + methodParameters);
 
             Class<?>[] methodParameterTypes = new Class[methodSignatureParts.size()];
 
@@ -461,6 +463,14 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
                     methodToExecute = method;
                     break;
                 }
+            }
+
+            if (methodToExecute == null) {
+                System.err.println("Method not found: " + agentCommandRequest.getMethodName()
+                        + ", methods were: " + Arrays.stream(methods).map(Method::getName)
+                        .collect(Collectors.toList()));
+                throw new NoSuchMethodException("method not found [" + agentCommandRequest.getMethodName()
+                                + "] in class " + agentCommandRequest.getClassName());
             }
 
             Class<?>[] parameterTypesClass = methodToExecute.getParameterTypes();

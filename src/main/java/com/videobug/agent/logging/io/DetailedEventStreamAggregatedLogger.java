@@ -245,8 +245,11 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
             className = "";
         }
         if (className != null && !className.contains("Lambda")) {
-            if (className.contains("$")) {
-                System.err.println("Normalizing classname: " + className);
+            if (className.contains("_$")) {
+//                System.err.println("Normalizing classname: " + className);
+                className = className.substring(0, className.indexOf("_$"));
+            } else if (className.contains("$")) {
+//                System.err.println("Normalizing classname: " + className);
                 className = className.substring(0, className.indexOf('$'));
             }
             objectMap.put(className, new WeakReference<>(value));
@@ -279,9 +282,9 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 //                    System.err.println("Class name is null: " + value + " - " + value.getClass());
 //                }
 
-                if (value != null) {
-                    System.out.println("[" + dataId + "] Serialize class: " + value.getClass().getName());
-                }
+//                if (value != null) {
+//                    System.out.println("[" + dataId + "] Serialize class: " + value.getClass().getName());
+//                }
                 if (value instanceof Class) {
                     bytes = ((Class<?>) value).getCanonicalName().getBytes(StandardCharsets.UTF_8);
                 } else if (className == null || className.startsWith("com.google")
@@ -369,10 +372,8 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 //                if (value != null) {
 //                    kryo.register(value.getClass());
 //                    String message = e.getMessage();
-                System.err.println("ThrowSerialized [" + value.getClass()
-                        .getCanonicalName() + "]" +
-                        " [" + dataId + "] error -> " + e.getMessage() + " -> " + e.getClass()
-                        .getCanonicalName());
+//                System.err.println("ThrowSerialized [" + value.getClass().getCanonicalName() + "]" +
+//                        " [" + dataId + "] error -> " + e.getMessage() + " -> " + e.getClass().getCanonicalName());
 //                e.printStackTrace();
 //                    if (message.startsWith("Class is not registered")) {
 //                        String className = message.split(":")[1];

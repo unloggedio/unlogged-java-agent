@@ -315,8 +315,7 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
                     return null;
                 }
 
-                System.err.println(
-                        "[" + new Date() + "] Weaving executed: " + className + " loaded from " + classLoadLocation);
+//                System.err.println("[" + new Date() + "] Weaving executed: " + className + " loaded from " + classLoadLocation);
                 if (existingClass.containsKey(className)) {
                     Exception exception = new Exception();
                     exception.printStackTrace(System.err);

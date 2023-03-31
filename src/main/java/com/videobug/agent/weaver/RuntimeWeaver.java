@@ -445,7 +445,7 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
 
 
                 try {
-                    methodToExecute = objectClass.getMethod(agentCommandRequest.getMethodName(), methodParameterTypes);
+                    methodToExecute = objectClass.getDeclaredMethod(agentCommandRequest.getMethodName(), methodParameterTypes);
                 } catch (NoSuchMethodException noSuchMethodException) {
                     System.err.println("method not found matching name [" + agentCommandRequest.getMethodName() + "]" +
                             " with parameters [" + methodSignatureParts + "]" +
@@ -454,7 +454,7 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
                 }
 
                 if (methodToExecute == null) {
-                    Method[] methods = objectClass.getMethods();
+                    Method[] methods = objectClass.getDeclaredMethods();
                     for (Method method : methods) {
                         if (method.getName().equals(agentCommandRequest.getMethodName())) {
                             methodToExecute = method;
@@ -470,6 +470,8 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
                                 + Arrays.stream(methods).map(Method::getName).collect(Collectors.toList()));
                     }
                 }
+
+                methodToExecute.setAccessible(true);
 
 
                 Class<?>[] parameterTypesClass = methodToExecute.getParameterTypes();
@@ -488,7 +490,7 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
 
                 Object methodReturnValue = methodToExecute.invoke(objectByClass, parameters);
                 AgentCommandResponse agentCommandResponse = new AgentCommandResponse();
-                agentCommandResponse.setMethodReturnValue(methodReturnValue);
+                agentCommandResponse.setMethodReturnValue(objectMapper.writeValueAsString(methodReturnValue));
                 return agentCommandResponse;
             } finally {
                 closeHibernateSessionIfPossible(sessionInstance);

@@ -94,4 +94,6 @@ public interface IEventLogger {
 	 */
 	void recordEvent(int dataId, float value);
 	void recordWeaveInfo(byte[] byteArray, ClassInfo classIdEntry, WeaveLog log);
+
+    void setRecording(boolean b);
 }

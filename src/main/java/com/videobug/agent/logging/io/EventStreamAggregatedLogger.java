@@ -244,5 +244,10 @@ public class EventStreamAggregatedLogger implements IEventLogger {
         aggregatedLogger.writeWeaveInfo(byteArray);
     }
 
+    @Override
+    public void setRecording(boolean b) {
+
+    }
+
 
 }

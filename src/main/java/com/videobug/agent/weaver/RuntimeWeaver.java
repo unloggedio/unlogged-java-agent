@@ -22,6 +22,7 @@ import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
 import java.lang.instrument.Instrumentation;
 import java.lang.management.ManagementFactory;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.file.WatchService;
 import java.security.CodeSource;
@@ -395,7 +396,111 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
     public AgentCommandResponse executeCommand(AgentCommandRequest agentCommandRequest) throws Exception {
         System.err.println("AgentCommandRequest: " + agentCommandRequest);
 
+        try {
+            logger.setRecording(true);
+            Object sessionInstance = tryOpenHibernateSessionIfHibernateExists();
+            try {
 
+
+                Object objectByClass = logger.getObjectByClassName(agentCommandRequest.getClassName());
+                if (objectByClass == null) {
+                    System.err.println("No object by classname: " + agentCommandRequest.getClassName());
+                    throw new Exception("No object by classname: " + agentCommandRequest.getClassName());
+                }
+                System.err.println("Object instance: " + objectByClass);
+
+                Method methodToExecute = null;
+                Class<?> objectClass = objectByClass.getClass();
+
+                List<String> methodSignatureParts = ClassTypeUtil.splitMethodDesc(
+                        agentCommandRequest.getMethodSignature());
+                String methodReturnType = methodSignatureParts.remove(methodSignatureParts.size() - 1);
+
+                List<String> methodParameters = agentCommandRequest.getMethodParameters();
+                System.err.println(
+                        "Method parameters from received signature: " + methodSignatureParts + " => " + methodParameters);
+
+                Class<?>[] methodParameterTypes = new Class[methodSignatureParts.size()];
+
+                for (int i = 0; i < methodSignatureParts.size(); i++) {
+                    String methodSignaturePart = methodSignatureParts.get(i);
+//                System.err.println("Method parameter [" + i + "] type: " + methodSignaturePart);
+                    methodParameterTypes[i] = ClassTypeUtil.getClassNameFromDescriptor(methodSignaturePart);
+                }
+
+
+                try {
+                    methodToExecute = objectClass.getMethod(agentCommandRequest.getMethodName(), methodParameterTypes);
+                } catch (NoSuchMethodException noSuchMethodException) {
+                    System.err.println("method not found matching name [" + agentCommandRequest.getMethodName() + "]" +
+                            " with parameters [" + methodSignatureParts + "]" +
+                            " in class [" + agentCommandRequest.getClassName() + "]");
+                    System.err.println("NoSuchMethodException: " + noSuchMethodException.getMessage());
+                }
+
+                if (methodToExecute == null) {
+                    Method[] methods = objectClass.getMethods();
+                    for (Method method : methods) {
+                        if (method.getName().equals(agentCommandRequest.getMethodName())) {
+                            methodToExecute = method;
+                            break;
+                        }
+                    }
+                    if (methodToExecute == null) {
+                        System.err.println("Method not found: " + agentCommandRequest.getMethodName()
+                                + ", methods were: " + Arrays.stream(methods).map(Method::getName)
+                                .collect(Collectors.toList()));
+                        throw new NoSuchMethodException("method not found [" + agentCommandRequest.getMethodName()
+                                + "] in class " + agentCommandRequest.getClassName());
+                    }
+                }
+
+
+                Class<?>[] parameterTypesClass = methodToExecute.getParameterTypes();
+                Object[] parameters = new Object[methodParameters.size()];
+
+                for (int i = 0; i < methodParameters.size(); i++) {
+                    String methodParameter = methodParameters.get(i);
+                    Class<?> parameterType = parameterTypesClass[i];
+                    System.err.println("Make value of type [" + parameterType + "] from value: " + methodParameter);
+                    Object parameterObject = objectMapper.readValue(methodParameter, parameterType);
+//                System.err.println(
+//                        "Assign parameter [" + i + "] value type [" + parameterType + "] -> " + parameterObject);
+                    parameters[i] = parameterObject;
+                }
+
+
+
+                Object methodReturnValue = methodToExecute.invoke(objectByClass, parameters);
+                AgentCommandResponse agentCommandResponse = new AgentCommandResponse();
+                agentCommandResponse.setMethodReturnValue(methodReturnValue);
+                return agentCommandResponse;
+            } finally {
+                closeHibernateSessionIfPossible(sessionInstance);
+            }
+        } finally {
+            logger.setRecording(false);
+        }
+
+
+    }
+
+    private static void closeHibernateSessionIfPossible(Object sessionInstance) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
+        if (sessionInstance != null) {
+
+            Method getTransactionMethod = sessionInstance.getClass().getMethod("getTransaction");
+            Object transactionInstance = getTransactionMethod.invoke(sessionInstance);
+            System.err.println("Transaction to commit: " + transactionInstance);
+            Method commitMethod = transactionInstance.getClass().getMethod("commit");
+            commitMethod.invoke(transactionInstance);
+
+
+            Method sessionCloseMethod = sessionInstance.getClass().getMethod("close");
+            sessionCloseMethod.invoke(sessionInstance);
+        }
+    }
+
+    private Object tryOpenHibernateSessionIfHibernateExists() throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, ClassNotFoundException {
         Object hibernateSessionFactory = logger.getObjectByClassName("org.hibernate.internal.SessionFactoryImpl");
         Object sessionInstance = null;
         if (hibernateSessionFactory != null) {
@@ -411,107 +516,7 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
             Method beginTransactionMethod = sessionInstance.getClass().getMethod("beginTransaction");
             beginTransactionMethod.invoke(sessionInstance);
         }
-        try {
-
-
-            Object objectByClass = logger.getObjectByClassName(agentCommandRequest.getClassName());
-            if (objectByClass == null) {
-                System.err.println("No object by classname: " + agentCommandRequest.getClassName());
-                throw new Exception("No object by classname: " + agentCommandRequest.getClassName());
-            }
-            System.err.println("Object instance: " + objectByClass);
-
-            Method methodToExecute = null;
-            Class<?> objectClass = objectByClass.getClass();
-
-            List<String> methodSignatureParts = ClassTypeUtil.splitMethodDesc(agentCommandRequest.getMethodSignature());
-            String methodReturnType = methodSignatureParts.remove(methodSignatureParts.size() - 1);
-
-            List<String> methodParameters = agentCommandRequest.getMethodParameters();
-            System.err.println(
-                    "Method parameters from received signature: " + methodSignatureParts + " => " + methodParameters);
-
-            Class<?>[] methodParameterTypes = new Class[methodSignatureParts.size()];
-
-            for (int i = 0; i < methodSignatureParts.size(); i++) {
-                String methodSignaturePart = methodSignatureParts.get(i);
-//                System.err.println("Method parameter [" + i + "] type: " + methodSignaturePart);
-                methodParameterTypes[i] = ClassTypeUtil.getClassNameFromDescriptor(methodSignaturePart);
-            }
-
-
-            try {
-                methodToExecute = objectClass.getMethod(agentCommandRequest.getMethodName(), methodParameterTypes);
-            } catch (NoSuchMethodException noSuchMethodException) {
-                System.err.println("method not found matching name [" + agentCommandRequest.getMethodName() + "]" +
-                        " with parameters [" + methodSignatureParts + "]" +
-                        " in class [" + agentCommandRequest.getClassName() + "]");
-                System.err.println("NoSuchMethodException: " + noSuchMethodException.getMessage());
-            }
-
-//            if (methodToExecute == null) {
-//                throw new IllegalArgumentException(
-//                        "method not found matching name [" + agentCommandRequest.getMethodName() + "]" +
-//                                " with parameters [" + methodSignatureParts + "]" +
-//                                " in class [" + agentCommandRequest.getClassName() + "]");
-//            }
-
-            Method[] methods = objectClass.getMethods();
-            for (Method method : methods) {
-                if (method.getName().equals(agentCommandRequest.getMethodName())) {
-                    methodToExecute = method;
-                    break;
-                }
-            }
-
-            if (methodToExecute == null) {
-                System.err.println("Method not found: " + agentCommandRequest.getMethodName()
-                        + ", methods were: " + Arrays.stream(methods).map(Method::getName)
-                        .collect(Collectors.toList()));
-                throw new NoSuchMethodException("method not found [" + agentCommandRequest.getMethodName()
-                                + "] in class " + agentCommandRequest.getClassName());
-            }
-
-            Class<?>[] parameterTypesClass = methodToExecute.getParameterTypes();
-            Object[] parameters = new Object[methodParameters.size()];
-
-            for (int i = 0; i < methodParameters.size(); i++) {
-                String methodParameter = methodParameters.get(i);
-                Class<?> parameterType = parameterTypesClass[i];
-                System.err.println("Make value of type [" + parameterType + "] from value: " + methodParameter);
-                Object parameterObject = objectMapper.readValue(methodParameter, parameterType);
-//                System.err.println(
-//                        "Assign parameter [" + i + "] value type [" + parameterType + "] -> " + parameterObject);
-                parameters[i] = parameterObject;
-            }
-
-
-            if (methodToExecute == null) {
-                throw new Exception("Method [" + agentCommandRequest.getMethodName() + "]" +
-                        " not found in class [" + agentCommandRequest.getClassName() + "]");
-            }
-
-
-            Object methodReturnValue = methodToExecute.invoke(objectByClass, parameters);
-            AgentCommandResponse agentCommandResponse = new AgentCommandResponse();
-            agentCommandResponse.setMethodReturnValue(methodReturnValue);
-            return agentCommandResponse;
-        } finally {
-            if (sessionInstance != null) {
-
-                Method getTransactionMethod = sessionInstance.getClass().getMethod("getTransaction");
-                Object transactionInstance = getTransactionMethod.invoke(sessionInstance);
-                System.err.println("Transaction to commit: " + transactionInstance);
-                Method commitMethod = transactionInstance.getClass().getMethod("commit");
-                commitMethod.invoke(transactionInstance);
-
-
-                Method sessionCloseMethod = sessionInstance.getClass().getMethod("close");
-                sessionCloseMethod.invoke(sessionInstance);
-            }
-        }
-
-
+        return sessionInstance;
     }
 
     public enum Mode {Stream, Frequency, FixedSize, Discard, Network, PerThread, Testing}

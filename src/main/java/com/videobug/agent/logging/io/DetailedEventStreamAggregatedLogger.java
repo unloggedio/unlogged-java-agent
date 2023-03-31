@@ -235,9 +235,7 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
      * The object is translated into an object ID.
      */
     public void recordEvent(int dataId, Object value) {
-        if (isRecording.get()) {
-            return;
-        }
+
         String className;
         if (value != null) {
             className = value.getClass().getCanonicalName();
@@ -246,26 +244,17 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
         }
         if (className != null && !className.contains("Lambda")) {
             if (className.contains("_$")) {
-//                System.err.println("Normalizing classname: " + className);
                 className = className.substring(0, className.indexOf("_$"));
             } else if (className.contains("$")) {
-//                System.err.println("Normalizing classname: " + className);
                 className = className.substring(0, className.indexOf('$'));
             }
             objectMap.put(className, new WeakReference<>(value));
         }
 
 
-//        if (callProbes.containsKey(dataId)) {
-//        System.err.println("Record event: [" + dataId + "] " + callProbes.get(dataId)
-//                .getEventType());
-//        }
         long objectId = objectIdMap.getId(value);
-//        byte[] bytes = new byte[0];
-//        ByteArrayOutputStream outputStream = output.get();
-//        outputStream.reset();
 
-        if (serializeValues && probesToRecord.size() > 0 && probesToRecord.contains(dataId)) {
+        if (!isRecording.get() && serializeValues && probesToRecord.size() > 0 && probesToRecord.contains(dataId)) {
 
             if (DEBUG && value != null) {
                 System.out.println("record serialized value for probe [" + dataId + "] -> " + value.getClass());
@@ -547,6 +536,11 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 //            System.err.println("Record serialized value for probes: " + newClassProbes);
         }
         aggregatedLogger.writeWeaveInfo(byteArray);
+    }
+
+    @Override
+    public void setRecording(boolean b) {
+        isRecording.set(b);
     }
 
     @Override

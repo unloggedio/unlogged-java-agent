@@ -62,8 +62,8 @@ public class Weaver implements IErrorLogger {
             logger = new PrintStream(new File(outputDir, ERROR_LOG_FILE));
         } catch (FileNotFoundException e) {
             logger = System.out;
-            logger.println("[videobug] failed to open " + ERROR_LOG_FILE + " in " + outputDir.getAbsolutePath());
-            logger.println("[videobug] using System.out instead.");
+            logger.println("[unlogged] failed to open " + ERROR_LOG_FILE + " in " + outputDir.getAbsolutePath());
+            logger.println("[unlogged] using System.out instead.");
         }
 
         String agentVersion = RuntimeWeaver.class.getPackage().getImplementationVersion();

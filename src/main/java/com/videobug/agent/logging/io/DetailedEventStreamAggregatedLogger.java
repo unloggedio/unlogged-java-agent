@@ -235,7 +235,9 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
      * The object is translated into an object ID.
      */
     public void recordEvent(int dataId, Object value) {
-
+        if (isRecording.get()) {
+            return;
+        }
         String className;
         if (value != null) {
             className = value.getClass().getCanonicalName();
@@ -254,7 +256,7 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 
         long objectId = objectIdMap.getId(value);
 
-        if (!isRecording.get() && serializeValues && probesToRecord.size() > 0 && probesToRecord.contains(dataId)) {
+        if (serializeValues && probesToRecord.size() > 0 && probesToRecord.contains(dataId)) {
 
             if (DEBUG && value != null) {
                 System.out.println("record serialized value for probe [" + dataId + "] -> " + value.getClass());
@@ -540,7 +542,7 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 
     @Override
     public void setRecording(boolean b) {
-        isRecording.set(b);
+//        isRecording.set(b);
     }
 
     @Override

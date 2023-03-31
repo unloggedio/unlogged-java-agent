@@ -2,6 +2,6 @@ package com.videobug.agent;
 
 public class Shipper {
     public static void main(String[] args) {
-        System.out.println("[videobug] Started");
+        System.out.println("[unlogged] Started");
     }
 }

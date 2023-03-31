@@ -69,7 +69,7 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
             AgentCommandServer httpServer = new AgentCommandServer(AGENT_SERVER_PORT);
             httpServer.setAgentCommandExecutor(this);
             httpServer.start(NanoHTTPD.SOCKET_READ_TIMEOUT, false);
-            System.err.println("unlogged agent server started at port " + AGENT_SERVER_PORT);
+            System.out.println("[unlogged] agent server started at port " + AGENT_SERVER_PORT);
 
 
             if (outputDir.isDirectory() && outputDir.canWrite()) {
@@ -77,7 +77,7 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
                 if (config.isValid()) {
                     weaver = new Weaver(outputDir, config);
                     weaver.setDumpEnabled(params.isDumpClassEnabled());
-                    System.out.println("[videobug]" +
+                    System.out.println("[unlogged]" +
                             " session Id: [" + config.getSessionId() + "]" +
                             " on hostname [" + NetworkClient.getHostname() + "]");
                     weaver.log("Params: " + args);
@@ -127,16 +127,16 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
 
                     }
                 } else {
-                    System.out.println("[videobug] no weaving option is specified.");
+                    System.out.println("[unlogged] no weaving option is specified.");
                     weaver = null;
                 }
             } else {
-                System.err.println("[videobug] ERROR: " + outputDir.getAbsolutePath() + " is not writable.");
+                System.err.println("[unlogged] ERROR: " + outputDir.getAbsolutePath() + " is not writable.");
                 weaver = null;
             }
         } catch (Throwable thx) {
             System.err.println(
-                    "[videobug] agent init failed, this session will not be recorded => " + thx.getMessage());
+                    "[unlogged] agent init failed, this session will not be recorded => " + thx.getMessage());
             thx.printStackTrace();
             if (thx.getCause() != null) {
                 thx.getCause()
@@ -156,7 +156,7 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
     public static void premain(String agentArgs, Instrumentation inst) throws IOException {
         String agentVersion = RuntimeWeaver.class.getPackage()
                 .getImplementationVersion();
-        System.out.println("[videobug] Starting agent: [" + agentVersion + "] with arguments [" + agentArgs + "]");
+        System.out.println("[unlogged] Starting agent: [" + agentVersion + "] with arguments [" + agentArgs + "]");
         String processId = ManagementFactory.getRuntimeMXBean()
                 .getName();
         long startTime = new Date().getTime();
@@ -164,7 +164,7 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
         String lockFileName = ".videobug" + processId + ".lock";
         File lockFile = new File(lockFileName);
         if (lockFile.exists()) {
-            System.out.println("[videobug] agent already loaded -> " + lockFileName + ". Delete the lock file and " +
+            System.out.println("[unlogged] agent already loaded -> " + lockFileName + ". Delete the lock file and " +
                     "restart to start recording.");
             return;
         }
@@ -176,14 +176,29 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
                 .addShutdownHook(new Thread(new Runnable() {
                     @Override
                     public void run() {
-//                        System.out.println("[videobug] shutting down");
+//                        System.out.println("[unlogged] shutting down");
                         runtimeWeaver.close();
-                        System.out.println("[videobug] shutdown complete");
+                        System.out.println("[unlogged] shutdown complete");
                     }
                 }));
 
         if (runtimeWeaver.isValid()) {
             inst.addTransformer(runtimeWeaver);
+        }
+    }
+
+    private static void closeHibernateSessionIfPossible(Object sessionInstance) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
+        if (sessionInstance != null) {
+
+            Method getTransactionMethod = sessionInstance.getClass().getMethod("getTransaction");
+            Object transactionInstance = getTransactionMethod.invoke(sessionInstance);
+            System.err.println("Transaction to commit: " + transactionInstance);
+            Method commitMethod = transactionInstance.getClass().getMethod("commit");
+            commitMethod.invoke(transactionInstance);
+
+
+            Method sessionCloseMethod = sessionInstance.getClass().getMethod("close");
+            sessionCloseMethod.invoke(sessionInstance);
         }
     }
 
@@ -397,7 +412,7 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
         System.err.println("AgentCommandRequest: " + agentCommandRequest);
 
         try {
-            logger.setRecording(true);
+//            logger.setRecording(true);
             Object sessionInstance = tryOpenHibernateSessionIfHibernateExists();
             try {
 
@@ -451,7 +466,8 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
                                 + ", methods were: " + Arrays.stream(methods).map(Method::getName)
                                 .collect(Collectors.toList()));
                         throw new NoSuchMethodException("method not found [" + agentCommandRequest.getMethodName()
-                                + "] in class " + agentCommandRequest.getClassName());
+                                + "] in class [" + agentCommandRequest.getClassName() + "]. Available methods are: "
+                                + Arrays.stream(methods).map(Method::getName).collect(Collectors.toList()));
                     }
                 }
 
@@ -470,7 +486,6 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
                 }
 
 
-
                 Object methodReturnValue = methodToExecute.invoke(objectByClass, parameters);
                 AgentCommandResponse agentCommandResponse = new AgentCommandResponse();
                 agentCommandResponse.setMethodReturnValue(methodReturnValue);
@@ -479,25 +494,10 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
                 closeHibernateSessionIfPossible(sessionInstance);
             }
         } finally {
-            logger.setRecording(false);
+//            logger.setRecording(false);
         }
 
 
-    }
-
-    private static void closeHibernateSessionIfPossible(Object sessionInstance) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
-        if (sessionInstance != null) {
-
-            Method getTransactionMethod = sessionInstance.getClass().getMethod("getTransaction");
-            Object transactionInstance = getTransactionMethod.invoke(sessionInstance);
-            System.err.println("Transaction to commit: " + transactionInstance);
-            Method commitMethod = transactionInstance.getClass().getMethod("commit");
-            commitMethod.invoke(transactionInstance);
-
-
-            Method sessionCloseMethod = sessionInstance.getClass().getMethod("close");
-            sessionCloseMethod.invoke(sessionInstance);
-        }
     }
 
     private Object tryOpenHibernateSessionIfHibernateExists() throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, ClassNotFoundException {

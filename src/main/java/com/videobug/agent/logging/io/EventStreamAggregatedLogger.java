@@ -39,7 +39,7 @@ public class EventStreamAggregatedLogger implements IEventLogger {
     public EventStreamAggregatedLogger(File outputDir,
                                        AggregatedFileLogger aggregatedLogger
     ) throws IOException {
-//        System.out.printf("[videobug] new event stream aggregated logger\n");
+//        System.out.printf("[unlogged] new event stream aggregated logger\n");
         this.aggregatedLogger = aggregatedLogger;
         typeToId = new TypeIdAggregatedStreamMap(this.aggregatedLogger, this);
         objectIdMap = new ObjectIdAggregatedStream(this.aggregatedLogger, typeToId, outputDir);
@@ -53,7 +53,7 @@ public class EventStreamAggregatedLogger implements IEventLogger {
      * Close all file streams used by the object.
      */
     public void close() {
-        System.out.printf("[videobug] close event stream aggregated logger\n");
+        System.out.printf("[unlogged] close event stream aggregated logger\n");
         objectIdMap.close();
         try {
             aggregatedLogger.shutdown();

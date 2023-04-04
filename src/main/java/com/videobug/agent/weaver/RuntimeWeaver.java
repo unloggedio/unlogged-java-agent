@@ -21,7 +21,6 @@ import java.io.InputStream;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
 import java.lang.instrument.Instrumentation;
-import java.lang.management.ManagementFactory;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.file.*;
@@ -31,6 +30,7 @@ import java.security.ProtectionDomain;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -42,7 +42,7 @@ import static java.nio.file.StandardWatchEventKinds.*;
 public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor {
 
     public static final int AGENT_SERVER_PORT = 12100;
-    private static boolean initialized = false;
+    private static final AtomicBoolean initialized = new AtomicBoolean();
     private final Instrumentation instrumentation;
     /**
      * The weaver injects logging instructions into target classes.
@@ -167,29 +167,21 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
         String agentVersion = RuntimeWeaver.class.getPackage()
                 .getImplementationVersion();
         System.out.println("[unlogged] Starting agent: [" + agentVersion + "] with arguments [" + agentArgs + "]");
-        String processId = ManagementFactory.getRuntimeMXBean()
-                .getName();
-        long startTime = new Date().getTime();
-
-        String lockFileName = ".videobug" + processId + ".lock";
-        File lockFile = new File(lockFileName);
-        if (lockFile.exists()) {
-            System.out.println("[unlogged] agent already loaded -> " + lockFileName + ". Delete the lock file and " +
-                    "restart to start recording.");
-            return;
+//        String processId = ManagementFactory.getRuntimeMXBean().getName();
+//        long startTime = new Date().getTime();
+        synchronized (initialized) {
+            if (initialized.get()) {
+                return;
+            }
+            initialized.set(true);
         }
-        lockFile.createNewFile();
-        lockFile.deleteOnExit();
+
 
         final RuntimeWeaver runtimeWeaver = new RuntimeWeaver(agentArgs, instrumentation);
         Runtime.getRuntime()
-                .addShutdownHook(new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-//                        System.out.println("[unlogged] shutting down");
-                        runtimeWeaver.close();
-                        System.out.println("[unlogged] shutdown complete");
-                    }
+                .addShutdownHook(new Thread(() -> {
+                    runtimeWeaver.close();
+                    System.out.println("[unlogged] shutdown complete");
                 }));
 
         if (runtimeWeaver.isValid()) {

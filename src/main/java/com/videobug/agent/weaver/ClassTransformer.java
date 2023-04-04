@@ -5,11 +5,7 @@ import java.io.IOException;
 import com.videobug.agent.logging.util.TypeIdUtil;
 import com.videobug.agent.weaver.method.JSRInliner;
 import com.videobug.agent.weaver.method.MethodTransformer;
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.*;
 import org.objectweb.asm.commons.TryCatchBlockSorter;
 
 /**
@@ -33,7 +29,19 @@ public class ClassTransformer extends ClassVisitor {
 	public ClassTransformer(WeaveLog weaver, WeaveConfig config, byte[] inputClass, ClassLoader loader) throws IOException {
 		this(weaver, config, new ClassReader(inputClass), loader);
 	}
-	
+
+	@Override
+	public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
+//		System.err.println("Visit annotation: " + descriptor + " on class: " + className);
+		return super.visitAnnotation(descriptor, visible);
+	}
+
+	@Override
+	public AnnotationVisitor visitTypeAnnotation(int typeRef, TypePath typePath, String descriptor, boolean visible) {
+//		System.err.println("Visit type annotation: " + typePath);
+		return super.visitTypeAnnotation(typeRef, typePath, descriptor, visible);
+	}
+
 	/**
 	 * This constructor weaves the given class and provides the result. 
 	 * @param weaver specifies the state of the weaver.

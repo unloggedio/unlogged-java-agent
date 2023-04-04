@@ -1,5 +1,6 @@
 package com.videobug.agent.logging.io;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.common.weaver.ClassInfo;
 import com.videobug.agent.logging.IEventLogger;
 import com.videobug.agent.logging.util.AggregatedFileLogger;
@@ -21,6 +22,8 @@ import java.util.Date;
  * Using the second and third files, a user can know classes in an execution trace.
  */
 public class EventStreamAggregatedLogger implements IEventLogger {
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     public void registerClass(Integer id, Class<?> type) {
@@ -247,6 +250,11 @@ public class EventStreamAggregatedLogger implements IEventLogger {
     @Override
     public void setRecording(boolean b) {
 
+    }
+
+    @Override
+    public ObjectMapper getObjectMapper() {
+        return objectMapper;
     }
 
 

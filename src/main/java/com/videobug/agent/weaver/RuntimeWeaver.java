@@ -24,12 +24,17 @@ import java.lang.instrument.Instrumentation;
 import java.lang.management.ManagementFactory;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.nio.file.WatchService;
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.security.CodeSource;
 import java.security.ProtectionDomain;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import static java.nio.file.StandardWatchEventKinds.*;
 
 /**
  * This class is the main program of SELogger as a javaagent.
@@ -38,6 +43,7 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
 
     public static final int AGENT_SERVER_PORT = 12100;
     private static boolean initialized = false;
+    private final Instrumentation instrumentation;
     /**
      * The weaver injects logging instructions into target classes.
      */
@@ -49,16 +55,19 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
     private IEventLogger logger;
     private Map<String, String> existingClass = new HashMap<String, String>();
     private Map<String, WatchService> watchedLocations = new HashMap<String, WatchService>();
-    private ObjectMapper objectMapper = new ObjectMapper();
+    private ObjectMapper objectMapper;
+    private ExecutorService threadPoolExecutor = Executors.newFixedThreadPool(5);
 
 
     /**
      * Process command line arguments and prepare an output directory
      *
-     * @param args string arguments for weaver
+     * @param args            string arguments for weaver
+     * @param instrumentation
      */
-    public RuntimeWeaver(String args) {
+    public RuntimeWeaver(String args, Instrumentation instrumentation) {
 
+        this.instrumentation = instrumentation;
         try {
             params = new RuntimeWeaverParameters(args);
 
@@ -143,6 +152,7 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
                         .printStackTrace();
             }
         }
+        objectMapper = logger.getObjectMapper();
     }
 
     /**
@@ -150,10 +160,10 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
      * This method initializes the Weaver instance and setup a shutdown hook
      * for releasing resources on the termination of a target program.
      *
-     * @param agentArgs comes from command line.
-     * @param inst      is provided by the jvm
+     * @param agentArgs       comes from command line.
+     * @param instrumentation is provided by the jvm
      */
-    public static void premain(String agentArgs, Instrumentation inst) throws IOException {
+    public static void premain(String agentArgs, Instrumentation instrumentation) throws IOException {
         String agentVersion = RuntimeWeaver.class.getPackage()
                 .getImplementationVersion();
         System.out.println("[unlogged] Starting agent: [" + agentVersion + "] with arguments [" + agentArgs + "]");
@@ -171,7 +181,7 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
         lockFile.createNewFile();
         lockFile.deleteOnExit();
 
-        final RuntimeWeaver runtimeWeaver = new RuntimeWeaver(agentArgs);
+        final RuntimeWeaver runtimeWeaver = new RuntimeWeaver(agentArgs, instrumentation);
         Runtime.getRuntime()
                 .addShutdownHook(new Thread(new Runnable() {
                     @Override
@@ -183,7 +193,7 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
                 }));
 
         if (runtimeWeaver.isValid()) {
-            inst.addTransformer(runtimeWeaver);
+            instrumentation.addTransformer(runtimeWeaver);
         }
     }
 
@@ -192,9 +202,9 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
 
             Method getTransactionMethod = sessionInstance.getClass().getMethod("getTransaction");
             Object transactionInstance = getTransactionMethod.invoke(sessionInstance);
-            System.err.println("Transaction to commit: " + transactionInstance);
-            Method commitMethod = transactionInstance.getClass().getMethod("commit");
-            commitMethod.invoke(transactionInstance);
+//            System.err.println("Transaction to commit: " + transactionInstance);
+            Method rollbackMethod = transactionInstance.getClass().getMethod("rollback");
+            rollbackMethod.invoke(transactionInstance);
 
 
             Method sessionCloseMethod = sessionInstance.getClass().getMethod("close");
@@ -331,18 +341,69 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
                     return null;
                 }
 
-//                System.err.println("[" + new Date() + "] Weaving executed: " + className + " loaded from " + classLoadLocation);
-                if (existingClass.containsKey(className)) {
-                    Exception exception = new Exception();
-                    exception.printStackTrace(System.err);
-                }
+//                System.err.println(
+//                        "[" + new Date() + "] Weaving executed: " + className + " loaded from " + classLoadLocation);
+//                if (existingClass.containsKey(className)) {
+//                    Exception exception = new Exception();
+//                    exception.printStackTrace(System.err);
+//                }
                 existingClass.put(className, classLoadLocation);
 
+
 //                if (!watchedLocations.containsKey(classLoadLocation)) {
-//                    Path loaderPath = FileSystems.getDefault().getPath(classLoadLocation);
+//                    Path loaderPath = FileSystems.getDefault().getPath(classLoadLocation.split("file:")[1]);
+//
+//
+//                    System.err.println(
+//                            "[" + this + "] Watching path: " + classLoadLocation + " => " + loaderPath.toFile()
+//                                    .exists());
 //                    WatchService watcher = FileSystems.getDefault().newWatchService();
-//                    loaderPath.register(watcher, ENTRY_MODIFY);
 //                    watchedLocations.put(classLoadLocation, watcher);
+//                    registerAll(loaderPath, watcher);
+//
+//                    Runnable watcherRunnable = () -> {
+//                        while (true) {
+//                            try {
+//                                WatchKey changeEvent = watcher.take();
+//                                Path directory = (Path) changeEvent.watchable();
+//                                for (WatchEvent<?> pollEvent : changeEvent.pollEvents()) {
+//                                    if (pollEvent.kind() == ENTRY_DELETE) {
+//                                        continue;
+//                                    }
+//                                    WatchEvent<Path> pathWatchEvent = (WatchEvent<Path>) pollEvent;
+//                                    Path context = pathWatchEvent.context();
+//                                    Path resolvedModifiedPath = directory.resolve(context);
+//                                    if (!resolvedModifiedPath.toFile().isFile()) {
+//                                        continue;
+//                                    }
+//                                    String pathString = resolvedModifiedPath.toString();
+//                                    String nameForClassRedefinition = pathString.substring(
+//                                            pathString.indexOf("classes/") + "classes/".length()
+//                                            , pathString.indexOf(".class"));
+//                                    System.err.println(
+//                                            "WatchEvent: " + resolvedModifiedPath + " => " + pathWatchEvent.kind() +
+//                                                    " => " + nameForClassRedefinition + " in " + directory.toAbsolutePath());
+//                                    try (FileInputStream stream = new FileInputStream(resolvedModifiedPath.toFile())) {
+//
+//                                        byte[] newFileBytes = StreamUtil.streamToBytes(stream);
+//                                        String classQualifiedName = nameForClassRedefinition.replace('/', '.');
+//                                        Class<?> existingClass = Class.forName(classQualifiedName);
+//                                        System.err.println("Existing class: " + existingClass);
+//                                        ClassDefinition classDefinition = new ClassDefinition(existingClass, newFileBytes);
+//                                        instrumentation.redefineClasses(classDefinition);
+//                                    } catch (Exception e) {
+//                                        e.printStackTrace();
+//                                        System.err.println("Failed to redefine: " + e.getMessage());
+//                                    }
+//                                }
+//                                changeEvent.reset();
+//
+//                            } catch (Exception e) {
+//                                throw new RuntimeException(e);
+//                            }
+//                        }
+//                    };
+//                    threadPoolExecutor.submit(watcherRunnable);
 //                }
 
                 byte[] buffer = weaver.weave(classLoadLocation, className, classfileBuffer, loader);
@@ -356,6 +417,25 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
 //            System.err.printf("[unlogged] Failed to instrument class: [%s]\n", className);
             return null;
         }
+    }
+
+    /**
+     * Register the given directory and all its sub-directories with the WatchService.
+     */
+    private void registerAll(final Path start, WatchService watcher) throws IOException {
+        // register directory and sub-directories
+        Files.walkFileTree(start, new SimpleFileVisitor<Path>() {
+
+            @Override
+            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs)
+                    throws IOException {
+                System.err.println("Watching path: " + dir.toString());
+                dir.register(watcher, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
+                return FileVisitResult.CONTINUE;
+            }
+
+        });
+
     }
 
     /**
@@ -409,20 +489,20 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
 
     @Override
     public AgentCommandResponse executeCommand(AgentCommandRequest agentCommandRequest) throws Exception {
-        System.err.println("AgentCommandRequest: " + agentCommandRequest);
+//        System.err.println("AgentCommandRequest: " + agentCommandRequest);
 
         try {
-//            logger.setRecording(true);
+            logger.setRecording(true);
             Object sessionInstance = tryOpenHibernateSessionIfHibernateExists();
             try {
 
 
                 Object objectByClass = logger.getObjectByClassName(agentCommandRequest.getClassName());
                 if (objectByClass == null) {
-                    System.err.println("No object by classname: " + agentCommandRequest.getClassName());
+//                    System.err.println("No object by classname: " + agentCommandRequest.getClassName());
                     throw new Exception("No object by classname: " + agentCommandRequest.getClassName());
                 }
-                System.err.println("Object instance: " + objectByClass);
+//                System.err.println("Object instance: " + objectByClass);
 
                 Method methodToExecute = null;
                 Class<?> objectClass = objectByClass.getClass();
@@ -432,8 +512,8 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
                 String methodReturnType = methodSignatureParts.remove(methodSignatureParts.size() - 1);
 
                 List<String> methodParameters = agentCommandRequest.getMethodParameters();
-                System.err.println(
-                        "Method parameters from received signature: " + methodSignatureParts + " => " + methodParameters);
+//                System.err.println(
+//                        "Method parameters from received signature: " + methodSignatureParts + " => " + methodParameters);
 
                 Class<?>[] methodParameterTypes = new Class[methodSignatureParts.size()];
 
@@ -445,7 +525,8 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
 
 
                 try {
-                    methodToExecute = objectClass.getDeclaredMethod(agentCommandRequest.getMethodName(), methodParameterTypes);
+                    methodToExecute = objectClass.getDeclaredMethod(agentCommandRequest.getMethodName(),
+                            methodParameterTypes);
                 } catch (NoSuchMethodException noSuchMethodException) {
                     System.err.println("method not found matching name [" + agentCommandRequest.getMethodName() + "]" +
                             " with parameters [" + methodSignatureParts + "]" +
@@ -480,7 +561,7 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
                 for (int i = 0; i < methodParameters.size(); i++) {
                     String methodParameter = methodParameters.get(i);
                     Class<?> parameterType = parameterTypesClass[i];
-                    System.err.println("Make value of type [" + parameterType + "] from value: " + methodParameter);
+//                    System.err.println("Make value of type [" + parameterType + "] from value: " + methodParameter);
                     Object parameterObject = objectMapper.readValue(methodParameter, parameterType);
 //                System.err.println(
 //                        "Assign parameter [" + i + "] value type [" + parameterType + "] -> " + parameterObject);
@@ -496,7 +577,7 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
                 closeHibernateSessionIfPossible(sessionInstance);
             }
         } finally {
-//            logger.setRecording(false);
+            logger.setRecording(false);
         }
 
 
@@ -506,10 +587,10 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
         Object hibernateSessionFactory = logger.getObjectByClassName("org.hibernate.internal.SessionFactoryImpl");
         Object sessionInstance = null;
         if (hibernateSessionFactory != null) {
-            System.err.println("Hibernate session factory: " + hibernateSessionFactory);
+//            System.err.println("Hibernate session factory: " + hibernateSessionFactory);
             Method openSessionMethod = hibernateSessionFactory.getClass().getMethod("openSession");
             sessionInstance = openSessionMethod.invoke(hibernateSessionFactory);
-            System.err.println("Hibernate session opened: " + sessionInstance);
+//            System.err.println("Hibernate session opened: " + sessionInstance);
             Class<?> managedSessionContextClass = Class.forName("org.hibernate.context.internal.ManagedSessionContext");
             Method bindMethod = managedSessionContextClass.getMethod("bind", Class.forName("org.hibernate.Session"));
             bindMethod.invoke(null, sessionInstance);

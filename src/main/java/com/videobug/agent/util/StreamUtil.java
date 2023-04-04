@@ -30,5 +30,15 @@ public class StreamUtil {
         return out.toString();
     }
 
+    public static byte[] streamToBytes(InputStream stream) throws IOException {
+        int bufferSize = 1024;
+        byte[] buffer = new byte[bufferSize];
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        for (int numRead; (numRead = stream.read(buffer, 0, buffer.length)) > 0; ) {
+            out.write(buffer, 0, numRead);
+        }
+        return out.toByteArray();
+    }
+
 
 }

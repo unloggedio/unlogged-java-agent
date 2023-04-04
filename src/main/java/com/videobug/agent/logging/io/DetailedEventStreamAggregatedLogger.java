@@ -1,10 +1,10 @@
 package com.videobug.agent.logging.io;
 
 import com.esotericsoftware.kryo.Kryo;
-import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.PropertyAccessor;
+import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.Module;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
 import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
 import com.fasterxml.jackson.databind.json.JsonMapper;
@@ -161,8 +161,9 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                 }
             }
 
-
             objectMapper = jacksonBuilder.build();
+            objectMapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.NONE)
+                    .setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY);
             kryo = null;
             fstObjectMapper = null;
         } else if (SERIALIZATION_MODE == SerializationMode.FST) {
@@ -306,6 +307,7 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                         || className.startsWith("java.util.Base64")
                         || className.startsWith("java.util.concurrent")
                         || className.startsWith("com.amazon")
+                        || className.startsWith("com.hubspot")
                         || className.endsWith("[]")
                         || value instanceof Iterator
                 ) {
@@ -363,8 +365,8 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 //                if (value != null) {
 //                    kryo.register(value.getClass());
 //                    String message = e.getMessage();
-                System.err.println("ThrowSerialized [" + value.getClass().getCanonicalName() + "]" +
-                        " [" + dataId + "] error -> " + e.getMessage() + " -> " + e.getClass().getCanonicalName());
+//                System.err.println("ThrowSerialized [" + value.getClass().getCanonicalName() + "]" +
+//                        " [" + dataId + "] error -> " + e.getMessage() + " -> " + e.getClass().getCanonicalName());
 //                e.printStackTrace();
 //                    if (message.startsWith("Class is not registered")) {
 //                        String className = message.split(":")[1];
@@ -542,7 +544,11 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 
     @Override
     public void setRecording(boolean b) {
-//        isRecording.set(b);
+        isRecording.set(b);
+    }
+
+    public ObjectMapper getObjectMapper() {
+        return objectMapper;
     }
 
     @Override

@@ -1,6 +1,7 @@
 package com.videobug.agent.logging;
 
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.common.weaver.ClassInfo;
 import com.videobug.agent.weaver.WeaveLog;
 
@@ -96,4 +97,6 @@ public interface IEventLogger {
 	void recordWeaveInfo(byte[] byteArray, ClassInfo classIdEntry, WeaveLog log);
 
     void setRecording(boolean b);
+
+	ObjectMapper getObjectMapper();
 }

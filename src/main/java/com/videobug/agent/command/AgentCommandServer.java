@@ -35,7 +35,7 @@ public class AgentCommandServer extends NanoHTTPD {
 
         String requestPath = session.getUri();
         Method requestMethod = session.getMethod();
-        System.err.println("[" + requestMethod + "] " + requestPath + ": " + postBody + " - " + requestBodyText);
+//        System.err.println("[" + requestMethod + "] " + requestPath + ": " + postBody + " - " + requestBodyText);
         try {
             AgentCommandRequest agentCommandRequest = objectMapper.readValue(
                     postBody != null ? postBody : requestBodyText,

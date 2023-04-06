@@ -1,10 +1,7 @@
 package com.videobug.agent.weaver;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.videobug.agent.command.AgentCommandExecutor;
-import com.videobug.agent.command.AgentCommandRequest;
-import com.videobug.agent.command.AgentCommandResponse;
-import com.videobug.agent.command.AgentCommandServer;
+import com.videobug.agent.command.*;
 import com.videobug.agent.logging.IEventLogger;
 import com.videobug.agent.logging.Logging;
 import com.videobug.agent.logging.perthread.PerThreadBinaryFileAggregatedLogger;
@@ -561,9 +558,17 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
                 }
 
 
-                Object methodReturnValue = methodToExecute.invoke(objectByClass, parameters);
                 AgentCommandResponse agentCommandResponse = new AgentCommandResponse();
-                agentCommandResponse.setMethodReturnValue(objectMapper.writeValueAsString(methodReturnValue));
+                try {
+                    Object methodReturnValue = methodToExecute.invoke(objectByClass, parameters);
+                    agentCommandResponse.setMethodReturnValue(objectMapper.writeValueAsString(methodReturnValue));
+                    agentCommandResponse.setResponseClassName(methodReturnValue.getClass().getCanonicalName());
+                    agentCommandResponse.setResponseType(ResponseType.NORMAL);
+                } catch (Throwable exception) {
+                    agentCommandResponse.setMethodReturnValue(objectMapper.writeValueAsString(exception));
+                    agentCommandResponse.setResponseClassName(exception.getClass().getCanonicalName());
+                    agentCommandResponse.setResponseType(ResponseType.EXCEPTION);
+                }
                 return agentCommandResponse;
             } finally {
                 closeHibernateSessionIfPossible(sessionInstance);

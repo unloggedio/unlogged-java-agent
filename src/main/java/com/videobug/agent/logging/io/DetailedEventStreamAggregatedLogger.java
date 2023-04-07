@@ -516,11 +516,9 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                             e.getEventType() == EventType.CALL_PARAM ||
                                     e.getEventType() == EventType.METHOD_PARAM ||
                                     e.getEventType() == EventType.METHOD_NORMAL_EXIT ||
-                                    e.getEventType() == EventType.CALL_RETURN
-                    )
+                                    e.getEventType() == EventType.CALL_RETURN)
                     .filter(e -> {
                         String type = e.getAttribute("Type", null);
-//                        System.err.println("Record probe: [" + e + "]" + type);
                         if ("Ljava/util/Iterator;".equals(type)) {
                             return false;
                         }
@@ -537,7 +535,6 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 
             probesToRecord.addAll(newClassProbes);
             callProbes.putAll(callProbes1);
-//            System.err.println("Record serialized value for probes: " + newClassProbes);
         }
         aggregatedLogger.writeWeaveInfo(byteArray);
     }

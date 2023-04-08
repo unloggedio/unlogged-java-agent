@@ -57,8 +57,8 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
     private final ObjectIdAggregatedStream objectIdMap;
     private final String includedPackage;
     private final Boolean DEBUG = Boolean.parseBoolean(System.getProperty("UNLOGGED_DEBUG"));
-    private final ThreadLocal<ByteArrayOutputStream> threadOutputBuffer =
-            ThreadLocal.withInitial(ByteArrayOutputStream::new);
+//    private final ThreadLocal<ByteArrayOutputStream> threadOutputBuffer =
+//            ThreadLocal.withInitial(ByteArrayOutputStream::new);
     private final ThreadLocal<Boolean> isRecording = ThreadLocal.withInitial(() -> false);
     final private boolean serializeValues = true;
     private final Map<String, WeaveLog> classMap = new HashMap<>();

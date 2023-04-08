@@ -1,5 +1,5 @@
 package com.videobug.agent.command;
 
 public enum ResponseType {
-    EXCEPTION, NORMAL
+    EXCEPTION, FAILED, NORMAL
 }

@@ -75,7 +75,7 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
             AgentCommandServer httpServer = new AgentCommandServer(AGENT_SERVER_PORT);
             httpServer.setAgentCommandExecutor(this);
             httpServer.start(NanoHTTPD.SOCKET_READ_TIMEOUT, false);
-            System.out.println("[unlogged] agent server started at port " + AGENT_SERVER_PORT);
+//            System.out.println("[unlogged] agent server started at port " + AGENT_SERVER_PORT);
 
 
             if (outputDir.isDirectory() && outputDir.canWrite()) {

@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>video.bug</groupId>
     <artifactId>videobug-java-agent</artifactId>
-    <version>1.12.1-SNAPSHOT-${projectVersion}</version>
+    <version>1.12.2-SNAPSHOT-${projectVersion}</version>
     <distributionManagement>
         <snapshotRepository>
             <id>ossrh</id>
@@ -229,37 +229,37 @@
                     <groupId>com.fasterxml.jackson.core</groupId>
                     <artifactId>jackson-core</artifactId>
                     <version>2.13.2</version>
-                    <scope>provided</scope>
+<!--                    <scope>provided</scope>-->
                 </dependency>
                 <dependency>
                     <groupId>com.fasterxml.jackson.core</groupId>
                     <artifactId>jackson-databind</artifactId>
                     <version>2.13.2</version>
-                    <scope>provided</scope>
+<!--                    <scope>provided</scope>-->
                 </dependency>
                 <dependency>
                     <groupId>com.fasterxml.jackson.datatype</groupId>
                     <artifactId>jackson-datatype-hibernate5</artifactId>
                     <version>2.13.4</version>
-                    <scope>provided</scope>
+<!--                    <scope>provided</scope>-->
                 </dependency>
                 <dependency>
                     <groupId>com.fasterxml.jackson.datatype</groupId>
                     <artifactId>jackson-datatype-joda</artifactId>
                     <version>2.13.4</version>
-                    <scope>provided</scope>
+<!--                    <scope>provided</scope>-->
                 </dependency>
                 <dependency>
                     <groupId>com.fasterxml.jackson.datatype</groupId>
                     <artifactId>jackson-datatype-jdk8</artifactId>
                     <version>2.13.4</version>
-                    <scope>provided</scope>
+<!--                    <scope>provided</scope>-->
                 </dependency>
                 <dependency>
                     <groupId>com.fasterxml.jackson.datatype</groupId>
                     <artifactId>jackson-datatype-jsr310</artifactId>
                     <version>2.13.4</version>
-                    <scope>provided</scope>
+<!--                    <scope>provided</scope>-->
                 </dependency>
             </dependencies>
 <!--            <build>-->

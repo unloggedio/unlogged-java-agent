@@ -332,10 +332,9 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
 
 //                System.err.println(
 //                        "[" + new Date() + "] Weaving executed: " + className + " loaded from " + classLoadLocation);
-//                if (existingClass.containsKey(className)) {
-//                    Exception exception = new Exception();
-//                    exception.printStackTrace(System.err);
-//                }
+                if (existingClass.containsKey(className)) {
+                    System.err.println("Class [" + className + "] was hot-reloaded at " + new Date());
+                }
                 existingClass.put(className, classLoadLocation);
 
 

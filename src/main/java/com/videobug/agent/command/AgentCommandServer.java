@@ -50,7 +50,7 @@ public class AgentCommandServer extends NanoHTTPD {
 
         String requestPath = session.getUri();
         Method requestMethod = session.getMethod();
-        System.err.println("[" + requestMethod + "] " + requestPath + ": " + postBody + " - " + requestBodyText);
+//        System.err.println("[" + requestMethod + "] " + requestPath + ": " + postBody + " - " + requestBodyText);
         if (requestPath.equals("/ping")) {
             return newFixedLengthResponse(Response.Status.OK, "application/json", pingResponseBody);
         }
@@ -64,6 +64,9 @@ public class AgentCommandServer extends NanoHTTPD {
                     commandResponse = this.agentCommandExecutor.executeCommand(agentCommandRequest);
                     break;
                 default:
+                    System.err.println(
+                            "Unknown request [" + requestMethod + "] " + requestPath + " - " + agentCommandRequest);
+
                     commandResponse = new AgentCommandResponse();
                     commandResponse.setMessage("unknown command: " + agentCommandRequest.getCommand());
                     commandResponse.setResponseType(ResponseType.FAILED);

@@ -561,7 +561,7 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
                 try {
                     Object methodReturnValue = methodToExecute.invoke(objectByClass, parameters);
                     agentCommandResponse.setMethodReturnValue(objectMapper.writeValueAsString(methodReturnValue));
-                    agentCommandResponse.setResponseClassName(methodReturnValue.getClass().getCanonicalName());
+                    agentCommandResponse.setResponseClassName(methodToExecute.getReturnType().getCanonicalName());
                     agentCommandResponse.setResponseType(ResponseType.NORMAL);
                 } catch (Throwable exception) {
                     exception.printStackTrace();

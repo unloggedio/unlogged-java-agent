@@ -77,6 +77,11 @@ public class AgentCommandServer extends NanoHTTPD {
         } catch (Exception e) {
             e.printStackTrace();
             AgentCommandErrorResponse agentCommandErrorResponse = new AgentCommandErrorResponse(e.getMessage());
+            if (e instanceof NoSuchMethodException) {
+                agentCommandErrorResponse.setResponseType(ResponseType.FAILED);
+            } else {
+                agentCommandErrorResponse.setResponseType(ResponseType.EXCEPTION);
+            }
             String errorResponseBody = null;
             try {
                 errorResponseBody = objectMapper.writeValueAsString(agentCommandErrorResponse);

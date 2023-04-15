@@ -2,6 +2,16 @@ package com.videobug.agent.command;
 
 public class AgentCommandErrorResponse {
 
+    private ResponseType responseType;
+
+    public ResponseType getResponseType() {
+        return responseType;
+    }
+
+    public void setResponseType(ResponseType responseType) {
+        this.responseType = responseType;
+    }
+
     public String getMessage() {
         return message;
     }

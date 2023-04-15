@@ -3,8 +3,10 @@ package com.videobug.agent.logging.io;
 import com.esotericsoftware.kryo.Kryo;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
-import com.fasterxml.jackson.databind.*;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.Module;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
 import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
 import com.fasterxml.jackson.databind.json.JsonMapper;
@@ -57,7 +59,7 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
     private final ObjectIdAggregatedStream objectIdMap;
     private final String includedPackage;
     private final Boolean DEBUG = Boolean.parseBoolean(System.getProperty("UNLOGGED_DEBUG"));
-//    private final ThreadLocal<ByteArrayOutputStream> threadOutputBuffer =
+    //    private final ThreadLocal<ByteArrayOutputStream> threadOutputBuffer =
 //            ThreadLocal.withInitial(ByteArrayOutputStream::new);
     private final ThreadLocal<Boolean> isRecording = ThreadLocal.withInitial(() -> false);
     final private boolean serializeValues = true;
@@ -246,6 +248,7 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
             className = "";
         }
         if (className != null && !className.contains("Lambda")) {
+//            System.err.println("Object instance: " + className);
             if (className.contains("_$")) {
                 className = className.substring(0, className.indexOf("_$"));
             } else if (className.contains("$")) {

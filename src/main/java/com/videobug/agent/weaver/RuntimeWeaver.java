@@ -479,8 +479,14 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
     public AgentCommandResponse executeCommand(AgentCommandRequest agentCommandRequest) throws Exception {
 //        System.err.println("AgentCommandRequest: " + agentCommandRequest);
 
+        AgentCommandRequestType requestType = agentCommandRequest.getRequestType();
+        if (requestType == null) {
+            requestType = AgentCommandRequestType.REPEAT_INVOKE;
+        }
         try {
-            logger.setRecording(true);
+            if (requestType.equals(AgentCommandRequestType.REPEAT_INVOKE)) {
+                logger.setRecording(true);
+            }
             Object sessionInstance = tryOpenHibernateSessionIfHibernateExists();
             try {
 
@@ -574,7 +580,9 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
                 closeHibernateSessionIfPossible(sessionInstance);
             }
         } finally {
-            logger.setRecording(false);
+            if (requestType.equals(AgentCommandRequestType.REPEAT_INVOKE)) {
+                logger.setRecording(false);
+            }
         }
 
 

@@ -519,6 +519,7 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                             e.getEventType() == EventType.CALL_PARAM ||
                                     e.getEventType() == EventType.METHOD_PARAM ||
                                     e.getEventType() == EventType.METHOD_NORMAL_EXIT ||
+                                    e.getEventType() == EventType.METHOD_EXCEPTIONAL_EXIT ||
                                     e.getEventType() == EventType.CALL_RETURN)
                     .filter(e -> {
                         String type = e.getAttribute("Type", null);

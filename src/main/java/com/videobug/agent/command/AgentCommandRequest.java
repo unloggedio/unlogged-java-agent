@@ -8,6 +8,15 @@ public class AgentCommandRequest {
     private String methodName;
     private String methodSignature;
     private List<String> methodParameters;
+    private AgentCommandRequestType requestType;
+
+    public AgentCommandRequestType getRequestType() {
+        return requestType;
+    }
+
+    public void setRequestType(AgentCommandRequestType requestType) {
+        this.requestType = requestType;
+    }
 
     public AgentCommand getCommand() {
         return command;
@@ -45,6 +54,10 @@ public class AgentCommandRequest {
         return methodParameters;
     }
 
+    public void setMethodParameters(List<String> methodParameters) {
+        this.methodParameters = methodParameters;
+    }
+
     @Override
     public String toString() {
         return "AgentCommandRequest{" +
@@ -54,9 +67,5 @@ public class AgentCommandRequest {
                 ", methodSignature='" + methodSignature + '\'' +
                 ", methodParameters=" + methodParameters +
                 '}';
-    }
-
-    public void setMethodParameters(List<String> methodParameters) {
-        this.methodParameters = methodParameters;
     }
 }

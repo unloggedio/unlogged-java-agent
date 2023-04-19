@@ -18,7 +18,7 @@ public class RuntimeWeaverParameters {
     private static final String[] SYSTEM_PACKAGES = {"sun/", "com/sun/", "java/", "javax/"};
     private static final String ARG_SEPARATOR = ",";
     private static final String SELOGGER_DEFAULT_OUTPUT_DIR =
-            System.getProperty("user.home") + "/.videobug/sessions/selogger-output-{time}";
+            System.getProperty("user.home") + "/.unlogged/sessions/selogger-output-{time}";
 
     private static final Pattern timePattern = Pattern.compile(".*(\\{time:([^}]+)\\}).*");
     /**

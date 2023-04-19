@@ -2,8 +2,8 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>video.bug</groupId>
-    <artifactId>videobug-java-agent</artifactId>
-    <version>1.12.4-SNAPSHOT-${projectVersion}</version>
+    <artifactId>unlogged-java-agent</artifactId>
+    <version>1.13.1-SNAPSHOT-${projectVersion}</version>
     <distributionManagement>
         <snapshotRepository>
             <id>ossrh</id>

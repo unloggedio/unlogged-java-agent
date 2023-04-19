@@ -571,9 +571,10 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
                     agentCommandResponse.setResponseType(ResponseType.NORMAL);
                 } catch (Throwable exception) {
                     exception.printStackTrace();
-                    agentCommandResponse.setMessage(exception.getMessage());
-                    agentCommandResponse.setMethodReturnValue(objectMapper.writeValueAsString(exception));
-                    agentCommandResponse.setResponseClassName(exception.getClass().getCanonicalName());
+                    Throwable exceptionCause = exception.getCause() != null ? exception.getCause() : exception;
+                    agentCommandResponse.setMessage(exceptionCause.getMessage());
+                    agentCommandResponse.setMethodReturnValue(objectMapper.writeValueAsString(exceptionCause));
+                    agentCommandResponse.setResponseClassName(exceptionCause.getClass().getCanonicalName());
                     agentCommandResponse.setResponseType(ResponseType.EXCEPTION);
                 }
                 return agentCommandResponse;

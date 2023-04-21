@@ -58,6 +58,7 @@ public class RuntimeWeaverParameters {
     private boolean weaveSecurityManagerClass = false;
     private Mode mode = Mode.Testing;
     private int filesPerIndex = 100;
+    private String agentServerPort = "12100";
 
     public RuntimeWeaverParameters(String args) {
         if (args == null) args = "";
@@ -84,6 +85,8 @@ public class RuntimeWeaverParameters {
                 }
             } else if (arg.startsWith("weave=")) {
                 weaveOption = arg.substring("weave=".length());
+            } else if (arg.startsWith("agentserverport=")) {
+                agentServerPort = arg.substring("agentserverport=".length());
             } else if (arg.startsWith("server=")) {
                 serverAddress = arg.substring("server=".length());
             } else if (arg.startsWith("token=")) {
@@ -213,5 +216,13 @@ public class RuntimeWeaverParameters {
 
     public void setFilesPerIndex(int filesPerIndex) {
         this.filesPerIndex = filesPerIndex;
+    }
+
+    public String getAgentServerPort() {
+        return agentServerPort;
+    }
+
+    public void setAgentServerPort(String agentServerPort) {
+        this.agentServerPort = agentServerPort;
     }
 }

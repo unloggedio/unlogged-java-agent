@@ -39,6 +39,7 @@ import static java.nio.file.StandardWatchEventKinds.*;
 public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor {
 
     public static final int AGENT_SERVER_PORT = 12100;
+    public static final String AGENT_VERSION = "1.13.2";
     private static final AtomicBoolean initialized = new AtomicBoolean();
     private final Instrumentation instrumentation;
     /**
@@ -72,7 +73,8 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
             if (!outputDir.exists()) {
                 outputDir.mkdirs();
             }
-            AgentCommandServer httpServer = new AgentCommandServer(AGENT_SERVER_PORT);
+            ServerMetadata serverMetadata = new ServerMetadata(params.getIncludedNames().toString(), AGENT_VERSION);
+            AgentCommandServer httpServer = new AgentCommandServer(AGENT_SERVER_PORT, serverMetadata);
             httpServer.setAgentCommandExecutor(this);
             httpServer.start(NanoHTTPD.SOCKET_READ_TIMEOUT, false);
 //            System.out.println("[unlogged] agent server started at port " + AGENT_SERVER_PORT);

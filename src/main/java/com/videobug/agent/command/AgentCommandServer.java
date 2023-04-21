@@ -10,17 +10,20 @@ import java.util.Map;
 
 public class AgentCommandServer extends NanoHTTPD {
 
+    private final ServerMetadata serverMetadata;
     ObjectMapper objectMapper = new ObjectMapper();
     private AgentCommandExecutor agentCommandExecutor;
     private String pingResponseBody;
 
-    public AgentCommandServer(int port) {
+    public AgentCommandServer(int port, ServerMetadata serverMetadata) {
         super(port);
+        this.serverMetadata = serverMetadata;
         init();
     }
 
-    public AgentCommandServer(String hostname, int port) {
+    public AgentCommandServer(String hostname, int port, ServerMetadata serverMetadata) {
         super(hostname, port);
+        this.serverMetadata = serverMetadata;
         init();
     }
 
@@ -29,6 +32,7 @@ public class AgentCommandServer extends NanoHTTPD {
         pingResponse.setMessage("ok");
         pingResponse.setResponseType(ResponseType.NORMAL);
         try {
+            pingResponse.setMethodReturnValue(serverMetadata);
             pingResponseBody = objectMapper.writeValueAsString(pingResponse);
         } catch (JsonProcessingException e) {
             // should never happen

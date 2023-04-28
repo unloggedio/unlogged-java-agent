@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>video.bug</groupId>
     <artifactId>unlogged-java-agent</artifactId>
-    <version>1.13.2-SNAPSHOT-${projectVersion}</version>
+    <version>1.13.4-SNAPSHOT-${projectVersion}</version>
     <distributionManagement>
         <snapshotRepository>
             <id>ossrh</id>
@@ -500,6 +500,11 @@
     </profiles>
 
     <dependencies>
+        <dependency>
+            <groupId>org.hibernate.javax.persistence</groupId>
+            <artifactId>hibernate-jpa-2.1-api</artifactId>
+            <version>1.0.0.Final</version>
+        </dependency>
         <dependency>
             <groupId>org.nanohttpd</groupId>
             <artifactId>nanohttpd</artifactId>

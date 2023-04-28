@@ -39,7 +39,7 @@ import static java.nio.file.StandardWatchEventKinds.*;
 public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor {
 
     public static final int AGENT_SERVER_PORT = 12100;
-    public static final String AGENT_VERSION = "1.13.2";
+    public static final String AGENT_VERSION = "1.13.4";
     private static final AtomicBoolean initialized = new AtomicBoolean();
     private final Instrumentation instrumentation;
     /**

@@ -32,7 +32,7 @@ public class ClassTypeUtil {
     }
 
 
-    public static Class<?> getClassNameFromDescriptor(String descriptor) {
+    public static Class<?> getClassNameFromDescriptor(String descriptor, ClassLoader targetClassLoader) {
 //        System.err.println("Get class for: [" + descriptor + "]");
         char firstChar = descriptor.charAt(0);
         switch (firstChar) {
@@ -56,7 +56,7 @@ public class ClassTypeUtil {
                 return double.class;
             case 'L':
                 try {
-                    return Class.forName(descriptor.substring(1, descriptor.length() - 1).replace('/', '.'));
+                    return targetClassLoader.loadClass(descriptor.substring(1, descriptor.length() - 1).replace('/', '.'));
                 } catch (ClassNotFoundException e) {
                     throw new RuntimeException(e);
                 }

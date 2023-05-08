@@ -494,6 +494,7 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
 
 
                 Object objectByClass = logger.getObjectByClassName(agentCommandRequest.getClassName());
+                ClassLoader targetClassLoader = objectByClass.getClass().getClassLoader();
                 if (objectByClass == null) {
 //                    System.err.println("No object by classname: " + agentCommandRequest.getClassName());
                     throw new Exception("No object by classname: " + agentCommandRequest.getClassName());
@@ -516,7 +517,7 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
                 for (int i = 0; i < methodSignatureParts.size(); i++) {
                     String methodSignaturePart = methodSignatureParts.get(i);
 //                System.err.println("Method parameter [" + i + "] type: " + methodSignaturePart);
-                    methodParameterTypes[i] = ClassTypeUtil.getClassNameFromDescriptor(methodSignaturePart);
+                    methodParameterTypes[i] = ClassTypeUtil.getClassNameFromDescriptor(methodSignaturePart, targetClassLoader);
                 }
 
 

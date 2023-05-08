@@ -7,6 +7,8 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.Module;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
+import com.fasterxml.jackson.databind.introspect.AnnotatedClass;
 import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
 import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
 import com.fasterxml.jackson.databind.json.JsonMapper;
@@ -74,6 +76,9 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
     private final ObjectMapper objectMapper;
 
     private final Map<String, WeakReference<Object>> objectMap = new HashMap<>();
+    private Class<?> lombokBuilderAnnotation;
+    private boolean isLombokPresent;
+    private ClassLoader targetClassLoader;
 
     /**
      * Create an instance of logging object.
@@ -92,6 +97,15 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
         typeToId = new TypeIdAggregatedStreamMap(this.aggregatedLogger, this);
         objectIdMap = new ObjectIdAggregatedStream(this.aggregatedLogger, typeToId, outputDir);
 
+        try {
+            lombokBuilderAnnotation = Class.forName("lombok.Builder");
+            isLombokPresent = true;
+            System.err.println("Lombok found: " + lombokBuilderAnnotation.getCanonicalName());
+        } catch (ClassNotFoundException e) {
+            System.err.println("Lombok not found");
+            isLombokPresent = false;
+        }
+
         if (SERIALIZATION_MODE == SerializationMode.KRYO) {
             kryo = new Kryo();
             kryo.register(byte[].class);
@@ -109,6 +123,38 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                 public boolean hasIgnoreMarker(AnnotatedMember m) {
                     return false;
                 }
+
+                @Override
+                public JsonPOJOBuilder.Value findPOJOBuilderConfig(AnnotatedClass ac) {
+//                    System.err.println("Find POJO builder config: " + ac.getName());
+                    if (ac.hasAnnotation(JsonPOJOBuilder.class)) {//If no annotation present use default as empty prefix
+                        return super.findPOJOBuilderConfig(ac);
+                    }
+                    return new JsonPOJOBuilder.Value("build", "");
+                }
+
+                @Override
+                public Class<?> findPOJOBuilder(AnnotatedClass ac) {
+//                    System.err.println("Find POJO builder: " + ac.getName());
+
+//                    if (isLombokPresent) {
+//                        System.err.println("Annotation found: " + ac.hasAnnotation(lombokBuilderAnnotation));
+//                    }
+
+                    if (isLombokPresent) {
+                        try {
+                            String classFullyQualifiedName = ac.getName();
+                            String classSimpleName = classFullyQualifiedName.substring(
+                                    classFullyQualifiedName.lastIndexOf(".") + 1);
+                            String lombokClassBuilderName = ac.getName() + "$" + classSimpleName + "Builder";
+//                            System.err.println("Lookup builder by nameclean: " + lombokClassBuilderName);
+                            return targetClassLoader.loadClass(lombokClassBuilderName);
+                        } catch (ClassNotFoundException e) {
+                            return super.findPOJOBuilder(ac);
+                        }
+                    }
+                    return super.findPOJOBuilder(ac);
+                }
             });
             DateFormat df = new SimpleDateFormat("MMM d, yyyy HH:mm:ss aaa");
             jacksonBuilder.defaultDateFormat(df);
@@ -119,8 +165,7 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
             try {
                 Class<?> hibernateClassPresent = Class.forName("org.hibernate.SessionFactory");
                 Class<?> hibernateModule = Class.forName("com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module");
-                Module module = (Module) hibernateModule.getDeclaredConstructor()
-                        .newInstance();
+                Module module = (Module) hibernateModule.getDeclaredConstructor().newInstance();
                 Class<?> featureClass = Class.forName(
                         "com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module$Feature");
                 Method configureMethod = hibernateModule.getMethod("configure", featureClass, boolean.class);
@@ -229,6 +274,9 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
         if (objectInstance == null) {
             objectMap.remove(className);
             return null;
+        }
+        if (targetClassLoader == null) {
+            targetClassLoader = objectInstance.getClass().getClassLoader();
         }
         return objectInstance;
     }

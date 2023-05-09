@@ -134,6 +134,7 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
                             break;
 
                     }
+                    objectMapper = logger.getObjectMapper();
                 } else {
                     System.out.println("[unlogged] no weaving option is specified.");
                     weaver = null;
@@ -147,11 +148,9 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
                     "[unlogged] agent init failed, this session will not be recorded => " + thx.getMessage());
             thx.printStackTrace();
             if (thx.getCause() != null) {
-                thx.getCause()
-                        .printStackTrace();
+                thx.getCause().printStackTrace();
             }
         }
-        objectMapper = logger.getObjectMapper();
     }
 
     /**

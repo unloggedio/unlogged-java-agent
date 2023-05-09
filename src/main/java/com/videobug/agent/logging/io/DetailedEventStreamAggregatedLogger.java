@@ -100,9 +100,9 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
         try {
             lombokBuilderAnnotation = Class.forName("lombok.Builder");
             isLombokPresent = true;
-            System.err.println("Lombok found: " + lombokBuilderAnnotation.getCanonicalName());
+//            System.err.println("Lombok found: " + lombokBuilderAnnotation.getCanonicalName());
         } catch (ClassNotFoundException e) {
-            System.err.println("Lombok not found");
+//            System.err.println("Lombok not found");
             isLombokPresent = false;
         }
 

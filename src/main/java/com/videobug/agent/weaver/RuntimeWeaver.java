@@ -18,8 +18,10 @@ import java.io.InputStream;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
 import java.lang.instrument.Instrumentation;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.security.CodeSource;
@@ -492,16 +494,22 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
             try {
 
 
-                Object objectByClass = logger.getObjectByClassName(agentCommandRequest.getClassName());
-                if (objectByClass == null) {
-//                    System.err.println("No object by classname: " + agentCommandRequest.getClassName());
-                    throw new Exception("No object by classname: " + agentCommandRequest.getClassName());
+                Class<?> objectClass;
+                ClassLoader targetClassLoader;
+//                targetClassLoader = logger.getTargetClassLoader();
+//                objectClass = targetClassLoader.loadClass(agentCommandRequest.getClassName());
+
+                Object objectInstanceByClass = logger.getObjectByClassName(agentCommandRequest.getClassName());
+                if (objectInstanceByClass == null) {
+                    objectInstanceByClass = tryObjectConstruct(agentCommandRequest.getClassName(),
+                            logger.getTargetClassLoader());
                 }
-                ClassLoader targetClassLoader = objectByClass.getClass().getClassLoader();
-//                System.err.println("Object instance: " + objectByClass);
+
+                objectClass = objectInstanceByClass.getClass();
+
+                targetClassLoader = objectInstanceByClass.getClass().getClassLoader();
 
                 Method methodToExecute = null;
-                Class<?> objectClass = objectByClass.getClass();
 
                 List<String> methodSignatureParts = ClassTypeUtil.splitMethodDesc(
                         agentCommandRequest.getMethodSignature());
@@ -516,7 +524,8 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
                 for (int i = 0; i < methodSignatureParts.size(); i++) {
                     String methodSignaturePart = methodSignatureParts.get(i);
 //                System.err.println("Method parameter [" + i + "] type: " + methodSignaturePart);
-                    methodParameterTypes[i] = ClassTypeUtil.getClassNameFromDescriptor(methodSignaturePart, targetClassLoader);
+                    methodParameterTypes[i] = ClassTypeUtil.getClassNameFromDescriptor(methodSignaturePart,
+                            targetClassLoader);
                 }
 
 
@@ -572,7 +581,7 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
                 agentCommandResponse.setTimestamp(new Date().getTime());
 
                 try {
-                    Object methodReturnValue = methodToExecute.invoke(objectByClass, parameters);
+                    Object methodReturnValue = methodToExecute.invoke(objectInstanceByClass, parameters);
                     agentCommandResponse.setMethodReturnValue(objectMapper.writeValueAsString(methodReturnValue));
                     agentCommandResponse.setResponseClassName(methodToExecute.getReturnType().getCanonicalName());
                     agentCommandResponse.setResponseType(ResponseType.NORMAL);
@@ -595,6 +604,40 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
         }
 
 
+    }
+
+    private Object tryObjectConstruct(String className, ClassLoader targetClassLoader)
+            throws ClassNotFoundException, InstantiationException, IllegalAccessException {
+        if (targetClassLoader == null) {
+            System.err.println("Failed to construct instance of class [" + className + "]. classLoader is not defined");
+        }
+        Class<?> loadedClass = targetClassLoader.loadClass(className);
+        Constructor<?> noArgsConstructor = null;
+        try {
+            noArgsConstructor = loadedClass.getConstructor();
+            try {
+                return noArgsConstructor.newInstance();
+            } catch (InvocationTargetException e) {
+                throw new RuntimeException(e);
+            }
+        } catch (NoSuchMethodException e) {
+            Method[] methods = loadedClass.getMethods();
+
+            // try to get the instance of the class using Singleton.getInstance
+            for (Method method : methods) {
+                if (method.getParameterCount() == 0 && Modifier.isStatic(method.getModifiers())) {
+                    if (method.getReturnType().equals(loadedClass)) {
+                        try {
+                            return method.invoke(null);
+                        } catch (InvocationTargetException ex) {
+                            // this method for potentially getting instance from static getInstance type method
+                            // did not work
+                        }
+                    }
+                }
+            }
+            throw new RuntimeException(e);
+        }
     }
 
     private Object tryOpenHibernateSessionIfHibernateExists() throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, ClassNotFoundException {

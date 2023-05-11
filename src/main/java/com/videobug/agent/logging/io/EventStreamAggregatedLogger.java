@@ -257,5 +257,10 @@ public class EventStreamAggregatedLogger implements IEventLogger {
         return objectMapper;
     }
 
+    @Override
+    public ClassLoader getTargetClassLoader() {
+        return null;
+    }
+
 
 }

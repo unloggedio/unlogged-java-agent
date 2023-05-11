@@ -303,6 +303,9 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                 className = className.substring(0, className.indexOf('$'));
             }
             objectMap.put(className, new WeakReference<>(value));
+            if (targetClassLoader == null && value != null) {
+                targetClassLoader = value.getClass().getClassLoader();
+            }
         }
 
 
@@ -598,6 +601,11 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 
     public ObjectMapper getObjectMapper() {
         return objectMapper;
+    }
+
+    @Override
+    public ClassLoader getTargetClassLoader() {
+        return targetClassLoader;
     }
 
     @Override

@@ -99,4 +99,6 @@ public interface IEventLogger {
     void setRecording(boolean b);
 
 	ObjectMapper getObjectMapper();
+
+    ClassLoader getTargetClassLoader();
 }

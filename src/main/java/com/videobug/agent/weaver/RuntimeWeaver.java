@@ -1,6 +1,7 @@
 package com.videobug.agent.weaver;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.videobug.agent.Constants;
 import com.videobug.agent.command.*;
 import com.videobug.agent.logging.IEventLogger;
 import com.videobug.agent.logging.Logging;
@@ -41,7 +42,6 @@ import static java.nio.file.StandardWatchEventKinds.*;
 public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor {
 
     public static final int AGENT_SERVER_PORT = 12100;
-    public static final String AGENT_VERSION = "1.13.7";
     private static final AtomicBoolean initialized = new AtomicBoolean();
     private final Instrumentation instrumentation;
     /**
@@ -75,7 +75,8 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
             if (!outputDir.exists()) {
                 outputDir.mkdirs();
             }
-            ServerMetadata serverMetadata = new ServerMetadata(params.getIncludedNames().toString(), AGENT_VERSION);
+            ServerMetadata serverMetadata = new ServerMetadata(params.getIncludedNames().toString(),
+                    Constants.AGENT_VERSION);
             AgentCommandServer httpServer = new AgentCommandServer(AGENT_SERVER_PORT, serverMetadata);
             httpServer.setAgentCommandExecutor(this);
             httpServer.start(NanoHTTPD.SOCKET_READ_TIMEOUT, false);
@@ -163,9 +164,8 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
      * @param agentArgs       comes from command line.
      * @param instrumentation is provided by the jvm
      */
-    public static void premain(String agentArgs, Instrumentation instrumentation) throws IOException {
-        String agentVersion = RuntimeWeaver.class.getPackage()
-                .getImplementationVersion();
+    public static void premain(String agentArgs, Instrumentation instrumentation) {
+        String agentVersion = Constants.AGENT_VERSION;
         System.out.println("[unlogged] Starting agent: [" + agentVersion + "] with arguments [" + agentArgs + "]");
 //        String processId = ManagementFactory.getRuntimeMXBean().getName();
 //        long startTime = new Date().getTime();

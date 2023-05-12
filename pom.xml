@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>video.bug</groupId>
     <artifactId>unlogged-java-agent</artifactId>
-    <version>1.13.7-SNAPSHOT-${projectVersion}</version>
+    <version>1.13.7-${projectVersion}</version>
     <distributionManagement>
         <snapshotRepository>
             <id>ossrh</id>
@@ -229,42 +229,42 @@
                     <groupId>com.fasterxml.jackson.core</groupId>
                     <artifactId>jackson-core</artifactId>
                     <version>2.13.2</version>
-<!--                    <scope>provided</scope>-->
+                    <!--                    <scope>provided</scope>-->
                 </dependency>
                 <dependency>
                     <groupId>com.fasterxml.jackson.core</groupId>
                     <artifactId>jackson-databind</artifactId>
                     <version>2.13.2</version>
-<!--                    <scope>provided</scope>-->
+                    <!--                    <scope>provided</scope>-->
                 </dependency>
                 <dependency>
                     <groupId>com.fasterxml.jackson.datatype</groupId>
                     <artifactId>jackson-datatype-hibernate5</artifactId>
                     <version>2.13.4</version>
-<!--                    <scope>provided</scope>-->
+                    <!--                    <scope>provided</scope>-->
                 </dependency>
                 <dependency>
                     <groupId>com.fasterxml.jackson.datatype</groupId>
                     <artifactId>jackson-datatype-joda</artifactId>
                     <version>2.13.4</version>
-<!--                    <scope>provided</scope>-->
+                    <!--                    <scope>provided</scope>-->
                 </dependency>
                 <dependency>
                     <groupId>com.fasterxml.jackson.datatype</groupId>
                     <artifactId>jackson-datatype-jdk8</artifactId>
                     <version>2.13.4</version>
-<!--                    <scope>provided</scope>-->
+                    <!--                    <scope>provided</scope>-->
                 </dependency>
                 <dependency>
                     <groupId>com.fasterxml.jackson.datatype</groupId>
                     <artifactId>jackson-datatype-jsr310</artifactId>
                     <version>2.13.4</version>
-<!--                    <scope>provided</scope>-->
+                    <!--                    <scope>provided</scope>-->
                 </dependency>
             </dependencies>
-<!--            <build>-->
-<!--                <finalName>videobug-java-agent-${project.version}-jackson-2.13</finalName>-->
-<!--            </build>-->
+            <!--            <build>-->
+            <!--                <finalName>videobug-java-agent-${project.version}-jackson-2.13</finalName>-->
+            <!--            </build>-->
         </profile>
 
         <profile>
@@ -311,9 +311,9 @@
                     <scope>provided</scope>
                 </dependency>
             </dependencies>
-<!--            <build>-->
-<!--                <finalName>videobug-java-agent-${project.version}-jackson-2.12</finalName>-->
-<!--            </build>-->
+            <!--            <build>-->
+            <!--                <finalName>videobug-java-agent-${project.version}-jackson-2.12</finalName>-->
+            <!--            </build>-->
         </profile>
         <profile>
             <id>jackson-2.11</id>
@@ -359,9 +359,9 @@
                     <scope>provided</scope>
                 </dependency>
             </dependencies>
-<!--            <build>-->
-<!--                <finalName>videobug-java-agent-${project.version}-jackson-2.11</finalName>-->
-<!--            </build>-->
+            <!--            <build>-->
+            <!--                <finalName>videobug-java-agent-${project.version}-jackson-2.11</finalName>-->
+            <!--            </build>-->
         </profile>
         <profile>
             <id>jackson-2.10</id>
@@ -407,9 +407,9 @@
                     <scope>provided</scope>
                 </dependency>
             </dependencies>
-<!--            <build>-->
-<!--                <finalName>videobug-java-agent-${project.version}-jackson-2.10</finalName>-->
-<!--            </build>-->
+            <!--            <build>-->
+            <!--                <finalName>videobug-java-agent-${project.version}-jackson-2.10</finalName>-->
+            <!--            </build>-->
         </profile>
         <profile>
             <id>jackson-2.9</id>
@@ -450,9 +450,9 @@
                 </dependency>
 
             </dependencies>
-<!--            <build>-->
-<!--                <finalName>videobug-java-agent-${project.version}-jackson-2.9</finalName>-->
-<!--            </build>-->
+            <!--            <build>-->
+            <!--                <finalName>videobug-java-agent-${project.version}-jackson-2.9</finalName>-->
+            <!--            </build>-->
         </profile>
 
         <profile>

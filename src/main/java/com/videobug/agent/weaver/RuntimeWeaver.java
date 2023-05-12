@@ -165,8 +165,7 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
      * @param instrumentation is provided by the jvm
      */
     public static void premain(String agentArgs, Instrumentation instrumentation) {
-        String agentVersion = Constants.AGENT_VERSION;
-        System.out.println("[unlogged] Starting agent: [" + agentVersion + "] with arguments [" + agentArgs + "]");
+        System.out.println("[unlogged] Starting agent: [" + Constants.AGENT_VERSION + "] with arguments [" + agentArgs + "]");
 //        String processId = ManagementFactory.getRuntimeMXBean().getName();
 //        long startTime = new Date().getTime();
         synchronized (initialized) {

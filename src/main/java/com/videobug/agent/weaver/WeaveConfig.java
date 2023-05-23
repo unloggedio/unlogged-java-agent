@@ -49,51 +49,49 @@ public class WeaveConfig {
     private boolean weaveNone = false;
     private String authToken;
 
-    /**
-     * Construct a configuration from string
-     *
-     * @param options       specify a string including: EXEC, CALL, FIELD, ARRAY, SYNC, OBJECT, LABEL, PARAM, LOCAL, and NONE.
-     * @param serverAddress
-     * @param username
-     * @param password
-     * @return true if at least one weaving option is enabled (except for parameter recording).
-     */
-    public WeaveConfig(String options, String serverAddress, String username, String password) {
-        String opt = options.toUpperCase();
-//        System.out.printf("[unlogged] Recording option: [%s] Server Address [%s] Username [%s] Password [%s]\n", opt, serverAddress, username, password);
-        if (opt.equals(KEY_RECORD_ALL)) {
-            opt = KEY_RECORD_EXEC + KEY_RECORD_CALL + KEY_RECORD_FIELD + KEY_RECORD_ARRAY + KEY_RECORD_SYNC + KEY_RECORD_OBJECT + KEY_RECORD_PARAMETERS + KEY_RECORD_LABEL + KEY_RECORD_LOCAL + KEY_RECORD_LINE;
-        } else if (opt.equals(KEY_RECORD_DEFAULT)) {
-            opt = KEY_RECORD_EXEC + KEY_RECORD_CALL + KEY_RECORD_FIELD + KEY_RECORD_ARRAY + KEY_RECORD_SYNC + KEY_RECORD_OBJECT + KEY_RECORD_PARAMETERS;
-        } else if (opt.equals(KEY_RECORD_NONE)) {
-            opt = "";
-            weaveNone = true;
-        }
-        weaveExec = opt.contains(KEY_RECORD_EXEC);
-        weaveMethodCall = opt.contains(KEY_RECORD_CALL);
-        weaveFieldAccess = opt.contains(KEY_RECORD_FIELD);
-        weaveArray = opt.contains(KEY_RECORD_ARRAY);
-        weaveSynchronization = opt.contains(KEY_RECORD_SYNC);
-        weaveLabel = opt.contains(KEY_RECORD_LABEL);
-        weaveParameters = opt.contains(KEY_RECORD_PARAMETERS);
-        weaveLocalAccess = opt.contains(KEY_RECORD_LOCAL);
-        weaveObject = opt.contains(KEY_RECORD_OBJECT);
-        weaveLineNumber = opt.contains(KEY_RECORD_LINE);
-        ignoreArrayInitializer = false;
-        this.username = username;
-        this.password = password;
-
-        this.sessionId = UUID.randomUUID().toString();
-        this.processId = getProcessId(new Random().nextInt());
-
-    }
+//    /**
+//     * Construct a configuration from string
+//     *
+//     * @param options       specify a string including: EXEC, CALL, FIELD, ARRAY, SYNC, OBJECT, LABEL, PARAM, LOCAL, and NONE.
+//     * @param username
+//     * @param password
+//     */
+//    public WeaveConfig(String options, String username, String password) {
+//        String opt = options.toUpperCase();
+////        System.out.printf("[unlogged] Recording option: [%s] Server Address [%s] Username [%s] Password [%s]\n", opt, serverAddress, username, password);
+//        if (opt.equals(KEY_RECORD_ALL)) {
+//            opt = KEY_RECORD_EXEC + KEY_RECORD_CALL + KEY_RECORD_FIELD + KEY_RECORD_ARRAY + KEY_RECORD_SYNC + KEY_RECORD_OBJECT + KEY_RECORD_PARAMETERS + KEY_RECORD_LABEL + KEY_RECORD_LOCAL + KEY_RECORD_LINE;
+//        } else if (opt.equals(KEY_RECORD_DEFAULT)) {
+//            opt = KEY_RECORD_EXEC + KEY_RECORD_CALL + KEY_RECORD_FIELD + KEY_RECORD_ARRAY + KEY_RECORD_SYNC + KEY_RECORD_OBJECT + KEY_RECORD_PARAMETERS;
+//        } else if (opt.equals(KEY_RECORD_NONE)) {
+//            opt = "";
+//            weaveNone = true;
+//        }
+//        weaveExec = opt.contains(KEY_RECORD_EXEC);
+//        weaveMethodCall = opt.contains(KEY_RECORD_CALL);
+//        weaveFieldAccess = opt.contains(KEY_RECORD_FIELD);
+//        weaveArray = opt.contains(KEY_RECORD_ARRAY);
+//        weaveSynchronization = opt.contains(KEY_RECORD_SYNC);
+//        weaveLabel = opt.contains(KEY_RECORD_LABEL);
+//        weaveParameters = opt.contains(KEY_RECORD_PARAMETERS);
+//        weaveLocalAccess = opt.contains(KEY_RECORD_LOCAL);
+//        weaveObject = opt.contains(KEY_RECORD_OBJECT);
+//        weaveLineNumber = opt.contains(KEY_RECORD_LINE);
+//        ignoreArrayInitializer = false;
+//        this.username = username;
+//        this.password = password;
+//
+//        this.sessionId = UUID.randomUUID().toString();
+//        this.processId = getProcessId(new Random().nextInt());
+//
+//    }
 
 
     /**
      * A copy constructor with a constraint.
      *
-     * @param parent
-     * @param level
+     * @param parent weave config to copy
+     * @param level probe logging level
      */
     public WeaveConfig(WeaveConfig parent, LogLevel level) {
         this.weaveExec = parent.weaveExec;
@@ -276,8 +274,7 @@ public class WeaveConfig {
 
     /**
      * Save the weaving configuration to a file.
-     *
-     * @param propertyFile
+     * @param propertyFile destination file to save the config
      */
     public void save(File propertyFile) {
         ArrayList<String> events = new ArrayList<String>();

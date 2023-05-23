@@ -3,7 +3,29 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>video.bug</groupId>
     <artifactId>unlogged-java-agent</artifactId>
-    <version>1.13.8-${projectVersion}</version>
+    <version>1.13.9</version>
+    <name>Unlogged Java Agent</name>
+    <description>Invoke any java method directly using Unlogged plugin, Record code execution, generated
+        test cases based on recorded executions</description>
+    <url>https://unlogged.io</url>
+    <licenses>
+        <license>
+            <name>AGPL 3</name>
+        </license>
+    </licenses>
+    <developers>
+        <developer>
+            <name>Parth Mudgal</name>
+            <email>artpar@gmail.com</email>
+            <id>artpar</id>
+            <organization>Unlogged Inc</organization>
+            <organizationUrl>https://unlogged.io</organizationUrl>
+            <roles>
+                <role>Developer</role>
+            </roles>
+            <timezone>IST</timezone>
+        </developer>
+    </developers>
     <distributionManagement>
         <snapshotRepository>
             <id>ossrh</id>
@@ -23,9 +45,8 @@
         <!--        </snapshotRepository>-->
     </distributionManagement>
     <scm>
-        <developerConnection>
-            scm:git:git@gitlab.com:insidious1/java-agent.git
-        </developerConnection>
+        <url>https://gitlab.com/insidious1/java-agent</url>
+        <developerConnection>scm:git:git@gitlab.com:insidious1/java-agent.git</developerConnection>
         <tag>HEAD</tag>
     </scm>
 
@@ -127,6 +148,44 @@
                     <goals>deploy</goals>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>2.9.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-gpg-plugin</artifactId>
+                <version>1.5</version>
+                <executions>
+                    <execution>
+                        <id>sign-artifacts</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>sign</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.sonatype.plugins</groupId>
+                <artifactId>nexus-staging-maven-plugin</artifactId>
+                <version>1.6.7</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <serverId>ossrh</serverId>
+                    <nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
+                    <autoReleaseAfterClose>true</autoReleaseAfterClose>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
     <repositories>
@@ -146,6 +205,9 @@
     <profiles>
         <profile>
             <id>fst</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
             <properties>
                 <projectVersion>fst</projectVersion>
                 <fst.version>2.57</fst.version>
@@ -160,6 +222,9 @@
         </profile>
         <profile>
             <id>gson</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
             <properties>
                 <projectVersion>gson</projectVersion>
                 <gson.version>2.10</gson.version>
@@ -217,9 +282,11 @@
                 </dependency>
             </dependencies>
         </profile>
-
         <profile>
             <id>jackson-2.13</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
             <properties>
                 <projectVersion>jackson-2.13</projectVersion>
                 <jackson.version>2.13.4</jackson.version>

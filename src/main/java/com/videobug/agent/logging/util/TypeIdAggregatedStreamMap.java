@@ -57,6 +57,8 @@ public class TypeIdAggregatedStreamMap {
 
     /**
      * Create an initial map containing only basic types.
+     * @param aggregatedLogger destination aggregated logger
+     * @param detailedEventStreamAggregatedLogger detailed event logger to receive registerClass events
      */
     public TypeIdAggregatedStreamMap(AggregatedFileLogger aggregatedLogger,
                                      IEventLogger detailedEventStreamAggregatedLogger) {
@@ -162,6 +164,8 @@ public class TypeIdAggregatedStreamMap {
     /**
      * Return a string representing a type ID number.
      * This is to generate a type ID list file.
+     * @param type Class type for which to create an Id
+     * @return a new id for this type if it didnt exist already, else the original one
      */
     public int getTypeIdString(Class<?> type) {
         if (type == null) {

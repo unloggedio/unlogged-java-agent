@@ -4,6 +4,7 @@ import com.videobug.agent.logging.Logging;
 import com.videobug.agent.logging.perthread.PerThreadBinaryFileAggregatedLogger;
 import com.videobug.agent.logging.perthread.RawFileCollector;
 import com.videobug.agent.logging.util.FileNameGenerator;
+import com.videobug.agent.weaver.RuntimeWeaverParameters;
 import com.videobug.agent.weaver.WeaveClassLoader;
 import com.videobug.agent.weaver.WeaveConfig;
 import com.videobug.agent.weaver.Weaver;
@@ -28,8 +29,7 @@ public class TestDetailedEventStreamAggregatedLogger {
     }
 
     private DetailedEventStreamAggregatedLogger createDetailedLogger() throws IOException {
-        WeaveConfig config = new WeaveConfig(WeaveConfig.KEY_RECORD_EXEC,
-                "localhost:9921", "username", "password");
+        WeaveConfig config = new WeaveConfig(new RuntimeWeaverParameters(""));
         WeaveClassLoader loader = new WeaveClassLoader(config);
 
         File outputDir = new File("./test/");

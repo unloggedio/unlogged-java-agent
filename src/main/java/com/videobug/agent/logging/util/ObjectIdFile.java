@@ -11,10 +11,10 @@ public class ObjectIdFile extends ObjectIdMap {
 
     private final String lineSeparator = "\n";
 
-    private StringFileListStream objectIdList;
-    private TypeIdMap typeToId;
-    private FileNameGenerator filenames;
-    private StringFileListStream exceptionList;
+    private final StringFileListStream objectIdList;
+    private final TypeIdMap typeToId;
+    private final FileNameGenerator filenames;
+    private final StringFileListStream exceptionList;
 
     private StringContentFile stringContentList;
 
@@ -30,7 +30,7 @@ public class ObjectIdFile extends ObjectIdMap {
      * @param recordString is a flag to recording string contents.
      *                     If the flag is true, this object records the contents of String objects in files.
      * @param typeToId     is an object to translate a type into an integer representing a type.
-     * @throws IOException
+     * @throws IOException failed to save object id file
      */
     public ObjectIdFile(File outputDir, boolean recordString, TypeIdMap typeToId) throws IOException {
         super(64 * 1024 * 1024, outputDir);

@@ -26,9 +26,10 @@ public class MultipartUtility {
      * This constructor initializes a new HTTP POST request with content type
      * is set to multipart/form-data
      *
-     * @param requestURL
-     * @param charset
-     * @throws IOException
+     * @param requestURL the url
+     * @param charset character-set like UTF
+     * @param headers header map for the request
+     * @throws IOException failed to obtain output stream
      */
     public MultipartUtility(String requestURL, String charset, Map<String, String> headers)
             throws IOException {
@@ -99,9 +100,9 @@ public class MultipartUtility {
     /**
      * Adds a upload file section to the request
      *
-     * @param fieldName  name attribute in <input type="file" name="..." />
+     * @param fieldName  name attribute in the input tag
      * @param uploadFile a File to be uploaded
-     * @throws IOException
+     * @throws IOException on failure to copy file
      */
     public void addFilePart(String fieldName, File uploadFile)
             throws IOException {
@@ -181,7 +182,7 @@ public class MultipartUtility {
      *
      * @return a list of Strings as response in case the server returned
      * status OK, otherwise an exception is thrown.
-     * @throws IOException
+     * @throws IOException failed to read inout stream
      */
     public String finish() throws IOException {
         String response = "";

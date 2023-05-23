@@ -37,14 +37,14 @@ public class PerThreadBinaryFileAggregatedLoggerTest {
     public void testLoggerIndex1() throws InterruptedException, IOException {
         IErrorLogger errorLogger = new IErrorLogger() {
             @Override
-            public void log(Throwable t) {
-                logger.error("", t);
+            public void log(Throwable throwable) {
+                logger.error("", throwable);
 
             }
 
             @Override
-            public void log(String msg) {
-                logger.info(msg);
+            public void log(String message) {
+                logger.info(message);
             }
 
             @Override
@@ -95,14 +95,14 @@ public class PerThreadBinaryFileAggregatedLoggerTest {
     public void testLoggerIndex2() throws InterruptedException, IOException {
         IErrorLogger errorLogger = new IErrorLogger() {
             @Override
-            public void log(Throwable t) {
-                logger.error("", t);
+            public void log(Throwable throwable) {
+                logger.error("", throwable);
 
             }
 
             @Override
-            public void log(String msg) {
-                logger.info(msg);
+            public void log(String message) {
+                logger.info(message);
             }
 
             @Override
@@ -146,8 +146,7 @@ public class PerThreadBinaryFileAggregatedLoggerTest {
         String strTmp = System.getProperty("java.io.tmpdir") + "/videobug-test-output";
         File outputDir = new File(strTmp);
         outputDir.mkdirs();
-        Weaver weaver = new Weaver(outputDir,
-                new WeaveConfig("", "", "", ""));
+        Weaver weaver = new Weaver(outputDir, new WeaveConfig(new RuntimeWeaverParameters("")));
 
         WeaveLog weaveLog = new WeaveLog(1, 1, 1);
         ClassInfo classInfo = new ClassInfo(
@@ -202,7 +201,8 @@ public class PerThreadBinaryFileAggregatedLoggerTest {
                 config.getSessionId(), params.getAuthToken(), weaver);
 
         FileNameGenerator fileNameGenerator1 = new FileNameGenerator(outputDir, "index-", ".zip");
-        RawFileCollector fileCollector = new RawFileCollector(params.getFilesPerIndex(), fileNameGenerator1, networkClient, weaver,
+        RawFileCollector fileCollector = new RawFileCollector(params.getFilesPerIndex(), fileNameGenerator1,
+                networkClient, weaver,
                 outputDir);
 
         outputDir.mkdirs();
@@ -286,7 +286,8 @@ public class PerThreadBinaryFileAggregatedLoggerTest {
         end = System.nanoTime();
         totalTimeSeconds = (end - start) / (1000 * 1000);
         iterationsPerSecond = iterationCount / totalTimeSeconds;
-        System.out.println("getIdChronicle: [" + iterationsPerSecond + "] iter/second - had " + clashCount + " clashes");
+        System.out.println(
+                "getIdChronicle: [" + iterationsPerSecond + "] iter/second - had " + clashCount + " clashes");
 
 
     }

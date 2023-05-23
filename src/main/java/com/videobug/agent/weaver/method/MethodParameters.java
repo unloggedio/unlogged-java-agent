@@ -15,7 +15,7 @@ import org.objectweb.asm.signature.SignatureVisitor;
  */
 public class MethodParameters {
 
-	private ArrayList<Param> parameters;
+	private final ArrayList<Param> parameters;
 	
 	/**
 	 * Create an instance 
@@ -31,68 +31,81 @@ public class MethodParameters {
 		
 	/**
 	 * Record a local variable index for saving a parameter.
+	 * @param parameterIndex index of the parameter in the local variable instruction
+	 * @param variableIndex index of the variable used in the instruction
 	 */
-	public void setLocalVar(int index, int varIndex) {
-		parameters.get(index).localVar = varIndex;
+	public void setLocalVar(int parameterIndex, int variableIndex) {
+		parameters.get(parameterIndex).localVar = variableIndex;
 	}
 	
 	/**
-	 * Return a local variable index for a parameter.
+	 * @param parameterIndex index of the parameter for which the associated variable index is look upon
+	 * @return a local variable index for a parameter.
 	 */
-	public int getLocalVar(int index) {
-		int v = parameters.get(index).localVar;
+	public int getLocalVar(int parameterIndex) {
+		int v = parameters.get(parameterIndex).localVar;
 		assert v != -1: "Uninitialized Local variable"; 
 		return v;
 	}
 	
 	/**
+	 * @param parameterIndex index of the parameter
 	 * @return the number of words (1 or 2) for a parameter.
 	 */
-	public int getWords(int index) {
-		return parameters.get(index).size;
+	public int getWords(int parameterIndex) {
+		return parameters.get(parameterIndex).size;
 	}
-	
-	public int getRecordWords(int index) {
-		if (parameters.get(index).typeId == TypeIdMap.TYPEID_OBJECT) {
+
+	/**
+	 * @param parameterIndex index of the parameter
+	 * @return the size of words required for the parameter
+	 */
+	public int getRecordWords(int parameterIndex) {
+		if (parameters.get(parameterIndex).typeId == TypeIdMap.TYPEID_OBJECT) {
 			return 2;
 		} else {
-			return parameters.get(index).size;
+			return parameters.get(parameterIndex).size;
 		}
 	}
 	
 	/**
-	 * @return the opcode to load a given parameter. 
+	 * @param parameterIndex index of the parameter
+	 * @return the opcode to load a given parameter.
 	 */
-	public int getLoadInstruction(int index) {
-		return parameters.get(index).loadInstruction;
+	public int getLoadInstruction(int parameterIndex) {
+		return parameters.get(parameterIndex).loadInstruction;
 	}
 	
 	/**
-	 * @return the opcode to store a given parameter. 
+	 * @param parameterIndex index of the parameter
+	 * @return the opcode to store a given parameter.
 	 */
-	public int getStoreInstruction(int index) {
-		return parameters.get(index).storeInstruction;
+	public int getStoreInstruction(int parameterIndex) {
+		return parameters.get(parameterIndex).storeInstruction;
 	}
 	
 	/**
-	 * @return the type of a parameter. 
+	 * @param parameterIndex index of the parameter
+	 * @return type of the parameter.
 	 */
-	public Type getType(int index) {
-		return parameters.get(index).t;
+	public Type getType(int parameterIndex) {
+		return parameters.get(parameterIndex).t;
 	}
 
 	/**
-	 * @return the type ID of a parameter. 
+	 * @param parameterIndex index of the parameter
+	 * @return the type ID of a parameter.
 	 */
-	public int getTypeId(int index) {
-		return parameters.get(index).typeId;
+	public int getTypeId(int parameterIndex) {
+		return parameters.get(parameterIndex).typeId;
 	}
 
 	/**
+	 * @param parameterIndex index of the parameter
 	 * @return the descriptor of a parameter type.
 	 */
-	public Descriptor getRecordDesc(int index) {
-		return parameters.get(index).desc;
+	public Descriptor getRecordDesc(int parameterIndex) {
+		return parameters.get(parameterIndex).desc;
 	}
 
 	/**

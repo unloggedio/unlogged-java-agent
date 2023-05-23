@@ -56,7 +56,7 @@ public class WeaveLog {
      * This is separated from the constructor because the class name is unavailable
      * at the beginning of the weaving process.
      *
-     * @param name
+     * @param name fully qualified class name of the weaved target
      */
     public void setFullClassName(String name) {
         this.fullClassName = name;
@@ -85,6 +85,7 @@ public class WeaveLog {
      * @param methodDesc     is a descriptor representing the signature.
      * @param access         represents modifiers, e.g. static.
      * @param sourceFileName specifies a source file name recorded in the class file.
+     * @param methodHash hash for the method being visited
      */
     public void startMethod(String className, String methodName, String methodDesc, int access, String sourceFileName, String methodHash) {
         MethodInfo entry = new MethodInfo(classId, methodId, className, methodName, methodDesc, access, sourceFileName, methodHash);
@@ -100,7 +101,7 @@ public class WeaveLog {
      * @param eventType        is an event type (decided by the instruction type).
      * @param valueDesc        specifies a data type of the value observed by the event.
      * @param attributes       specifies additional static information obtained from bytecode.
-     * @return
+     * @return the next available id which can be used for the dataInfo
      */
     public int nextDataId(int line, int instructionIndex, EventType eventType, Descriptor valueDesc, String attributes) {
         DataInfo entry = new DataInfo(classId, methodId - 1, dataId, line, instructionIndex, eventType, valueDesc, attributes);
@@ -110,11 +111,10 @@ public class WeaveLog {
 
     /**
      * Record an error message.
-     *
-     * @param msg
+     * @param message message to be logged
      */
-    public void log(String msg) {
-        loggerWrapper.println(msg);
+    public void log(String message) {
+        loggerWrapper.println(message);
     }
 
     /**

@@ -19,8 +19,6 @@ public class StringFileListStream {
     /**
      * @param filenames   specifies a file name generator for files to be written.
      * @param itemPerFile specifies the number of strings stored in a single file.
-     * @param bufferSize  specifies the size of an internal buffer used by this object for performance.
-     *                    It should be a sufficiently large number.
      * @param compress    option enables to compress the output file in GZip.
      */
     public StringFileListStream(FileNameGenerator filenames, long itemPerFile, boolean compress) {

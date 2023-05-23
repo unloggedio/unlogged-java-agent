@@ -18,10 +18,10 @@ public class ObjectIdAggregatedStream extends ObjectIdMap {
     /**
      * Create an instance to record object types.
      *
-     * @param aggregatedLogger
+     * @param aggregatedLogger destination logger object
      * @param typeToId         is an object to translate a type into an integer representing a type.
-     * @param outputDir
-     * @throws IOException
+     * @param outputDir location to save the object map
+     * @throws IOException when failed to save object map to outputDir
      */
     public ObjectIdAggregatedStream(
             AggregatedFileLogger aggregatedLogger,

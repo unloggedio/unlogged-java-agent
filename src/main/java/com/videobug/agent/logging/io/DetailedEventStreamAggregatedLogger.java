@@ -66,9 +66,9 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 //            ThreadLocal.withInitial(ByteArrayOutputStream::new);
     private final ThreadLocal<Boolean> isRecording = ThreadLocal.withInitial(() -> false);
     final private boolean serializeValues = true;
-    private final Map<String, WeaveLog> classMap = new HashMap<>();
+//    private final Map<String, WeaveLog> classMap = new HashMap<>();
+//    private final Map<Integer, DataInfo> callProbes = new HashMap<>();
     private final Set<Integer> probesToRecord = new HashSet<>();
-    private final Map<Integer, DataInfo> callProbes = new HashMap<>();
     private final SerializationMode SERIALIZATION_MODE = SerializationMode.JACKSON;
     private final ThreadLocal<ByteArrayOutputStream> output =
             ThreadLocal.withInitial(() -> new ByteArrayOutputStream(1_000_000));
@@ -77,14 +77,13 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
     private final ObjectMapper objectMapper;
 
     private final Map<String, WeakReference<Object>> objectMap = new HashMap<>();
-    private Class<?> lombokBuilderAnnotation;
     private boolean isLombokPresent;
     private ClassLoader targetClassLoader;
 
     /**
      * Create an instance of logging object.
      *
-     * @param includedPackage
+     * @param includedPackage comma separated string of class names included in probing this session
      * @param outputDir        specifies an object to record errors that occur in this class
      * @param aggregatedLogger writer
      */
@@ -99,7 +98,7 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
         objectIdMap = new ObjectIdAggregatedStream(this.aggregatedLogger, typeToId, outputDir);
 
         try {
-            lombokBuilderAnnotation = Class.forName("lombok.Builder");
+            Class<?> lombokBuilderAnnotation = Class.forName("lombok.Builder");
             isLombokPresent = true;
 //            System.err.println("Lombok found: " + lombokBuilderAnnotation.getCanonicalName());
         } catch (ClassNotFoundException e) {
@@ -120,6 +119,7 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                 objectMapper = new ObjectMapper();
             } else {
                 // For 2.13.1
+                // Load JsonMappingException class force load so that we dont get a StackOverflow when we are in a cycle
                 JsonMappingException jme = new JsonMappingException(new DummyClosable(), "load class");
                 jme.prependPath(new JsonMappingException.Reference("from dummy"));
                 JsonMapper.Builder jacksonBuilder = JsonMapper.builder();
@@ -573,14 +573,11 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
     @Override
     public void recordWeaveInfo(byte[] byteArray, ClassInfo classIdEntry, WeaveLog log) {
 
-        classMap.put(classIdEntry.getClassName(), log);
+//        classMap.put(classIdEntry.getClassName(), log);
 //        System.err.println("Record weave info for [" + classIdEntry.getClassName() + "]");
-        if (!classIdEntry.getClassName()
-                .contains("mongo") &&
-                !classIdEntry.getClassName()
-                        .contains("spring") &&
-                !classIdEntry.getClassName()
-                        .contains("redis")
+        if (!classIdEntry.getClassName().contains("mongo") &&
+                !classIdEntry.getClassName().contains("spring") &&
+                !classIdEntry.getClassName().contains("redis")
         ) {
             List<Integer> newClassProbes = log.getDataEntries()
                     .stream()
@@ -607,7 +604,7 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 
 
             probesToRecord.addAll(newClassProbes);
-            callProbes.putAll(callProbes1);
+//            callProbes.putAll(callProbes1);
         }
         aggregatedLogger.writeWeaveInfo(byteArray);
     }
@@ -638,7 +635,7 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 //        }
     }
 
-    private class DummyClosable implements Closeable {
+    private static class DummyClosable implements Closeable {
 
         @Override
         public void close() throws IOException {

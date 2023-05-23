@@ -47,7 +47,8 @@ public class Weaver implements IErrorLogger {
      * Set up the object to manage a weaving process.
      * This constructor creates files to store the information.
      *
-     * @param outputDir
+     * @param outputDir location to save the weave data
+     * @param config    weave configuration
      */
     public Weaver(File outputDir, WeaveConfig config) {
         assert outputDir.isDirectory() && outputDir.canWrite();
@@ -80,26 +81,29 @@ public class Weaver implements IErrorLogger {
     }
 
     /**
-     * Record a message.
+     * Record a message
+     *
+     * @param message string to be logged
      */
     @Override
-    public void log(String msg) {
-        logger.println(msg);
+    public void log(String message) {
+        logger.println(message);
     }
 
     /**
      * Record a runtime error.
+     *
+     * @param throwable object to be logged
      */
     @Override
-    public void log(Throwable e) {
-        e.printStackTrace(logger);
+    public void log(Throwable throwable) {
+        throwable.printStackTrace(logger);
     }
 
     /**
      * Close files written by the weaver.
      */
     public void close() {
-
         config.save(new File(outputDir, PROPERTY_FILE));
     }
 
@@ -195,6 +199,7 @@ public class Weaver implements IErrorLogger {
      *
      * @param classInfo records the class information.
      * @param result    records the state after weaving.
+     * @return updated byte code with probes added
      */
     public byte[] finishClassProcess(ClassInfo classInfo, WeaveLog result) {
 
@@ -277,7 +282,8 @@ public class Weaver implements IErrorLogger {
             File classDir = new File(outputDir, category);
             File classFile = new File(classDir, name + ".class");
             classFile.getParentFile().mkdirs();
-            Files.write(classFile.toPath(), b, StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
+            Files.write(classFile.toPath(), b, StandardOpenOption.CREATE, StandardOpenOption.WRITE,
+                    StandardOpenOption.TRUNCATE_EXISTING);
             log("Saved " + name + " to " + classFile.getAbsolutePath());
         } catch (IOException e) {
             log(e);

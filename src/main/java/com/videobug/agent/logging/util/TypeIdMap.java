@@ -99,7 +99,9 @@ public class TypeIdMap {
 
 	/**
 	 * Return a string representing a type ID number.
-	 * This is to generate a type ID list file. 
+	 * This is to generate a type ID list file.
+	 * @param type class type to be converted to the record
+	 * @return a string representing a type ID number.
 	 */
 	public String getTypeIdString(Class<?> type) {
 		if (type == null) {

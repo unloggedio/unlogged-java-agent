@@ -16,7 +16,7 @@ public class StringContentFile {
 	/**
 	 * Create an instance.
 	 * @param outputDir specifies a directory for storing output files.
-	 * @throws IOException
+	 * @throws IOException failed to save string contents to the file at outputDir
 	 */
 	public StringContentFile(File outputDir) throws IOException {
 		FileNameGenerator filenames = new FileNameGenerator(outputDir, "LOG$String", ".txt");

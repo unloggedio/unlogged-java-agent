@@ -15,8 +15,7 @@ public class TestClassType {
     @Test
     public void testTypes() throws IOException {
 
-        WeaveConfig config = new WeaveConfig(WeaveConfig.KEY_RECORD_EXEC,
-                "localhost:9921", "username", "password");
+        WeaveConfig config = new WeaveConfig(new RuntimeWeaverParameters(""));
         WeaveClassLoader loader = new WeaveClassLoader(config);
 
         File outputDir = new File("./test/");

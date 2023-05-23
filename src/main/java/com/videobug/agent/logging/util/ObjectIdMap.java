@@ -23,14 +23,14 @@ public class ObjectIdMap {
     private final int andKey;
     private final int size;
     private final int INT_MAX_BIT = 30;
-    private int idCount = 0;
+    private final int idCount = 0;
 
 
     /**
      * Create an instance.
      *
      * @param initialCapacity is the size of an internal array to manage the contents.
-     * @param outputDir
+     * @param outputDir location to save the object map, optional
      */
     public ObjectIdMap(int initialCapacity, File outputDir) throws IOException {
         size = 0;

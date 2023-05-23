@@ -8,16 +8,18 @@ public interface IErrorLogger {
 
 	/**
 	 * Record an exception.
+	 * @param throwable object to be logged
 	 */
-	public void log(Throwable t);
+	void log(Throwable throwable);
 	
 	/**
-	 * Record a message.
+	 * Record a message
+	 * @param message string to be logged
 	 */
-	public void log(String msg);
+	void log(String message);
 	
 	/**
 	 * This method is called when the program is terminated.
 	 */
-	public void close();
+	void close();
 }

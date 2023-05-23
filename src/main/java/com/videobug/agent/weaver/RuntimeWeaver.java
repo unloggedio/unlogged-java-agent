@@ -63,7 +63,7 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
      * Process command line arguments and prepare an output directory
      *
      * @param args            string arguments for weaver
-     * @param instrumentation
+     * @param instrumentation object provided to the java agent for hooking up the class loader
      */
     public RuntimeWeaver(String args, Instrumentation instrumentation) {
 

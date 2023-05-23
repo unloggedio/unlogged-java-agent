@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.introspect.AnnotatedClass;
 import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
 import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
 import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.module.kotlin.KotlinModule;
 import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.EventType;
@@ -206,14 +207,18 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                 List<String> jacksonModules = Arrays.asList(
                         "com.fasterxml.jackson.datatype.jdk8.Jdk8Module",
                         "com.fasterxml.jackson.datatype.jsr310.JavaTimeModule",
-                        "com.fasterxml.jackson.datatype.joda.JodaModule"
+                        "com.fasterxml.jackson.datatype.joda.JodaModule",
+                        "com.fasterxml.jackson.module.blackbird.BlackbirdModule",
+                        "com.fasterxml.jackson.module.jakarta.xmlbind.JakartaXmlBindAnnotationModule",
+                        "com.fasterxml.jackson.module.mrbean.MrBeanModule",
+//                        "com.fasterxml.jackson.module.afterburner.AfterburnerModule",
+                        "com.fasterxml.jackson.module.paranamer.ParanamerModule"
                 );
                 for (String jacksonModule : jacksonModules) {
                     try {
                         //checks for presence of this module class, if not present throws exception
                         Class<?> jdk8Module = Class.forName(jacksonModule);
-                        jacksonBuilder.addModule((Module) jdk8Module.getDeclaredConstructor()
-                                .newInstance());
+                        jacksonBuilder.addModule((Module) jdk8Module.getDeclaredConstructor().newInstance());
                     } catch (ClassNotFoundException e) {
                         // jdk8 module not found
                     } catch (InvocationTargetException
@@ -223,6 +228,15 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                         throw new RuntimeException(e);
                     }
                 }
+
+                try {
+                    Class<?> kotlinModuleClass = Class.forName("com.fasterxml.jackson.module.kotlin.KotlinModule");
+                    KotlinModule kotlinModule = new KotlinModule.Builder().build();
+                    jacksonBuilder.addModule(kotlinModule);
+                } catch (ClassNotFoundException e) {
+                    // kotlin module for jackson not present on classpath
+                }
+
 
                 objectMapper = jacksonBuilder.build();
                 objectMapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.NONE)

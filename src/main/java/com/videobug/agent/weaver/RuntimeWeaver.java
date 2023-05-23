@@ -12,6 +12,8 @@ import com.videobug.agent.logging.util.NetworkClient;
 import com.videobug.agent.util.ClassTypeUtil;
 import fi.iki.elonen.NanoHTTPD;
 import org.objectweb.asm.ClassReader;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.io.File;
 import java.io.IOException;
@@ -165,7 +167,8 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
      * @param instrumentation is provided by the jvm
      */
     public static void premain(String agentArgs, Instrumentation instrumentation) {
-        System.out.println("[unlogged] Starting agent: [" + Constants.AGENT_VERSION + "] with arguments [" + agentArgs + "]");
+        System.out.println(
+                "[unlogged] Starting agent: [" + Constants.AGENT_VERSION + "] with arguments [" + agentArgs + "]");
 //        String processId = ManagementFactory.getRuntimeMXBean().getName();
 //        long startTime = new Date().getTime();
         synchronized (initialized) {
@@ -214,8 +217,12 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
      * Close data streams if necessary
      */
     public void close() {
-        logger.close();
-        weaver.close();
+        if (logger != null) {
+            logger.close();
+        }
+        if (weaver != null) {
+            weaver.close();
+        }
     }
 
     /**
@@ -495,10 +502,19 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
 
                 Class<?> objectClass;
                 ClassLoader targetClassLoader;
-//                targetClassLoader = logger.getTargetClassLoader();
-//                objectClass = targetClassLoader.loadClass(agentCommandRequest.getClassName());
 
-                Object objectInstanceByClass = logger.getObjectByClassName(agentCommandRequest.getClassName());
+                Object objectInstanceByClass = null;
+
+                objectInstanceByClass = logger.getObjectByClassName(agentCommandRequest.getClassName());
+                List<String> alternateClassNames = agentCommandRequest.getAlternateClassNames();
+                if (objectInstanceByClass == null && alternateClassNames != null && alternateClassNames.size() > 0) {
+                    for (String alternateClassName : alternateClassNames) {
+                        objectInstanceByClass = logger.getObjectByClassName(alternateClassName);
+                        if (objectInstanceByClass != null) {
+                            break;
+                        }
+                    }
+                }
                 if (objectInstanceByClass == null) {
                     objectInstanceByClass = tryObjectConstruct(agentCommandRequest.getClassName(),
                             logger.getTargetClassLoader());
@@ -512,11 +528,11 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
 
                 List<String> methodSignatureParts = ClassTypeUtil.splitMethodDesc(
                         agentCommandRequest.getMethodSignature());
+
+                // do not remove this transformation
                 String methodReturnType = methodSignatureParts.remove(methodSignatureParts.size() - 1);
 
                 List<String> methodParameters = agentCommandRequest.getMethodParameters();
-//                System.err.println(
-//                        "Method parameters from received signature: " + methodSignatureParts + " => " + methodParameters);
 
                 Class<?>[] methodParameterTypes = new Class[methodSignatureParts.size()];
 
@@ -529,8 +545,7 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
 
 
                 try {
-                    methodToExecute = objectClass.getDeclaredMethod(agentCommandRequest.getMethodName(),
-                            methodParameterTypes);
+                    methodToExecute = objectClass.getMethod(agentCommandRequest.getMethodName(), methodParameterTypes);
                 } catch (NoSuchMethodException noSuchMethodException) {
                     System.err.println("method not found matching name [" + agentCommandRequest.getMethodName() + "]" +
                             " with parameters [" + methodSignatureParts + "]" +
@@ -566,7 +581,13 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
                     String methodParameter = methodParameters.get(i);
                     Class<?> parameterType = parameterTypesClass[i];
 //                    System.err.println("Make value of type [" + parameterType + "] from value: " + methodParameter);
-                    Object parameterObject = objectMapper.readValue(methodParameter, parameterType);
+                    Object parameterObject;
+                    if (parameterType.getCanonicalName().equals("org.springframework.util.MultiValueMap")) {
+                        parameterObject = objectMapper.readValue(methodParameter,
+                                Class.forName("org.springframework.util.LinkedMultiValueMap"));
+                    } else {
+                        parameterObject = objectMapper.readValue(methodParameter, parameterType);
+                    }
 //                System.err.println(
 //                        "Assign parameter [" + i + "] value type [" + parameterType + "] -> " + parameterObject);
                     parameters[i] = parameterObject;
@@ -581,7 +602,23 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
 
                 try {
                     Object methodReturnValue = methodToExecute.invoke(objectInstanceByClass, parameters);
-                    agentCommandResponse.setMethodReturnValue(objectMapper.writeValueAsString(methodReturnValue));
+
+                    if (methodReturnValue instanceof Double) {
+                        agentCommandResponse.setMethodReturnValue(Double.doubleToLongBits((Double) methodReturnValue));
+                    } else if (methodReturnValue instanceof Float) {
+                        agentCommandResponse.setMethodReturnValue(Float.floatToIntBits((Float) methodReturnValue));
+                    } else if (methodReturnValue instanceof Flux) {
+                        Flux<?> returnedFlux = (Flux<?>) methodReturnValue;
+                        agentCommandResponse.setMethodReturnValue(
+                                objectMapper.writeValueAsString(returnedFlux.collectList().block()));
+                    } else if (methodReturnValue instanceof Mono) {
+                        Mono<?> returnedFlux = (Mono<?>) methodReturnValue;
+                        agentCommandResponse.setMethodReturnValue(
+                                objectMapper.writeValueAsString(returnedFlux.block()));
+                    } else {
+                        agentCommandResponse.setMethodReturnValue(objectMapper.writeValueAsString(methodReturnValue));
+                    }
+
                     agentCommandResponse.setResponseClassName(methodToExecute.getReturnType().getCanonicalName());
                     agentCommandResponse.setResponseType(ResponseType.NORMAL);
                 } catch (Throwable exception) {

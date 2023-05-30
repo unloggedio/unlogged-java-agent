@@ -1,6 +1,8 @@
 package com.videobug.agent.weaver;
 
+import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.type.TypeFactory;
 import com.videobug.agent.Constants;
 import com.videobug.agent.command.*;
 import com.videobug.agent.logging.IEventLogger;
@@ -518,6 +520,11 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
                 if (objectInstanceByClass == null) {
                     objectInstanceByClass = tryObjectConstruct(agentCommandRequest.getClassName(),
                             logger.getTargetClassLoader());
+                    if (objectInstanceByClass == null) {
+                        throw new NoSuchMethodException(
+                                "Instance of class [" + agentCommandRequest.getClassName() + "] " +
+                                        "not found and could not be created");
+                    }
                 }
 
                 objectClass = objectInstanceByClass.getClass();
@@ -539,18 +546,18 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
                 for (int i = 0; i < methodSignatureParts.size(); i++) {
                     String methodSignaturePart = methodSignatureParts.get(i);
 //                System.err.println("Method parameter [" + i + "] type: " + methodSignaturePart);
-                    methodParameterTypes[i] = ClassTypeUtil.getClassNameFromDescriptor(methodSignaturePart,
-                            targetClassLoader);
+                    methodParameterTypes[i] =
+                            ClassTypeUtil.getClassNameFromDescriptor(methodSignaturePart, targetClassLoader);
                 }
 
 
                 try {
                     methodToExecute = objectClass.getMethod(agentCommandRequest.getMethodName(), methodParameterTypes);
                 } catch (NoSuchMethodException noSuchMethodException) {
-                    System.err.println("method not found matching name [" + agentCommandRequest.getMethodName() + "]" +
-                            " with parameters [" + methodSignatureParts + "]" +
-                            " in class [" + agentCommandRequest.getClassName() + "]");
-                    System.err.println("NoSuchMethodException: " + noSuchMethodException.getMessage());
+//                    System.err.println("method not found matching name [" + agentCommandRequest.getMethodName() + "]" +
+//                            " with parameters [" + methodSignatureParts + "]" +
+//                            " in class [" + agentCommandRequest.getClassName() + "]");
+//                    System.err.println("NoSuchMethodException: " + noSuchMethodException.getMessage());
                 }
 
                 if (methodToExecute == null) {
@@ -576,6 +583,7 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
 
                 Class<?>[] parameterTypesClass = methodToExecute.getParameterTypes();
                 Object[] parameters = new Object[methodParameters.size()];
+                TypeFactory typeFactory = objectMapper.getTypeFactory().withClassLoader(targetClassLoader);
 
                 for (int i = 0; i < methodParameters.size(); i++) {
                     String methodParameter = methodParameters.get(i);
@@ -586,7 +594,10 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
                         parameterObject = objectMapper.readValue(methodParameter,
                                 Class.forName("org.springframework.util.LinkedMultiValueMap"));
                     } else {
-                        parameterObject = objectMapper.readValue(methodParameter, parameterType);
+
+                        JavaType typeReference = typeFactory
+                                .constructFromCanonical(agentCommandRequest.getParameterTypes().get(i));
+                        parameterObject = objectMapper.readValue(methodParameter, typeReference);
                     }
 //                System.err.println(
 //                        "Assign parameter [" + i + "] value type [" + parameterType + "] -> " + parameterObject);
@@ -622,7 +633,11 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
                     agentCommandResponse.setResponseClassName(methodToExecute.getReturnType().getCanonicalName());
                     agentCommandResponse.setResponseType(ResponseType.NORMAL);
                 } catch (Throwable exception) {
-                    exception.printStackTrace();
+                    if (exception instanceof InvocationTargetException) {
+                        exception.getCause().printStackTrace();
+                    } else {
+                        exception.printStackTrace();
+                    }
                     Throwable exceptionCause = exception.getCause() != null ? exception.getCause() : exception;
                     agentCommandResponse.setMessage(exceptionCause.getMessage());
                     agentCommandResponse.setMethodReturnValue(objectMapper.writeValueAsString(exceptionCause));
@@ -646,6 +661,7 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
             throws ClassNotFoundException, InstantiationException, IllegalAccessException {
         if (targetClassLoader == null) {
             System.err.println("Failed to construct instance of class [" + className + "]. classLoader is not defined");
+            return null;
         }
         Class<?> loadedClass = targetClassLoader.loadClass(className);
         Constructor<?> noArgsConstructor = null;

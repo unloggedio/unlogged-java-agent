@@ -72,18 +72,18 @@ public class ClassTransformer extends ClassVisitor {
 	}
 	
 	private WeaveLog weavingInfo;
-	private WeaveConfig config;
+	private final WeaveConfig config;
 	private String fullClassName;
 	private String className;
 	private String outerClassName;
 	private String packageName;
 	private String sourceFileName;
-	private ClassWriter classWriter;
+	private final ClassWriter classWriter;
 	private byte[] weaveResult;
 	private String classLoaderIdentifier;
-	
-	private String PACKAGE_SEPARATOR = "/";
-	
+
+	private final String PACKAGE_SEPARATOR = "/";
+
 	/**
 	 * @return the weaving result.
 	 */

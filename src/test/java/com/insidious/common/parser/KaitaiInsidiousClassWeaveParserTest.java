@@ -52,6 +52,6 @@ public class KaitaiInsidiousClassWeaveParserTest {
         KaitaiStream fileStream = new ByteBufferKaitaiStream(byteArray);
         KaitaiInsidiousClassWeaveParser classWeave =
                 new KaitaiInsidiousClassWeaveParser(fileStream);
-        assert classWeave.classCount() != 0;
+        assert classWeave.classInfo().size() != 0;
     }
 }

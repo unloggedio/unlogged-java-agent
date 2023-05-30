@@ -208,7 +208,7 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                         "com.fasterxml.jackson.datatype.jdk8.Jdk8Module",
                         "com.fasterxml.jackson.datatype.jsr310.JavaTimeModule",
                         "com.fasterxml.jackson.datatype.joda.JodaModule",
-                        "com.fasterxml.jackson.module.blackbird.BlackbirdModule",
+//                        "com.fasterxml.jackson.module.blackbird.BlackbirdModule",
                         "com.fasterxml.jackson.module.jakarta.xmlbind.JakartaXmlBindAnnotationModule",
                         "com.fasterxml.jackson.module.mrbean.MrBeanModule",
 //                        "com.fasterxml.jackson.module.afterburner.AfterburnerModule",

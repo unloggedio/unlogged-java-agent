@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>video.bug</groupId>
     <artifactId>unlogged-java-agent</artifactId>
-    <version>1.14.1</version>
+    <version>1.14.2</version>
     <name>Unlogged Java Agent</name>
     <description>Invoke any java method directly using Unlogged IntelliJ plugin, record code execution, generate
         JUnit test cases based on recorded executions</description>
@@ -399,7 +399,7 @@
         <dependency>
             <groupId>video.bug</groupId>
             <artifactId>common</artifactId>
-            <version>1.3.37</version>
+            <version>1.3.39</version>
         </dependency>
         <dependency>
             <groupId>io.projectreactor</groupId>

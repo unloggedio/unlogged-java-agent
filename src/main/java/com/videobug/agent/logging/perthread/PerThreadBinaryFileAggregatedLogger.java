@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * This class is a stream specialized to write a sequence of events into files.
@@ -72,7 +73,7 @@ public class PerThreadBinaryFileAggregatedLogger implements
     private long currentTimestamp = System.currentTimeMillis();
     private RawFileCollector fileCollector = null;
     private FileEventCountThresholdChecker logFileTimeAgeChecker = null;
-    private long eventId = 0;
+    private final AtomicLong eventId = new AtomicLong();
     // set to true when we are unable to upload files to the server
     // this is reset every 10 mins to check if server is online again
     // files are deleted from the disk while this is true
@@ -373,10 +374,10 @@ public class PerThreadBinaryFileAggregatedLogger implements
             getStreamForThread(currentThreadId).write(buffer);
 
             getThreadEventCount(currentThreadId).addAndGet(1);
-            valueIdFilterSet.get(currentThreadId).add(valueId);
-            fileCollector.addValueId(valueId);
-            probeIdFilterSet.get(currentThreadId).add(probeId);
-            fileCollector.addProbeId(probeId);
+//            valueIdFilterSet.get(currentThreadId).add(valueId);
+//            fileCollector.addValueId(valueId);
+//            probeIdFilterSet.get(currentThreadId).add(probeId);
+//            fileCollector.addProbeId(probeId);
             if (getThreadEventCount(currentThreadId).get() >= MAX_EVENTS_PER_FILE) {
                 prepareNextFile(currentThreadId);
             }
@@ -390,8 +391,8 @@ public class PerThreadBinaryFileAggregatedLogger implements
 
     }
 
-    public synchronized long getNextEventId() {
-        return eventId++;
+    public long getNextEventId() {
+        return eventId.getAndIncrement();
     }
 
     public void writeNewTypeRecord(int typeId, String typeName, byte[] toString) {

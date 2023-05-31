@@ -17,20 +17,20 @@ public class ObjectIdMap {
 
     public static final int INT_MAP_CAPACITY = 1024 * 1024;
     private final long nextId;
-    private Entry[] entries;
-    private int capacity;
-    private int threshold;
     private final int andKey;
     private final int size;
     private final int INT_MAX_BIT = 30;
     private final int idCount = 0;
-
+    BloomFilter<Integer> aggregatedProbeIdSet;
+    private Entry[] entries;
+    private int capacity;
+    private int threshold;
 
     /**
      * Create an instance.
      *
      * @param initialCapacity is the size of an internal array to manage the contents.
-     * @param outputDir location to save the object map, optional
+     * @param outputDir       location to save the object map, optional
      */
     public ObjectIdMap(int initialCapacity, File outputDir) throws IOException {
         size = 0;
@@ -56,14 +56,11 @@ public class ObjectIdMap {
 //                .createPersistedTo(objectIdMapFile);
 //        threshold = capacity / 2;
 //        entries = new Entry[capacity];
-        aggregatedProbeIdSet = BloomFilterUtil.newBloomFilterForProbes(initialCapacity);
+        aggregatedProbeIdSet = BloomFilterUtil.newBloomFilterForProbesNonSync(initialCapacity);
 
     }
 
-    BloomFilter<Integer> aggregatedProbeIdSet;
-
 //    CircularFifoBuffer recentIdsBuffer;
-
 
     /**
      * Translate an object into an ID.
@@ -139,8 +136,6 @@ public class ObjectIdMap {
 //
 //        return hash;
 //    }
-
-
     public long getId(Object o) {
         if (o == null) {
             return 0L;
@@ -153,7 +148,7 @@ public class ObjectIdMap {
         }
 
         if (aggregatedProbeIdSet.getFalsePositiveProbability() > 0.01) {
-            System.out.println("Clearing probe id bloom filter");
+            System.out.println("Clearing object id bloom filter");
             aggregatedProbeIdSet.clear();
         }
         aggregatedProbeIdSet.add(hash);

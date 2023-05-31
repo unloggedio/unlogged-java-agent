@@ -67,7 +67,7 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 //            ThreadLocal.withInitial(ByteArrayOutputStream::new);
     private final ThreadLocal<Boolean> isRecording = ThreadLocal.withInitial(() -> false);
     final private boolean serializeValues = true;
-//    private final Map<String, WeaveLog> classMap = new HashMap<>();
+    //    private final Map<String, WeaveLog> classMap = new HashMap<>();
 //    private final Map<Integer, DataInfo> callProbes = new HashMap<>();
     private final Set<Integer> probesToRecord = new HashSet<>();
     private final SerializationMode SERIALIZATION_MODE = SerializationMode.JACKSON;
@@ -75,6 +75,9 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
             ThreadLocal.withInitial(() -> new ByteArrayOutputStream(1_000_000));
     //    private final Set<String> classesToIgnore = new HashSet<>();
     private final Kryo kryo;
+    private final Map<String, WeakReference<Object>> objectMap = new HashMap<>();
+    private boolean isLombokPresent;
+    private ClassLoader targetClassLoader;
     private final ThreadLocal<ObjectMapper> objectMapper = ThreadLocal.withInitial(() -> {
         String jacksonVersion = ObjectMapper.class.getPackage().getImplementationVersion();
         if (jacksonVersion != null && (jacksonVersion.startsWith("2.9") || jacksonVersion.startsWith("2.8"))) {
@@ -206,14 +209,10 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
         }
     });
 
-    private final Map<String, WeakReference<Object>> objectMap = new HashMap<>();
-    private boolean isLombokPresent;
-    private ClassLoader targetClassLoader;
-
     /**
      * Create an instance of logging object.
      *
-     * @param includedPackage comma separated string of class names included in probing this session
+     * @param includedPackage  comma separated string of class names included in probing this session
      * @param outputDir        specifies an object to record errors that occur in this class
      * @param aggregatedLogger writer
      */
@@ -511,7 +510,8 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
                         || className.startsWith("tech.jhipster")
                         || className.startsWith("com.github")
                         || className.startsWith("com.zaxxer")
-                        || className.startsWith("org.glassfish")
+                        || (className.startsWith("org.glassfish")
+                              && !className.equals("org.glassfish.jersey.message.internal.OutboundJaxrsResponse"))
                         || className.startsWith("com.fasterxml")
                         || className.startsWith("org.slf4j")
                         || className.startsWith("org.springframework")

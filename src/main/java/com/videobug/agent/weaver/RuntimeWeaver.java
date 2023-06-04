@@ -517,19 +517,21 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
                         }
                     }
                 }
+                ClassLoader targetClassLoader1 = logger.getTargetClassLoader();
                 if (objectInstanceByClass == null) {
-                    objectInstanceByClass = tryObjectConstruct(agentCommandRequest.getClassName(),
-                            logger.getTargetClassLoader());
-                    if (objectInstanceByClass == null) {
-                        throw new NoSuchMethodException(
-                                "Instance of class [" + agentCommandRequest.getClassName() + "] " +
-                                        "not found and could not be created");
-                    }
+                    objectInstanceByClass = tryObjectConstruct(agentCommandRequest.getClassName(), targetClassLoader1);
+//                    if (objectInstanceByClass == null) {
+//                        throw new NoSuchMethodException(
+//                                "Instance of class [" + agentCommandRequest.getClassName() + "] " +
+//                                        "not found and could not be created");
+//                    }
                 }
 
-                objectClass = objectInstanceByClass.getClass();
+                objectClass = objectInstanceByClass != null ? objectInstanceByClass.getClass() :
+                        Class.forName(agentCommandRequest.getClassName(), false, targetClassLoader1);
 
-                targetClassLoader = objectInstanceByClass.getClass().getClassLoader();
+                targetClassLoader = objectInstanceByClass != null ?
+                        objectInstanceByClass.getClass().getClassLoader() : targetClassLoader1;
 
                 Method methodToExecute = null;
 
@@ -640,7 +642,11 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
                     }
                     Throwable exceptionCause = exception.getCause() != null ? exception.getCause() : exception;
                     agentCommandResponse.setMessage(exceptionCause.getMessage());
-                    agentCommandResponse.setMethodReturnValue(objectMapper.writeValueAsString(exceptionCause));
+                    try {
+                        agentCommandResponse.setMethodReturnValue(objectMapper.writeValueAsString(exceptionCause));
+                    } catch (Exception e) {
+                        // failed to serialize thrown exception
+                    }
                     agentCommandResponse.setResponseClassName(exceptionCause.getClass().getCanonicalName());
                     agentCommandResponse.setResponseType(ResponseType.EXCEPTION);
                 }
@@ -670,7 +676,7 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
             try {
                 return noArgsConstructor.newInstance();
             } catch (InvocationTargetException e) {
-                throw new RuntimeException(e);
+                return null;
             }
         } catch (NoSuchMethodException e) {
             Method[] methods = loadedClass.getMethods();
@@ -688,7 +694,7 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
                     }
                 }
             }
-            throw new RuntimeException(e);
+            return null;
         }
     }
 

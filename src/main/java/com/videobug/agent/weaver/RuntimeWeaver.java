@@ -601,8 +601,7 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
                                 .constructFromCanonical(agentCommandRequest.getParameterTypes().get(i));
                         parameterObject = objectMapper.readValue(methodParameter, typeReference);
                     }
-//                System.err.println(
-//                        "Assign parameter [" + i + "] value type [" + parameterType + "] -> " + parameterObject);
+
                     parameters[i] = parameterObject;
                 }
 
@@ -622,12 +621,10 @@ public class RuntimeWeaver implements ClassFileTransformer, AgentCommandExecutor
                         agentCommandResponse.setMethodReturnValue(Float.floatToIntBits((Float) methodReturnValue));
                     } else if (methodReturnValue instanceof Flux) {
                         Flux<?> returnedFlux = (Flux<?>) methodReturnValue;
-                        agentCommandResponse.setMethodReturnValue(
-                                objectMapper.writeValueAsString(returnedFlux.collectList().block()));
+                        agentCommandResponse.setMethodReturnValue(objectMapper.writeValueAsString(returnedFlux.collectList().block()));
                     } else if (methodReturnValue instanceof Mono) {
                         Mono<?> returnedFlux = (Mono<?>) methodReturnValue;
-                        agentCommandResponse.setMethodReturnValue(
-                                objectMapper.writeValueAsString(returnedFlux.block()));
+                        agentCommandResponse.setMethodReturnValue(objectMapper.writeValueAsString(returnedFlux.block()));
                     } else {
                         agentCommandResponse.setMethodReturnValue(objectMapper.writeValueAsString(methodReturnValue));
                     }

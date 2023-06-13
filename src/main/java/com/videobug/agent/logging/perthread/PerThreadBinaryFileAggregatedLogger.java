@@ -131,6 +131,7 @@ public class PerThreadBinaryFileAggregatedLogger implements
             return threadFileMap.get(threadId);
         }
         try {
+            getThreadEventCount(threadId).set(1);
             prepareNextFile(threadId);
         } catch (IOException e) {
             errorLogger.log(e);

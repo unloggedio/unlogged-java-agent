@@ -138,7 +138,7 @@ public class RawFileCollector implements Runnable {
     }
 
     public void drainItemsToIndex(ArchivedIndexWriter writer) {
-        if (isDraining.compareAndSet(false, true)) {
+        if (!isDraining.compareAndSet(false, true)) {
             return;
         }
         errorLogger.log("[" + writer.getArchiveFile().getName() + "] Drain items to index: " +

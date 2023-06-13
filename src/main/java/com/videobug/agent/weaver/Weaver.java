@@ -217,7 +217,7 @@ public class Weaver implements IErrorLogger {
         }
         classId++;
 
-        confirmedDataId = result.getNextDataId();
+//        confirmedDataId = result.getNextDataId();
         try {
             ArrayList<DataInfo> dataInfoEntries = result.getDataEntries();
             out.writeInt(dataInfoEntries.size());
@@ -230,7 +230,7 @@ public class Weaver implements IErrorLogger {
         }
 
         // Commit method IDs to the final output
-        confirmedMethodId = result.getNextMethodId();
+//        confirmedMethodId = result.getNextMethodId();
         try {
             ArrayList<MethodInfo> methods = result.getMethods();
             out.writeInt(methods.size());

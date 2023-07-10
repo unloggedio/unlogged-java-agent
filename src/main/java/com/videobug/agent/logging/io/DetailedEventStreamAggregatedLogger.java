@@ -3,10 +3,8 @@ package com.videobug.agent.logging.io;
 import com.esotericsoftware.kryo.Kryo;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
-import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.Module;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import com.fasterxml.jackson.databind.introspect.AnnotatedClass;
 import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
@@ -81,13 +79,17 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
     private final ThreadLocal<ObjectMapper> objectMapper = ThreadLocal.withInitial(() -> {
         String jacksonVersion = ObjectMapper.class.getPackage().getImplementationVersion();
         if (jacksonVersion != null && (jacksonVersion.startsWith("2.9") || jacksonVersion.startsWith("2.8"))) {
-            return new ObjectMapper();
+            ObjectMapper objectMapper1 = new ObjectMapper();
+            objectMapper1.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+            return objectMapper1;
         } else {
             // For 2.13.1
             // Load JsonMappingException class force load so that we dont get a StackOverflow when we are in a cycle
             JsonMappingException jme = new JsonMappingException(new DummyClosable(), "load class");
             jme.prependPath(new JsonMappingException.Reference("from dummy"));
             JsonMapper.Builder jacksonBuilder = JsonMapper.builder();
+            jacksonBuilder.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
             jacksonBuilder.annotationIntrospector(new JacksonAnnotationIntrospector() {
                 @Override
                 public boolean hasIgnoreMarker(AnnotatedMember m) {
@@ -452,10 +454,13 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
         String className;
         if (value != null) {
             className = value.getClass().getCanonicalName();
+            if (className == null) {
+                className = value.getClass().getName();
+            }
         } else {
             className = "";
         }
-        if (className != null && !className.contains("Lambda")) {
+        if (!className.contains("Lambda")) {
 //            System.err.println("Object instance: " + className);
             if (className.contains("_$")) {
                 className = className.substring(0, className.indexOf("_$"));
@@ -493,7 +498,7 @@ public class DetailedEventStreamAggregatedLogger implements IEventLogger {
 //                }
                 if (value instanceof Class) {
                     bytes = ((Class<?>) value).getCanonicalName().getBytes(StandardCharsets.UTF_8);
-                } else if (className == null || className.startsWith("com.google")
+                } else if (className.startsWith("com.google")
                         || className.startsWith("org.apache.http")
                         || className.startsWith("java.util.stream")
                         || className.startsWith("org.elasticsearch.client")

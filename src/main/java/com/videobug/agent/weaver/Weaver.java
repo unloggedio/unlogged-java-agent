@@ -34,6 +34,7 @@ public class Weaver implements IErrorLogger {
     private final File outputDir;
     private final String lineSeparator = "\n";
     private final WeaveConfig config;
+    private final Boolean DEBUG_BYTECODE = false;
     private Writer dataIdWriter;
     private PrintStream logger;
     private int classId;
@@ -174,9 +175,20 @@ public class Weaver implements IErrorLogger {
                     classTransformer.getSignature()
             );
 
-//            System.err.println("New Class [" + classIdEntry.getClassId() + "] in file ["
-//                    + classIdEntry.getFilename() + "] => [" + classIdEntry.getClassName() + "]");
+
             byte[] classWeaveInfoByteArray = finishClassProcess(classIdEntry, log);
+
+            if (DEBUG_BYTECODE) {
+                String pathname = "unlogged-target/" + className + ".class";
+                System.err.println("Saving [" + className + "] to [" + pathname + "]");
+                File path = new File(pathname);
+                path.getParentFile().mkdirs();
+                FileOutputStream out = new FileOutputStream(path);
+                out.write(classTransformer.getWeaveResult());
+                out.flush();
+                out.close();
+            }
+
             Logging.recordWeaveInfo(classWeaveInfoByteArray, classIdEntry, log);
 
             return classTransformer.getWeaveResult();
@@ -217,7 +229,7 @@ public class Weaver implements IErrorLogger {
         }
         classId++;
 
-//        confirmedDataId = result.getNextDataId();
+        confirmedDataId = result.getNextDataId();
         try {
             ArrayList<DataInfo> dataInfoEntries = result.getDataEntries();
             out.writeInt(dataInfoEntries.size());
@@ -230,7 +242,7 @@ public class Weaver implements IErrorLogger {
         }
 
         // Commit method IDs to the final output
-//        confirmedMethodId = result.getNextMethodId();
+        confirmedMethodId = result.getNextMethodId();
         try {
             ArrayList<MethodInfo> methods = result.getMethods();
             out.writeInt(methods.size());

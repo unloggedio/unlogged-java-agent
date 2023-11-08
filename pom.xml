@@ -69,7 +69,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>com.videobug.agent.Shipper</mainClass>
+                            <mainClass>io.unlogged.Shipper</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
@@ -83,7 +83,7 @@
                         <transformer
                                 implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                             <manifestEntries>
-                                <Premain-Class>com.videobug.agent.weaver.RuntimeWeaver</Premain-Class>
+                                <Premain-Class>io.unlogged.weaver.RuntimeWeaver</Premain-Class>
                                 <Implementation-Version>${project.version}</Implementation-Version>
                             </manifestEntries>
                         </transformer>
@@ -112,6 +112,10 @@
                         <relocation>
                             <pattern>ch.qos.logback</pattern>
                             <shadedPattern>selogger.ch.qos.logback</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>net.bytebuddy</pattern>
+                            <shadedPattern>selogger.net.bytebuddy</shadedPattern>
                         </relocation>
                     </relocations>
                 </configuration>
@@ -385,7 +389,26 @@
         <dependency>
             <groupId>video.bug</groupId>
             <artifactId>common</artifactId>
-            <version>1.3.46</version>
+            <version>1.4.4</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>redis.clients</groupId>
+                    <artifactId>jedis</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.msgpack</groupId>
+                    <artifactId>msgpack</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.google.code.gson</groupId>
+                    <artifactId>gson</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>net.bytebuddy</groupId>
+            <artifactId>byte-buddy</artifactId>
+            <version>1.14.8</version>
         </dependency>
         <dependency>
             <groupId>io.projectreactor</groupId>

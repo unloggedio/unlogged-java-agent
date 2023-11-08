@@ -6,11 +6,12 @@ import com.google.gson.Gson;
 import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.EventType;
-import com.videobug.agent.logging.IEventLogger;
-import com.videobug.agent.logging.util.AggregatedFileLogger;
-import com.videobug.agent.logging.util.ObjectIdAggregatedStream;
-import com.videobug.agent.logging.util.TypeIdAggregatedStreamMap;
-import com.videobug.agent.weaver.WeaveLog;
+import io.unlogged.logging.IEventLogger;
+import io.unlogged.logging.io.SerializationMode;
+import io.unlogged.logging.util.AggregatedFileLogger;
+import io.unlogged.logging.util.ObjectIdAggregatedStream;
+import io.unlogged.logging.util.TypeIdAggregatedStreamMap;
+import io.unlogged.weaver.WeaveLog;
 import org.nustaq.serialization.*;
 
 import java.io.ByteArrayOutputStream;

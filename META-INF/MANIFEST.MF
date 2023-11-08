@@ -1,3 +1,3 @@
 Manifest-Version: 1.0
-Main-Class: com.videobug.agent.Shipper
-Premain-Class: com.videobug.agent.weaver.RuntimeWeaver
+Main-Class: io.unlogged.Shipper
+Premain-Class: io.unlogged.weaver.RuntimeWeaver

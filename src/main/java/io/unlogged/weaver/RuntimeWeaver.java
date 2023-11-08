@@ -1,6 +1,8 @@
 package io.unlogged.weaver;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.insidious.common.weaver.ClassInfo;
+import fi.iki.elonen.NanoHTTPD;
 import io.unlogged.Constants;
 import io.unlogged.command.AgentCommandExecutorImpl;
 import io.unlogged.command.AgentCommandServer;
@@ -11,12 +13,9 @@ import io.unlogged.logging.perthread.PerThreadBinaryFileAggregatedLogger;
 import io.unlogged.logging.perthread.RawFileCollector;
 import io.unlogged.logging.util.FileNameGenerator;
 import io.unlogged.logging.util.NetworkClient;
-import fi.iki.elonen.NanoHTTPD;
 import org.objectweb.asm.ClassReader;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
 import java.lang.instrument.Instrumentation;
@@ -39,6 +38,7 @@ public class RuntimeWeaver implements ClassFileTransformer {
 
     public static final int AGENT_SERVER_PORT = 12100;
     private static final AtomicBoolean initialized = new AtomicBoolean();
+    private static RuntimeWeaver instance;
     private final Instrumentation instrumentation;
     /**
      * The weaver injects logging instructions into target classes.
@@ -52,7 +52,6 @@ public class RuntimeWeaver implements ClassFileTransformer {
     private Map<String, String> existingClass = new HashMap<String, String>();
     private ObjectMapper objectMapper;
 
-
     /**
      * Process command line arguments and prepare an output directory
      *
@@ -62,6 +61,7 @@ public class RuntimeWeaver implements ClassFileTransformer {
     public RuntimeWeaver(String args, Instrumentation instrumentation) {
 
         this.instrumentation = instrumentation;
+        RuntimeWeaver.instance = this;
         try {
             params = new RuntimeWeaverParameters(args);
 
@@ -105,7 +105,8 @@ public class RuntimeWeaver implements ClassFileTransformer {
 
                             FileNameGenerator fileNameGenerator = new FileNameGenerator(outputDir, "log-", ".selog");
                             PerThreadBinaryFileAggregatedLogger perThreadBinaryFileAggregatedLogger
-                                    = new PerThreadBinaryFileAggregatedLogger(fileNameGenerator, errorLogger, fileCollector);
+                                    = new PerThreadBinaryFileAggregatedLogger(fileNameGenerator, errorLogger,
+                                    fileCollector);
 
                             logger = Logging.initialiseAggregatedLogger(perThreadBinaryFileAggregatedLogger, outputDir);
 
@@ -161,6 +162,13 @@ public class RuntimeWeaver implements ClassFileTransformer {
         }
     }
 
+    public static RuntimeWeaver getInstance(String args) {
+        if (instance != null) {
+            return instance;
+        }
+        return instance;
+    }
+
     /**
      * The entry point of the agent.
      * This method initializes the Weaver instance and setup a shutdown hook
@@ -207,6 +215,53 @@ public class RuntimeWeaver implements ClassFileTransformer {
             Method sessionCloseMethod = sessionInstance.getClass().getMethod("close");
             sessionCloseMethod.invoke(sessionInstance);
         }
+    }
+
+    public static List<Integer> bytesToIntList(byte[] probeToRecordBytes) throws IOException {
+        List<Integer> probesToRecord = new ArrayList<>();
+        DataInputStream dis = new DataInputStream(new ByteArrayInputStream(probeToRecordBytes));
+        try {
+            while (true) {
+                int probeId = dis.readInt();
+                probesToRecord.add(probeId);
+            }
+        } catch (EOFException e) {
+
+        }
+        return probesToRecord;
+    }
+
+    public static void registerClass(String classInfoBytes, String probesToRecordBase64) {
+//        System.out.println(
+//                "New class registration [" + classInfoBytes.getBytes().length + "][" + probesToRecordBase64.getBytes().length + "]");
+
+        byte[] decodedClassWeaveInfo = new byte[0];
+        List<Integer> probesToRecord = null;
+        try {
+            decodedClassWeaveInfo = ByteTools.decompressBase64String(classInfoBytes);
+            byte[] decodedProbesToRecord = ByteTools.decompressBase64String(probesToRecordBase64);
+            probesToRecord = bytesToIntList(decodedProbesToRecord);
+        } catch (IOException e) {
+            // class registration fails
+            // no recoding for this class
+            System.out.println("Registration for class failed: " + e.getMessage());
+            return;
+        }
+        ClassInfo classInfo = new ClassInfo();
+
+        try {
+            ByteArrayInputStream in = new ByteArrayInputStream(decodedClassWeaveInfo);
+            classInfo.readFromDataStream(in);
+        } catch (IOException e) {
+            return;
+        }
+//            System.out.println("Register class ["+ classInfo.getClassId() +"][" + classInfo.getClassName() + "] => " + probesToRecord.size() +
+//                    " probes to record");
+        instance.logger.recordWeaveInfo(decodedClassWeaveInfo, classInfo, probesToRecord);
+    }
+
+    public static void registerClassRaw(byte[] byteArray, ClassInfo classIdEntry, List<Integer> probeIdsToRecord) {
+        instance.logger.recordWeaveInfo(byteArray, classIdEntry, probeIdsToRecord);
     }
 
     /**

@@ -1,12 +1,8 @@
 package io.unlogged.weaver;
 
 
-import com.insidious.common.weaver.ClassInfo;
-import com.insidious.common.weaver.DataInfo;
-import com.insidious.common.weaver.LogLevel;
-import com.insidious.common.weaver.MethodInfo;
+import com.insidious.common.weaver.*;
 import io.unlogged.logging.IErrorLogger;
-import io.unlogged.logging.Logging;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -14,6 +10,7 @@ import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * This class manages bytecode injection process and weaving logs.
@@ -178,6 +175,19 @@ public class Weaver implements IErrorLogger {
 
             byte[] classWeaveInfoByteArray = finishClassProcess(classIdEntry, log);
 
+            List<Integer> probesToRecordBase64 = new ArrayList<>();
+            for (DataInfo dataEntry : log.getDataEntries()) {
+                EventType eventType = dataEntry.getEventType();
+                if (eventType.equals(EventType.CALL_PARAM) ||
+                        eventType.equals(EventType.METHOD_PARAM) ||
+                        eventType.equals(EventType.CALL_RETURN) ||
+                        eventType.equals(EventType.METHOD_NORMAL_EXIT) ||
+                        eventType.equals(EventType.METHOD_EXCEPTIONAL_EXIT)) {
+                    probesToRecordBase64.add(dataEntry.getDataId());
+                }
+            }
+
+
             if (DEBUG_BYTECODE) {
                 String pathname = "unlogged-target/" + className + ".class";
                 System.err.println("Saving [" + className + "] to [" + pathname + "]");
@@ -189,12 +199,12 @@ public class Weaver implements IErrorLogger {
                 out.close();
             }
 
-            Logging.recordWeaveInfo(classWeaveInfoByteArray, classIdEntry, log);
+            RuntimeWeaver.registerClassRaw(classWeaveInfoByteArray, classIdEntry, probesToRecordBase64);
 
             return classTransformer.getWeaveResult();
 
         } catch (Throwable e) {
-            if (container != null && container.length() > 0) {
+            if (container.length() > 0) {
                 log("Failed to weave " + className + " in " + container);
             } else {
                 log("Failed to weave " + className);

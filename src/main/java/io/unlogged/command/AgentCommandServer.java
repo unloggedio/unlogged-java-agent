@@ -3,6 +3,7 @@ package io.unlogged.command;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fi.iki.elonen.NanoHTTPD;
+import io.unlogged.weaver.RuntimeWeaver;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -67,6 +68,20 @@ public class AgentCommandServer extends NanoHTTPD {
                 case EXECUTE:
                     commandResponse = this.agentCommandExecutor.executeCommand(agentCommandRequest);
                     break;
+                case INJECT_MOCKS:
+                    commandResponse = this.agentCommandExecutor.injectMocks(agentCommandRequest);
+                    break;
+                case REGISTER_CLASS:
+//                    System.out.println("RegisterClass over wire");
+                    String classWeaveInfoData = agentCommandRequest.getMethodParameters().get(0);
+                    String probesToRecord = agentCommandRequest.getMethodParameters().get(1);
+                    RuntimeWeaver.registerClass(classWeaveInfoData, probesToRecord);
+                    commandResponse = new AgentCommandResponse();
+                    commandResponse.setResponseType(ResponseType.NORMAL);
+                    break;
+                case REMOVE_MOCKS:
+                    commandResponse = this.agentCommandExecutor.removeMocks(agentCommandRequest);
+                    break;
                 default:
                     System.err.println(
                             "Unknown request [" + requestMethod + "] " + requestPath + " - " + agentCommandRequest);
@@ -78,7 +93,7 @@ public class AgentCommandServer extends NanoHTTPD {
             }
             String responseBody = objectMapper.writeValueAsString(commandResponse);
             return newFixedLengthResponse(Response.Status.OK, "application/json", responseBody);
-        } catch (Exception e) {
+        } catch (Throwable e) {
             e.printStackTrace();
             AgentCommandErrorResponse agentCommandErrorResponse = new AgentCommandErrorResponse(e.getMessage());
             if (e instanceof NoSuchMethodException) {

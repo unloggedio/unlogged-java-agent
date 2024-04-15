@@ -26,7 +26,6 @@ import java.util.concurrent.ScheduledExecutorService;
  */
 public class Runtime {
 
-    public static final int AGENT_SERVER_PORT = 12100;
     private static Runtime instance;
     private static List<Pair<String, String>> pendingClassRegistrations = new ArrayList<>();
     private final ScheduledExecutorService probeReaderExecutor = Executors.newSingleThreadScheduledExecutor();
@@ -57,9 +56,10 @@ public class Runtime {
 
             ServerMetadata serverMetadata =
                     new ServerMetadata(weaveParameters.getIncludedNames().toString(), Constants.AGENT_VERSION,
-                            AGENT_SERVER_PORT);
+                            0);
 
-            httpServer = new AgentCommandServer(AGENT_SERVER_PORT, serverMetadata);
+            httpServer = new AgentCommandServer(0, serverMetadata);
+            httpServer.start(NanoHTTPD.SOCKET_READ_TIMEOUT, false);
 
 
             outputDir = new File(weaveParameters.getOutputDirname());
@@ -84,6 +84,9 @@ public class Runtime {
             errorLogger.log("Java version: " + System.getProperty("java.version"));
             errorLogger.log("Agent version: " + Constants.AGENT_VERSION);
             errorLogger.log("Params: " + args);
+
+            serverMetadata.setAgentServerUrl("http://localhost:" + httpServer.getListeningPort());
+            serverMetadata.setAgentServerPort(httpServer.getListeningPort());
             errorLogger.log(serverMetadata.toString());
 
             System.out.println("[unlogged]" +
@@ -143,7 +146,8 @@ public class Runtime {
 
 
             httpServer.setAgentCommandExecutor(new AgentCommandExecutorImpl(logger.getObjectMapper(), logger));
-            httpServer.start(NanoHTTPD.SOCKET_READ_TIMEOUT, false);
+
+            System.out.println("[unlogged] agent server started at port " + httpServer.getListeningPort());
 
             java.lang.Runtime.getRuntime()
                     .addShutdownHook(new Thread(this::close));

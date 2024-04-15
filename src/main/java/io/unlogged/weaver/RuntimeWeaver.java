@@ -53,7 +53,6 @@ public class RuntimeWeaver implements ClassFileTransformer {
      * @param instrumentation object provided to the java agent for hooking up the class loader
      */
     public RuntimeWeaver(String args, Instrumentation instrumentation) {
-        System.out.println("[unlogged] agent server started at port " + AGENT_SERVER_PORT);
         this.instrumentation = instrumentation;
         runtime = Runtime.getInstance(args);
         logger = runtime.getLogger();

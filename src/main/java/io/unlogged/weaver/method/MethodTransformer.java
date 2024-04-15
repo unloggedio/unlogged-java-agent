@@ -157,6 +157,7 @@ public class MethodTransformer extends LocalVariablesSorter {
      */
     @Override
     public void visitEnd() {
+//        System.err.println("visitEnd: " + className);
         super.visitEnd();
     }
 

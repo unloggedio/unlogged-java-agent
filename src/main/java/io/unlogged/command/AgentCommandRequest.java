@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class AgentCommandRequest {
+    RequestAuthentication requestAuthentication;
     private AgentCommand command;
     private String className;
     private List<String> alternateClassNames;
@@ -15,6 +16,14 @@ public class AgentCommandRequest {
     private AgentCommandRequestType requestType;
     private List<String> parameterTypes;
     private List<DeclaredMock> declaredMocks = new ArrayList<>();
+
+    public RequestAuthentication getRequestAuthentication() {
+        return requestAuthentication;
+    }
+
+    public void setRequestAuthentication(RequestAuthentication requestAuthentication) {
+        this.requestAuthentication = requestAuthentication;
+    }
 
     public List<String> getParameterTypes() {
         return parameterTypes;
@@ -98,4 +107,5 @@ public class AgentCommandRequest {
     public void setDeclaredMocks(List<DeclaredMock> declaredMocks) {
         this.declaredMocks = declaredMocks;
     }
+
 }

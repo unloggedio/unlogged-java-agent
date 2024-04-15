@@ -12,7 +12,7 @@ public class WeaverNoneTest {
     @Test
     public void testLine() throws IOException {
         // Execute a weaving
-        WeaveConfig config = new WeaveConfig(new RuntimeWeaverParameters(WeaveConfig.KEY_RECORD_ALL));
+        WeaveConfig config = new WeaveConfig(new WeaveParameters(""));
         WeaveClassLoader loader = new WeaveClassLoader(config);
         Class<?> wovenClass = loader.loadAndWeaveClass("com.videobug.agent.testdata.DivideClass");
         try {

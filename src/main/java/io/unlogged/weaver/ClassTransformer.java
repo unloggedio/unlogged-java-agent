@@ -14,20 +14,63 @@ import org.objectweb.asm.commons.TryCatchBlockSorter;
  */
 public class ClassTransformer extends ClassVisitor {
 
+	private final WeaveConfig config;
+	private final ClassWriter classWriter;
+	private final String PACKAGE_SEPARATOR = "/";
 	private String[] interfaces;
 	private String superName;
 	private String signature;
+	private WeaveLog weavingInfo;
+	private String fullClassName;
+	private String className;
+	private String outerClassName;
+	private String packageName;
+	private String sourceFileName;
+	private byte[] weaveResult;
+	private String classLoaderIdentifier;
 
 	/**
 	 * This constructor weaves the given class and provides the result.
+	 *
+	 * @param weaver     specifies the state of the weaver.
+	 * @param config     specifies the configuration.
+	 * @param inputClass specifies a byte array containing the target class.
+     */
+	public ClassTransformer(WeaveLog weaver, WeaveConfig config, byte[] inputClass, ClassLoader loader) {
+		this(weaver, config, new ClassReader(inputClass), loader);
+	}
+
+	/**
+	 * This constructor weaves the given class and provides the result.
+	 *
 	 * @param weaver specifies the state of the weaver.
 	 * @param config specifies the configuration.
-	 * @param inputClass specifies a byte array containing the target class.
-	 * @param loader specifies a class loader that loaded the target class.
-	 * @throws IOException may be thrown if an error occurs during the weaving.
+	 * @param reader specifies a class reader to read the target class.
 	 */
-	public ClassTransformer(WeaveLog weaver, WeaveConfig config, byte[] inputClass, ClassLoader loader) throws IOException {
-		this(weaver, config, new ClassReader(inputClass), loader);
+	public ClassTransformer(WeaveLog weaver, WeaveConfig config, ClassReader reader, ClassLoader loader) {
+		// Create a writer for the target class
+		this(weaver, config,
+				new MetracerClassWriter(reader, loader));
+		// Start weaving, and store the result to a byte array
+		reader.accept(this, ClassReader.EXPAND_FRAMES);
+		weaveResult = classWriter.toByteArray();
+		classLoaderIdentifier = TypeIdUtil.getClassLoaderIdentifier(weaver.getFullClassName());
+
+	}
+
+	/**
+	 * Initializes the object as a ClassVisitor.
+	 * c
+	 *
+	 * @param weaver specifies the state of the weaver.
+	 * @param config specifies the configuration.
+	 * @param cw     specifies the class writer (MetracerClassWriter).
+	 */
+	protected ClassTransformer(WeaveLog weaver, WeaveConfig config, ClassWriter cw) {
+		super(Opcodes.ASM9, cw);
+		this.weavingInfo = weaver;
+		this.config = config;
+		this.classWriter = cw;
 	}
 
 	@Override
@@ -41,48 +84,6 @@ public class ClassTransformer extends ClassVisitor {
 //		System.err.println("Visit type annotation: " + typePath);
 		return super.visitTypeAnnotation(typeRef, typePath, descriptor, visible);
 	}
-
-	/**
-	 * This constructor weaves the given class and provides the result.
-	 * @param weaver specifies the state of the weaver.
-	 * @param config specifies the configuration.
-	 * @param reader specifies a class reader to read the target class.
-	 * @param loader specifies a class loader that loaded the target class.
-	 */
-	public ClassTransformer(WeaveLog weaver, WeaveConfig config, ClassReader reader, ClassLoader loader) {
-		// Create a writer for the target class
-		this(weaver, config, new MetracerClassWriter(reader, loader));
-		// Start weaving, and store the result to a byte array
-        reader.accept(this, ClassReader.EXPAND_FRAMES);
-        weaveResult = classWriter.toByteArray();
-        classLoaderIdentifier = TypeIdUtil.getClassLoaderIdentifier(weaver.getFullClassName());
-	}
-
-	/**
-	 * Initializes the object as a ClassVisitor.
-	 * @param weaver specifies the state of the weaver.
-	 * @param config specifies the configuration.
-	 * @param cw specifies the class writer (MetracerClassWriter).
-	 */
-	protected ClassTransformer(WeaveLog weaver, WeaveConfig config, ClassWriter cw) {
-		super(Opcodes.ASM9, cw);
-		this.weavingInfo = weaver;
-		this.config = config;
-		this.classWriter = cw;
-	}
-
-	private WeaveLog weavingInfo;
-	private final WeaveConfig config;
-	private String fullClassName;
-	private String className;
-	private String outerClassName;
-	private String packageName;
-	private String sourceFileName;
-	private final ClassWriter classWriter;
-	private byte[] weaveResult;
-	private String classLoaderIdentifier;
-
-	private final String PACKAGE_SEPARATOR = "/";
 
 	/**
 	 * @return the weaving result.
@@ -125,7 +126,7 @@ public class ClassTransformer extends ClassVisitor {
 	 */
 	@Override
 	public void visit(int version, int access, String name, String signature,
-			String superName, String[] interfaces) {
+					  String superName, String[] interfaces) {
 //		System.err.println("Visit class ["+ name + "]");
 		this.fullClassName = name;
 		this.weavingInfo.setFullClassName(fullClassName);
@@ -135,7 +136,7 @@ public class ClassTransformer extends ClassVisitor {
 		this.signature = signature;
 		if (index >= 0) {
 			packageName = name.substring(0, index);
-			className = name.substring(index+1);
+			className = name.substring(index + 1);
 		}
 
 		super.visit(version, access, name, signature, superName, interfaces);
@@ -162,7 +163,7 @@ public class ClassTransformer extends ClassVisitor {
 	 */
 	@Override
 	public void visitInnerClass(String name, String outerName,
-			String innerName, int access) {
+								String innerName, int access) {
 //		System.err.println("Visit innerClass ["+ name + "] + [" + outerName + "] + [" + innerName + "]");
 		super.visitInnerClass(name, outerName, innerName, access);
 		if (name.equals(fullClassName)) {
@@ -176,19 +177,30 @@ public class ClassTransformer extends ClassVisitor {
 	 */
 	@Override
 	public MethodVisitor visitMethod(int access, String name, String desc,
-			String signature, String[] exceptions) {
-        MethodVisitor mv = cv.visitMethod(access, name, desc, signature, exceptions);
-        if (mv != null) {
-        	mv = new TryCatchBlockSorter(mv, access, name, desc, signature, exceptions);
-        	MethodTransformer trans = new MethodTransformer(
+									 String signature, String[] exceptions) {
+		MethodVisitor mv = cv.visitMethod(access, name, desc, signature, exceptions);
+		if (name.equals("equals")
+				|| name.equals("hashCode")
+				|| name.equals("onNext")
+				|| name.equals("onSubscribe")
+				|| name.equals("onError")
+				|| name.equals("currentContext")
+				|| name.equals("onComplete")
+		) {
+			return mv;
+		}
+		if (mv != null
+		) {
+			mv = new TryCatchBlockSorter(mv, access, name, desc, signature, exceptions);
+			MethodTransformer trans = new MethodTransformer(
 					weavingInfo, config, sourceFileName,
 					fullClassName, outerClassName, access,
 					name, desc, signature, exceptions, mv
 			);
-        	return new JSRInliner(trans, access, name, desc, signature, exceptions);
-        } else {
-        	return null;
-        }
+			return new JSRInliner(trans, access, name, desc, signature, exceptions);
+		} else {
+			return null;
+		}
 	}
 
 	public String[] getInterfaces() {

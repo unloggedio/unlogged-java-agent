@@ -17,7 +17,7 @@ public class WeaveClassLoader extends ClassLoader {
 	
 	public WeaveClassLoader(WeaveConfig config) {
 		this.config = config;
-		this.weaveLog = new WeaveLog(0, 0, 0);
+		this.weaveLog = new WeaveLog(0, new DataInfoProvider(0, 0, 0));
 	}
 	
 	/**

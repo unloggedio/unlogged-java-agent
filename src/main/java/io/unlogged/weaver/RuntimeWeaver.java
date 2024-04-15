@@ -2,25 +2,17 @@ package io.unlogged.weaver;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.common.weaver.ClassInfo;
-import fi.iki.elonen.NanoHTTPD;
 import io.unlogged.Constants;
-import io.unlogged.command.AgentCommandExecutorImpl;
-import io.unlogged.command.AgentCommandServer;
-import io.unlogged.command.ServerMetadata;
+import io.unlogged.Runtime;
+import io.unlogged.command.AgentCommand;
+import io.unlogged.command.AgentCommandRequest;
 import io.unlogged.logging.IEventLogger;
-import io.unlogged.logging.Logging;
-import io.unlogged.logging.perthread.PerThreadBinaryFileAggregatedLogger;
-import io.unlogged.logging.perthread.RawFileCollector;
-import io.unlogged.logging.util.FileNameGenerator;
-import io.unlogged.logging.util.NetworkClient;
-import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.*;
 
 import java.io.*;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
 import java.lang.instrument.Instrumentation;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.security.CodeSource;
@@ -40,17 +32,19 @@ public class RuntimeWeaver implements ClassFileTransformer {
     private static final AtomicBoolean initialized = new AtomicBoolean();
     private static RuntimeWeaver instance;
     private final Instrumentation instrumentation;
+    private final Runtime runtime;
     /**
      * The weaver injects logging instructions into target classes.
      */
     private Weaver weaver;
-    private RuntimeWeaverParameters params;
+    private WeaveParameters params;
     /**
      * The logger receives method calls from injected instructions via selogger.logging.Logging class.
      */
     private IEventLogger logger;
     private Map<String, String> existingClass = new HashMap<String, String>();
     private ObjectMapper objectMapper;
+    private DataInfoProvider dataInfoProvider = new DataInfoProvider(0, 0, 0);
 
     /**
      * Process command line arguments and prepare an output directory
@@ -59,107 +53,13 @@ public class RuntimeWeaver implements ClassFileTransformer {
      * @param instrumentation object provided to the java agent for hooking up the class loader
      */
     public RuntimeWeaver(String args, Instrumentation instrumentation) {
-
+        System.out.println("[unlogged] agent server started at port " + AGENT_SERVER_PORT);
         this.instrumentation = instrumentation;
+        runtime = Runtime.getInstance(args);
+        logger = runtime.getLogger();
+        params = runtime.getWeaveParameters();
+        weaver = new Weaver(runtime.getConfig(), new DataInfoProvider(0, 0, 0));
         RuntimeWeaver.instance = this;
-        try {
-            params = new RuntimeWeaverParameters(args);
-
-            File outputDir = new File(params.getOutputDirname());
-            if (!outputDir.exists()) {
-                outputDir.mkdirs();
-            }
-            ServerMetadata serverMetadata = new ServerMetadata(params.getIncludedNames().toString(),
-                    Constants.AGENT_VERSION);
-            AgentCommandServer httpServer = new AgentCommandServer(AGENT_SERVER_PORT, serverMetadata);
-//            System.out.println("[unlogged] agent server started at port " + AGENT_SERVER_PORT);
-            SimpleFileLogger errorLogger = new SimpleFileLogger(outputDir);
-
-            errorLogger.log("Java version: " + System.getProperty("java.version"));
-            errorLogger.log("Agent version: " + Constants.AGENT_VERSION);
-            errorLogger.log("Params: " + args);
-
-
-            if (outputDir.isDirectory() && outputDir.canWrite()) {
-                WeaveConfig config = new WeaveConfig(params);
-                if (config.isValid()) {
-                    weaver = new Weaver(outputDir, config);
-                    weaver.setDumpEnabled(params.isDumpClassEnabled());
-                    System.out.println("[unlogged]" +
-                            " session Id: [" + config.getSessionId() + "]" +
-                            " on hostname [" + NetworkClient.getHostname() + "]");
-                    weaver.log("Params: " + args);
-
-                    switch (params.getMode()) {
-
-                        case PER_THREAD:
-
-
-                            NetworkClient networkClient = new NetworkClient(params.getServerAddress(),
-                                    config.getSessionId(), params.getAuthToken(), errorLogger);
-
-                            FileNameGenerator fileNameGenerator1 = new FileNameGenerator(outputDir, "index-", ".zip");
-                            RawFileCollector fileCollector =
-                                    new RawFileCollector(params.getFilesPerIndex(), fileNameGenerator1,
-                                            networkClient, errorLogger, outputDir);
-
-                            FileNameGenerator fileNameGenerator = new FileNameGenerator(outputDir, "log-", ".selog");
-                            PerThreadBinaryFileAggregatedLogger perThreadBinaryFileAggregatedLogger
-                                    = new PerThreadBinaryFileAggregatedLogger(fileNameGenerator, errorLogger,
-                                    fileCollector);
-
-                            logger = Logging.initialiseAggregatedLogger(perThreadBinaryFileAggregatedLogger, outputDir);
-
-                            break;
-
-                        case TESTING:
-
-                            NetworkClient networkClient1 =
-                                    new NetworkClient(params.getServerAddress(),
-                                            config.getSessionId(), params.getAuthToken(), errorLogger);
-
-                            FileNameGenerator archiveFileNameGenerator =
-                                    new FileNameGenerator(outputDir, "index-", ".zip");
-
-                            RawFileCollector fileCollector1 =
-                                    new RawFileCollector(params.getFilesPerIndex(), archiveFileNameGenerator,
-                                            networkClient1, errorLogger, outputDir);
-
-                            FileNameGenerator logFileNameGenerator =
-                                    new FileNameGenerator(outputDir, "log-", ".selog");
-
-                            PerThreadBinaryFileAggregatedLogger perThreadBinaryFileAggregatedLogger1
-                                    = new PerThreadBinaryFileAggregatedLogger(logFileNameGenerator, errorLogger,
-                                    fileCollector1);
-
-                            logger = Logging.initialiseDetailedAggregatedLogger(perThreadBinaryFileAggregatedLogger1,
-                                    outputDir);
-
-                            break;
-
-                    }
-
-
-                    objectMapper = logger.getObjectMapper();
-                    httpServer.setAgentCommandExecutor(new AgentCommandExecutorImpl(logger.getObjectMapper(), logger));
-                    httpServer.start(NanoHTTPD.SOCKET_READ_TIMEOUT, false);
-
-                } else {
-                    System.out.println("[unlogged] no weaving option is specified.");
-                    weaver = null;
-                }
-            } else {
-                System.err.println("[unlogged] ERROR: " + outputDir.getAbsolutePath() + " is not writable.");
-                weaver = null;
-            }
-        } catch (Throwable thx) {
-            System.err.println(
-                    "[unlogged] agent init failed, this session will not be recorded => " + thx.getMessage());
-            thx.printStackTrace();
-            if (thx.getCause() != null) {
-                thx.getCause().printStackTrace();
-            }
-        }
     }
 
     public static RuntimeWeaver getInstance(String args) {
@@ -178,44 +78,33 @@ public class RuntimeWeaver implements ClassFileTransformer {
      * @param instrumentation is provided by the jvm
      */
     public static void premain(String agentArgs, Instrumentation instrumentation) {
-        System.out.println(
-                "[unlogged] Starting agent: [" + Constants.AGENT_VERSION + "] with arguments [" + agentArgs + "]");
 //        String processId = ManagementFactory.getRuntimeMXBean().getName();
 //        long startTime = new Date().getTime();
+
         synchronized (initialized) {
             if (initialized.get()) {
                 return;
             }
             initialized.set(true);
         }
+        System.out.println(
+                "[unlogged] Starting agent: [" + Constants.AGENT_VERSION + "] with arguments [" + agentArgs + "]");
 
 
         final RuntimeWeaver runtimeWeaver = new RuntimeWeaver(agentArgs, instrumentation);
-        Runtime.getRuntime()
-                .addShutdownHook(new Thread(() -> {
-                    runtimeWeaver.close();
-                    System.out.println("[unlogged] shutdown complete");
-                }));
+//        Runtime.getInstance("")
+//                .addShutdownHook(new Thread(() -> {
+//                    runtimeWeaver.close();
+//                    System.out.println("[unlogged] shutdown complete");
+//                }));
 
         if (runtimeWeaver.isValid()) {
             instrumentation.addTransformer(runtimeWeaver);
+        } else {
+            System.err.println("@runtimeWeaver.isValid()");
         }
     }
 
-    private static void closeHibernateSessionIfPossible(Object sessionInstance) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
-        if (sessionInstance != null) {
-
-            Method getTransactionMethod = sessionInstance.getClass().getMethod("getTransaction");
-            Object transactionInstance = getTransactionMethod.invoke(sessionInstance);
-//            System.err.println("Transaction to commit: " + transactionInstance);
-            Method rollbackMethod = transactionInstance.getClass().getMethod("rollback");
-            rollbackMethod.invoke(transactionInstance);
-
-
-            Method sessionCloseMethod = sessionInstance.getClass().getMethod("close");
-            sessionCloseMethod.invoke(sessionInstance);
-        }
-    }
 
     public static List<Integer> bytesToIntList(byte[] probeToRecordBytes) throws IOException {
         List<Integer> probesToRecord = new ArrayList<>();
@@ -279,7 +168,7 @@ public class RuntimeWeaver implements ClassFileTransformer {
             logger.close();
         }
         if (weaver != null) {
-            weaver.close();
+//            weaver.close();
         }
     }
 
@@ -328,6 +217,153 @@ public class RuntimeWeaver implements ClassFileTransformer {
         return false;
     }
 
+    public byte[] applyTransformations(String classLoadLocation, byte[] original, String fileName,
+                                       DataInfoProvider dataInfoProvider, ClassLoader classLoader) {
+
+        ClassFileMetaData classFileMetadata = new ClassFileMetaData(original);
+        InstrumentedClass instrumentedClassBytes;
+        final String className = classFileMetadata.getClassName();
+        for (String anInterface : classFileMetadata.getInterfaces()) {
+//            System.err.println("Class [" + className + "] implements [" + anInterface + "]");
+            if (anInterface.startsWith("reactor/core/CoreSubscriber")) {
+                return original;
+            }
+            if (anInterface.startsWith("java/lang/annotation/Annotation")) {
+                return original;
+            }
+            if (anInterface.startsWith("java/io/Serializable")) {
+                return original;
+            }
+        }
+
+
+        ByteArrayOutputStream probesToRecordOutputStream = new ByteArrayOutputStream();
+        try {
+
+            dataInfoProvider.setProbeOutputStream(probesToRecordOutputStream);
+            weaver.setDataInfoProvider(dataInfoProvider);
+            instrumentedClassBytes = weaver.weave(classLoadLocation, fileName, original, classLoader);
+            dataInfoProvider.flushIdInformation();
+
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        byte[] probesToRecordBytes = probesToRecordOutputStream.toByteArray();
+        byte[] classWeaveInfo = instrumentedClassBytes.getClassWeaveInfo();
+        if (classWeaveInfo.length < 5) {
+            return original;
+        }
+
+//        ClassInfo classInfo = new ClassInfo();
+//        classInfo.readFromDataStream(new ByteArrayInputStream(classWeaveInfo));
+
+        final String probeDataCompressedBase64 = ByteTools.compressBase64String(probesToRecordBytes);
+        final String compressedClassWeaveInfo = ByteTools.compressBase64String(classWeaveInfo);
+
+//        List<Integer> probeIdsAgain = Runtime.bytesToIntList(
+//                ByteTools.decompressBase64String(probeDataCompressedBase64));
+//        System.out.println("Probes to record: " + probeDataCompressedBase64 + " === " + compressedClassWeaveInfo);
+
+
+//        if (instrumentedClassBytes.classWeaveInfo.length == 0) {
+//        return instrumentedClassBytes.getBytes();
+//        }
+
+
+//        final AtomicBoolean changesMade = new AtomicBoolean();
+//        if (fileName.contains("$")) {
+//            classWeaveBytesToBeWritten.write(classWeaveInfo);
+//            return instrumentedClassBytes.getBytes();
+//        }
+
+        AgentCommandRequest agentCommandRequest = new AgentCommandRequest();
+        List<String> parameters = Arrays.asList(compressedClassWeaveInfo, probeDataCompressedBase64);
+        agentCommandRequest.setMethodParameters(parameters);
+        agentCommandRequest.setCommand(AgentCommand.REGISTER_CLASS);
+//        RequestBody body = RequestBody.create(objectMapper.writeValueAsString(agentCommandRequest), JSON);
+//        Request request = new Request.Builder()
+//                .url(agentUrl + "/command")
+//                .post(body)
+//                .build();
+//
+//        try (Response response = client.newCall(request).execute()) {
+//            String responseBody = response.body().string();
+//            AgentCommandResponse agentCommandResponse = objectMapper.readValue(responseBody,
+//                    AgentCommandResponse.class);
+//            // successfully posted to the running server
+//            // hmm
+//            if (agentCommandResponse.getResponseType() == ResponseType.NORMAL) {
+////                System.err.println("Posted class weave info to running process directly yay");
+////                diagnostics.addError("Posted class weave info to running process directly yay");
+////                return instrumentedClassBytes.getBytes();
+//            }
+//        } catch (Throwable e) {
+//            // server isnt up
+//            // process isnt running
+//        }
+
+
+        // Create a ClassReader to read the original class bytes
+        ClassReader reader = new ClassReader(instrumentedClassBytes.getBytes());
+
+        // Create a ClassWriter to write the modified class bytes
+        ClassWriter writer = new FixedClassWriter(reader, ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
+
+        // Create a ClassVisitor to visit and modify the class
+        ClassVisitor cv = new ClassVisitor(Opcodes.ASM9, writer) {
+            private boolean hasStaticInitializer = false;
+
+            @Override
+            public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
+                // Check if this is the static initializer (clinit)
+                if (name.equals("<clinit>")) {
+                    hasStaticInitializer = true;
+//                    System.out.println("Modify existing static method in [" + className + "]");
+                    // Create a method visitor to add code to the static initializer
+                    MethodVisitor methodVisitor = super.visitMethod(access, name, desc, signature, exceptions);
+
+                    // Create a MethodVisitor to visit and modify the method
+                    return new MethodVisitor(Opcodes.ASM9, methodVisitor) {
+                        @Override
+                        public void visitCode() {
+                            addClassWeaveInfo(mv, compressedClassWeaveInfo, probeDataCompressedBase64);
+                            mv.visitMaxs(3, 0);
+                            super.visitCode();
+                        }
+
+                    };
+
+                }
+
+                return super.visitMethod(access, name, desc, signature, exceptions);
+            }
+
+            @Override
+            public void visitEnd() {
+                // If the class doesn't have a static initializer, create one
+                if (!hasStaticInitializer) {
+//                    System.out.println("Adding new static method in [" + className + "]");
+
+                    MethodVisitor methodVisitor = writer.visitMethod(Opcodes.ACC_STATIC, "<clinit>", "()V", null, null);
+                    methodVisitor.visitCode();
+                    addClassWeaveInfo(methodVisitor, compressedClassWeaveInfo, probeDataCompressedBase64);
+                    methodVisitor.visitMaxs(3, 0);
+                    methodVisitor.visitInsn(Opcodes.RETURN);
+                    methodVisitor.visitEnd();
+
+                }
+
+                super.visitEnd();
+            }
+        };
+
+        // Start the class modification process
+        reader.accept(cv, ClassReader.EXPAND_FRAMES);
+        return writer.toByteArray();
+////        return original;
+    }
+
     /**
      * This method is called from JVM when loading a class.
      * This agent injects logging instructions here.
@@ -372,9 +408,10 @@ public class RuntimeWeaver implements ClassFileTransformer {
 //        System.err.println("transform class: " + className);
 
         try {
+            runtime.setTargetClassLoader(loader);
 
             if (isExcludedFromLogging(className)) {
-//            weaver.log("Excluded by name filter: " + className);
+//                weaver.log("Excluded by name filter: " + className);
                 return null;
             }
 
@@ -388,12 +425,12 @@ public class RuntimeWeaver implements ClassFileTransformer {
                 }
 
                 if (isExcludedLocation(classLoadLocation)) {
-                    weaver.log("Excluded by location filter: " + className + " loaded from " + classLoadLocation);
+//                    weaver.log("Excluded by location filter: " + className + " loaded from " + classLoadLocation);
                     return null;
                 }
 
                 if (isSecurityManagerClass(className, loader) && !params.isWeaveSecurityManagerClassEnabled()) {
-                    weaver.log("Excluded security manager subclass: " + className);
+//                    weaver.log("Excluded security manager subclass: " + className);
                     return null;
                 }
 
@@ -461,15 +498,19 @@ public class RuntimeWeaver implements ClassFileTransformer {
 //                    threadPoolExecutor.submit(watcherRunnable);
 //                }
 
-                byte[] buffer = weaver.weave(classLoadLocation, className, classfileBuffer, loader);
+//                System.err.println("Class [" + className + "] was loaded at " + new Date());
+                byte[] buffer = applyTransformations(classLoadLocation, classfileBuffer, className, dataInfoProvider,
+                        loader);
 
                 return buffer;
             } else {
+                System.err.println("Class [" + className + "noooo" + new Date());
                 return null;
             }
 
         } catch (Throwable e) {
-//            System.err.printf("[unlogged] Failed to instrument class: [%s]\n", className);
+            e.printStackTrace();
+            System.err.printf("[unlogged] Failed to instrument class: [%s]\n", className);
             return null;
         }
     }
@@ -542,6 +583,55 @@ public class RuntimeWeaver implements ClassFileTransformer {
         return null;
     }
 
-    public enum Mode {STREAM, FREQUENCY, FIXED_SIZE, DISCARD, NETWORK, PER_THREAD, TESTING}
+
+    private void addClassWeaveInfo(MethodVisitor mv, String base64Bytes, String probesToRecordBase64) {
+
+        // new string on the stack
+        mv.visitTypeInsn(Opcodes.NEW, "java/lang/StringBuilder");
+        mv.visitInsn(Opcodes.DUP);
+        mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/StringBuilder", "<init>", "()V", false);
+
+        List<String> stringParts = splitString(base64Bytes, 40000);
+        for (String stringPart : stringParts) {
+            mv.visitLdcInsn(stringPart);
+            mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "append",
+                    "(Ljava/lang/String;)Ljava/lang/StringBuilder;", false);
+
+        }
+
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "toString", "()Ljava/lang/String;", false);
+
+        // new string on the stack
+        mv.visitTypeInsn(Opcodes.NEW, "java/lang/StringBuilder");
+        mv.visitInsn(Opcodes.DUP);
+        mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/StringBuilder", "<init>", "()V", false);
+
+        List<String> probesToRecordParts = splitString(probesToRecordBase64, 40000);
+        for (String stringPart : probesToRecordParts) {
+            mv.visitLdcInsn(stringPart);
+            mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "append",
+                    "(Ljava/lang/String;)Ljava/lang/StringBuilder;", false);
+
+        }
+
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "toString", "()Ljava/lang/String;", false);
+
+
+        mv.visitMethodInsn(Opcodes.INVOKESTATIC, "io/unlogged/Runtime", "registerClass",
+                "(Ljava/lang/String;Ljava/lang/String;)V", false);
+    }
+
+
+    private static List<String> splitString(String text, int maxLength) {
+        List<String> results = new ArrayList<>();
+        int length = text.length();
+
+        for (int i = 0; i < length; i += maxLength) {
+            results.add(text.substring(i, Math.min(length, i + maxLength)));
+        }
+
+        return results;
+    }
+
 
 }

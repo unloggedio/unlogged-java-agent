@@ -8,4 +8,6 @@ public interface AgentCommandExecutor {
     AgentCommandResponse injectMocks(AgentCommandRequest agentCommandRequest) throws Exception;
 
     AgentCommandResponse removeMocks(AgentCommandRequest agentCommandRequest) throws Exception;
+
+    void setClassLoader(ClassLoader targetClassLoader);
 }

@@ -1,6 +1,7 @@
 package io.unlogged.weaver;
 
-import io.unlogged.weaver.RuntimeWeaver.Mode;
+
+import io.unlogged.Runtime;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -12,7 +13,7 @@ import java.util.regex.Pattern;
 /**
  * Parameters for controlling the behavior of a runtime weaver.
  */
-public class RuntimeWeaverParameters {
+public class WeaveParameters {
 
 
     private static final String[] SYSTEM_PACKAGES = {"sun/", "com/sun/", "java/", "javax/"};
@@ -56,11 +57,11 @@ public class RuntimeWeaverParameters {
      * If true, automatic filtering for security manager classes is disabled
      */
     private boolean weaveSecurityManagerClass = false;
-    private Mode mode = Mode.TESTING;
+    private Runtime.Mode mode = Runtime.Mode.TESTING;
     private int filesPerIndex = 100;
     private String agentServerPort = "12100";
 
-    public RuntimeWeaverParameters(String args) {
+    public WeaveParameters(String args) {
         if (args == null) args = "";
         String[] a = args.split(ARG_SEPARATOR);
 
@@ -108,7 +109,7 @@ public class RuntimeWeaverParameters {
             } else if (arg.startsWith("json=")) {
                 String param = arg.substring("json=".length());
                 outputJson = param.equalsIgnoreCase("true");
-            }  else if (arg.startsWith("e=")) {
+            } else if (arg.startsWith("e=")) {
                 String prefix = arg.substring("e=".length());
                 if (prefix.length() > 0) {
                     prefix = prefix.replace('.', '/');
@@ -128,21 +129,21 @@ public class RuntimeWeaverParameters {
             } else if (arg.startsWith("format=")) {
                 String opt = arg.substring("format=".length()).toLowerCase();
                 if (opt.startsWith("freq")) {
-                    mode = Mode.FREQUENCY;
+                    mode = Runtime.Mode.FREQUENCY;
                 } else if (opt.startsWith("discard")) {
-                    mode = Mode.DISCARD;
+                    mode = Runtime.Mode.DISCARD;
                 } else if (opt.startsWith("omni") || opt.startsWith("stream")) {
-                    mode = Mode.STREAM;
+                    mode = Runtime.Mode.STREAM;
 //                } else if (opt.startsWith("single")) {
 //                    mode = Mode.Single;
                 } else if (opt.startsWith("replay")) {
-                    mode = Mode.PER_THREAD;
+                    mode = Runtime.Mode.PER_THREAD;
                 } else if (opt.startsWith("testing")) {
-                    mode = Mode.TESTING;
+                    mode = Runtime.Mode.TESTING;
                 } else if (opt.startsWith("network")) {
-                    mode = Mode.NETWORK;
+                    mode = Runtime.Mode.NETWORK;
                 } else if (opt.startsWith("latest") || opt.startsWith("nearomni") || opt.startsWith("near-omni")) {
-                    mode = Mode.FIXED_SIZE;
+                    mode = Runtime.Mode.FIXED_SIZE;
                 }
             }
         }
@@ -160,7 +161,7 @@ public class RuntimeWeaverParameters {
         return dumpClass;
     }
 
-    public Mode getMode() {
+    public Runtime.Mode getMode() {
         return mode;
     }
 

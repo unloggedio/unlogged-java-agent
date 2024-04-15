@@ -120,7 +120,7 @@ public class WeaveConfig {
         }
     }
 
-    public WeaveConfig(RuntimeWeaverParameters params) {
+    public WeaveConfig(WeaveParameters params) {
         String options = params.getWeaveOption();
         String opt = options.toUpperCase();
 //        System.out.printf("[unlogged] Recording option: [%s] Server Address [%s] Username [%s] Password [%s]\n", opt, params.getServerAddress(), params.getUsername(), params.getPassword());

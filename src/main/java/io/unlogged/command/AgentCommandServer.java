@@ -3,6 +3,7 @@ package io.unlogged.command;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fi.iki.elonen.NanoHTTPD;
+import io.unlogged.logging.ObjectMapperFactory;
 import io.unlogged.weaver.RuntimeWeaver;
 
 import java.io.IOException;
@@ -12,9 +13,10 @@ import java.util.Map;
 public class AgentCommandServer extends NanoHTTPD {
 
     private final ServerMetadata serverMetadata;
-    ObjectMapper objectMapper = new ObjectMapper();
+    ObjectMapper objectMapper = ObjectMapperFactory.createObjectMapper();
     private AgentCommandExecutor agentCommandExecutor;
     private String pingResponseBody;
+    private ClassLoader targetClassLoader;
 
     public AgentCommandServer(int port, ServerMetadata serverMetadata) {
         super(port);
@@ -71,14 +73,14 @@ public class AgentCommandServer extends NanoHTTPD {
                 case INJECT_MOCKS:
                     commandResponse = this.agentCommandExecutor.injectMocks(agentCommandRequest);
                     break;
-                case REGISTER_CLASS:
-//                    System.out.println("RegisterClass over wire");
-                    String classWeaveInfoData = agentCommandRequest.getMethodParameters().get(0);
-                    String probesToRecord = agentCommandRequest.getMethodParameters().get(1);
-                    RuntimeWeaver.registerClass(classWeaveInfoData, probesToRecord);
-                    commandResponse = new AgentCommandResponse();
-                    commandResponse.setResponseType(ResponseType.NORMAL);
-                    break;
+//                case REGISTER_CLASS:
+////                    System.out.println("RegisterClass over wire");
+//                    String classWeaveInfoData = agentCommandRequest.getMethodParameters().get(0);
+//                    String probesToRecord = agentCommandRequest.getMethodParameters().get(1);
+//                    Runtime.registerClass(classWeaveInfoData, probesToRecord);
+//                    commandResponse = new AgentCommandResponse();
+//                    commandResponse.setResponseType(ResponseType.NORMAL);
+//                    break;
                 case REMOVE_MOCKS:
                     commandResponse = this.agentCommandExecutor.removeMocks(agentCommandRequest);
                     break;
@@ -115,5 +117,10 @@ public class AgentCommandServer extends NanoHTTPD {
 
     public void setAgentCommandExecutor(AgentCommandExecutor agentCommandExecutor) {
         this.agentCommandExecutor = agentCommandExecutor;
+    }
+
+    public void setClassLoader(ClassLoader classLoader) {
+        targetClassLoader = classLoader;
+        agentCommandExecutor.setClassLoader(targetClassLoader);
     }
 }

@@ -1,6 +1,5 @@
 package io.unlogged.util;
 
-import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -8,7 +7,7 @@ import java.nio.charset.StandardCharsets;
 public class StreamUtil {
     public static final int BUFFER_SIZE = 8192;
 
-    public static int copy(@NotNull InputStream inputStream, @NotNull OutputStream outputStream) throws IOException {
+    public static int copy(InputStream inputStream, OutputStream outputStream) throws IOException {
         byte[] buffer = new byte[BUFFER_SIZE];
         int read;
         int total = 0;

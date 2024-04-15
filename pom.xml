@@ -6,13 +6,24 @@
     <version>1.14.3</version>
     <name>Unlogged Java Agent</name>
     <description>Invoke any java method directly using Unlogged IntelliJ plugin, record code execution, generate
-        JUnit test cases based on recorded executions</description>
+        JUnit test cases based on recorded executions
+    </description>
     <url>https://unlogged.io</url>
     <licenses>
         <license>
             <name>AGPL 3</name>
         </license>
     </licenses>
+    <properties>
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <jackson.version>2.13.5</jackson.version>
+        <jackson.scope>compile</jackson.scope>
+
+    </properties>
+
     <developers>
         <developer>
             <name>Parth Mudgal</name>
@@ -88,26 +99,60 @@
                             </manifestEntries>
                         </transformer>
                     </transformers>
+                    <filters>
+                        <filter>
+                            <artifact>com.fasterxml.jackson.datatype:jackson-datatype-hibernate5</artifact>
+                            <excludes>
+                                <exclude>META-INF/services/com.fasterxml.jackson.databind.Module</exclude>
+                            </excludes>
+                        </filter>
+                        <filter>
+                            <artifact>com.fasterxml.jackson.datatype:jackson-datatype-joda</artifact>
+                            <excludes>
+                                <exclude>META-INF/services/com.fasterxml.jackson.databind.Module</exclude>
+                            </excludes>
+                        </filter>
+                        <filter>
+                            <artifact>com.fasterxml.jackson.module:jackson-module-paranamer</artifact>
+                            <excludes>
+                                <exclude>META-INF/services/com.fasterxml.jackson.databind.Module</exclude>
+                            </excludes>
+                        </filter>
+                        <filter>
+                            <artifact>com.fasterxml.jackson.datatype:jackson-datatype-jdk8</artifact>
+                            <excludes>
+                                <exclude>META-INF/services/com.fasterxml.jackson.databind.Module</exclude>
+                            </excludes>
+                        </filter>
+                        <filter>
+                            <artifact>com.fasterxml.jackson.datatype:jackson-datatype-jsr310</artifact>
+                            <excludes>
+                                <exclude>META-INF/services/com.fasterxml.jackson.databind.Module</exclude>
+                            </excludes>
+                        </filter>
+                        <filter>
+                            <artifact>com.fasterxml.jackson.module:jackson-module-jakarta-xmlbind-annotations</artifact>
+                            <excludes>
+                                <exclude>META-INF/services/com.fasterxml.jackson.databind.Module</exclude>
+                            </excludes>
+                        </filter>
+                        <filter>
+                            <artifact>com.fasterxml.jackson.module:jackson-module-mrbean</artifact>
+                            <excludes>
+                                <exclude>META-INF/services/com.fasterxml.jackson.databind.Module</exclude>
+                            </excludes>
+                        </filter>
+                        <filter>
+                            <artifact>com.fasterxml.jackson.module:jackson-module-blackbird</artifact>
+                            <excludes>
+                                <exclude>META-INF/services/com.fasterxml.jackson.databind.Module</exclude>
+                            </excludes>
+                        </filter>
+                    </filters>
                     <relocations>
-                        <relocation>
-                            <pattern>org.objectweb.asm</pattern>
-                            <shadedPattern>selogger.org.objectweb.asm</shadedPattern>
-                        </relocation>
-                        <relocation>
-                            <pattern>com.google.code.gson</pattern>
-                            <shadedPattern>selogger.com.google.code.gson</shadedPattern>
-                        </relocation>
-                        <relocation>
-                            <pattern>com.google.gson</pattern>
-                            <shadedPattern>selogger.com.google.gson</shadedPattern>
-                        </relocation>
                         <relocation>
                             <pattern>org.slf4j</pattern>
                             <shadedPattern>selogger.org.slf4j</shadedPattern>
-                        </relocation>
-                        <relocation>
-                            <pattern>com.googlecode.cqengine</pattern>
-                            <shadedPattern>selogger.com.googlecode.cqengine</shadedPattern>
                         </relocation>
                         <relocation>
                             <pattern>ch.qos.logback</pattern>
@@ -116,6 +161,10 @@
                         <relocation>
                             <pattern>net.bytebuddy</pattern>
                             <shadedPattern>selogger.net.bytebuddy</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>com.fasterxml.jackson</pattern>
+                            <shadedPattern>selogger.com.fasterxml.jackson</shadedPattern>
                         </relocation>
                     </relocations>
                 </configuration>
@@ -165,20 +214,20 @@
                     </execution>
                 </executions>
             </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-gpg-plugin</artifactId>
-                <version>1.5</version>
-                <executions>
-                    <execution>
-                        <id>sign-artifacts</id>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>sign</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
+<!--            <plugin>-->
+<!--                <groupId>org.apache.maven.plugins</groupId>-->
+<!--                <artifactId>maven-gpg-plugin</artifactId>-->
+<!--                <version>1.5</version>-->
+<!--                <executions>-->
+<!--                    <execution>-->
+<!--                        <id>sign-artifacts</id>-->
+<!--                        <phase>verify</phase>-->
+<!--                        <goals>-->
+<!--                            <goal>sign</goal>-->
+<!--                        </goals>-->
+<!--                    </execution>-->
+<!--                </executions>-->
+<!--            </plugin>-->
             <plugin>
                 <groupId>org.sonatype.plugins</groupId>
                 <artifactId>nexus-staging-maven-plugin</artifactId>
@@ -193,151 +242,143 @@
         </plugins>
     </build>
     <profiles>
-        <profile>
-            <id>fst</id>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-            </activation>
-            <properties>
-                <projectVersion>fst</projectVersion>
-                <fst.version>2.57</fst.version>
-            </properties>
-            <dependencies>
-                <dependency>
-                    <groupId>de.ruedigermoeller</groupId>
-                    <artifactId>fst</artifactId>
-                    <version>2.57</version>
-                </dependency>
-            </dependencies>
-        </profile>
-        <profile>
-            <id>gson</id>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-            </activation>
-            <properties>
-                <projectVersion>gson</projectVersion>
-                <gson.version>2.10</gson.version>
-            </properties>
-            <dependencies>
-                <dependency>
-                    <groupId>com.google.code.gson</groupId>
-                    <artifactId>gson</artifactId>
-                    <version>2.10</version>
-                </dependency>
-            </dependencies>
-        </profile>
-        <profile>
-            <id>jackson-2.13</id>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-            </activation>
-            <properties>
-                <projectVersion>jackson-2.13</projectVersion>
-                <jackson.version>2.13.5</jackson.version>
-            </properties>
-            <dependencies>
-                <dependency>
-                    <groupId>com.fasterxml.jackson.core</groupId>
-                    <artifactId>jackson-core</artifactId>
-                    <version>${jackson.version}</version>
-                    <!--                    <scope>provided</scope>-->
-                </dependency>
-                <dependency>
-                    <groupId>com.fasterxml.jackson.core</groupId>
-                    <artifactId>jackson-databind</artifactId>
-                    <version>${jackson.version}</version>
-                    <!--                    <scope>provided</scope>-->
-                </dependency>
-                <dependency>
-                    <groupId>com.fasterxml.jackson.datatype</groupId>
-                    <artifactId>jackson-datatype-hibernate5</artifactId>
-                    <version>${jackson.version}</version>
-                    <!--                    <scope>provided</scope>-->
-                </dependency>
-                <dependency>
-                    <groupId>com.fasterxml.jackson.datatype</groupId>
-                    <artifactId>jackson-datatype-joda</artifactId>
-                    <version>${jackson.version}</version>
-                    <!--                    <scope>provided</scope>-->
-                </dependency>
-                <dependency>
-                    <groupId>com.fasterxml.jackson.datatype</groupId>
-                    <artifactId>jackson-datatype-jdk8</artifactId>
-                    <version>${jackson.version}</version>
-                    <!--                    <scope>provided</scope>-->
-                </dependency>
-                <dependency>
-                    <groupId>com.fasterxml.jackson.datatype</groupId>
-                    <artifactId>jackson-datatype-jsr310</artifactId>
-                    <version>${jackson.version}</version>
-                    <!--                    <scope>provided</scope>-->
-                </dependency>
-                <dependency>
-                    <groupId>com.fasterxml.jackson.module</groupId>
-                    <artifactId>jackson-module-kotlin</artifactId>
-                    <version>${jackson.version}</version>
-                </dependency>
-                <dependency>
-                    <groupId>com.fasterxml.jackson.module</groupId>
-                    <artifactId>jackson-module-paranamer</artifactId>
-                    <version>${jackson.version}</version>
-                </dependency>
-                <dependency>
-                    <groupId>com.fasterxml.jackson.module</groupId>
-                    <artifactId>jackson-module-mrbean</artifactId>
-                    <version>${jackson.version}</version>
-                </dependency>
-                <dependency>
-                    <groupId>com.fasterxml.jackson.module</groupId>
-                    <artifactId>jackson-module-jakarta-xmlbind-annotations</artifactId>
-                    <version>${jackson.version}</version>
-                </dependency>
-                <dependency>
-                    <groupId>com.fasterxml.jackson.module</groupId>
-                    <artifactId>jackson-module-blackbird</artifactId>
-                    <version>${jackson.version}</version>
-                </dependency>
-<!--                <dependency>-->
-<!--                    <groupId>com.fasterxml.jackson.module</groupId>-->
-<!--                    <artifactId>jackson-module-afterburner</artifactId>-->
-<!--                    <version>${jackson.version}</version>-->
-<!--                </dependency>-->
-            </dependencies>
-        </profile>
 
     </profiles>
 
     <dependencies>
+
+
         <dependency>
-            <groupId>org.hibernate.javax.persistence</groupId>
-            <artifactId>hibernate-jpa-2.1-api</artifactId>
-            <version>1.0.0.Final</version>
+            <groupId>jakarta.xml.bind</groupId>
+            <artifactId>jakarta.xml.bind-api</artifactId>
+            <version>4.0.0</version>
         </dependency>
+
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+            <version>${jackson.version}</version>
+            <scope>${jackson.scope}</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
+            <version>${jackson.version}</version>
+            <scope>${jackson.scope}</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson.version}</version>
+            <scope>${jackson.scope}</scope>
+        </dependency>
+        <!--        <dependency>-->
+        <!--            <groupId>com.fasterxml.jackson.datatype</groupId>-->
+        <!--            <artifactId>jackson-datatype-hibernate5</artifactId>-->
+        <!--            <version>${jackson.version}</version>-->
+        <!--            <scope>${jackson.scope}</scope>-->
+        <!--        </dependency>-->
+        <!--        <dependency>-->
+        <!--            <groupId>com.fasterxml.jackson.datatype</groupId>-->
+        <!--            <artifactId>jackson-datatype-hibernate4</artifactId>-->
+        <!--            <version>${jackson.version}</version>-->
+        <!--            <scope>${jackson.scope}</scope>-->
+        <!--        </dependency>-->
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-joda</artifactId>
+            <version>${jackson.version}</version>
+            <scope>${jackson.scope}</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jdk8</artifactId>
+            <version>${jackson.version}</version>
+            <scope>${jackson.scope}</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
+            <version>${jackson.version}</version>
+            <scope>${jackson.scope}</scope>
+        </dependency>
+        <!--        <dependency>-->
+        <!--            <groupId>com.fasterxml.jackson.module</groupId>-->
+        <!--            <artifactId>jackson-module-kotlin</artifactId>-->
+        <!--            <version>${jackson.version}</version>-->
+        <!--            <scope>${jackson.scope}</scope>-->
+        <!--        </dependency>-->
+        <dependency>
+            <groupId>com.fasterxml.jackson.module</groupId>
+            <artifactId>jackson-module-paranamer</artifactId>
+            <version>${jackson.version}</version>
+            <scope>${jackson.scope}</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.module</groupId>
+            <artifactId>jackson-module-mrbean</artifactId>
+            <version>${jackson.version}</version>
+            <scope>${jackson.scope}</scope>
+        </dependency>
+
+        <dependency>
+
+            <groupId>com.fasterxml.jackson.module</groupId>
+            <artifactId>jackson-module-jakarta-xmlbind-annotations</artifactId>
+            <version>${jackson.version}</version>
+            <scope>${jackson.scope}</scope>
+            <exclusions>
+
+                <!--  and actual Jakarta Xml Bind annotations, types -->
+                <exclusion>
+                    <groupId>jakarta.xml.bind</groupId>
+                    <artifactId>jakarta.xml.bind-api</artifactId>
+                </exclusion>
+
+                <!-- 15-Jan-2022, tatu: as per [modules-base#152] -->
+                <exclusion>
+                    <groupId>jakarta.activation</groupId>
+                    <artifactId>jakarta.activation-api</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.module</groupId>
+            <artifactId>jackson-module-blackbird</artifactId>
+            <version>${jackson.version}</version>
+            <scope>${jackson.scope}</scope>
+        </dependency>
+
+
+<!--        <dependency>-->
+<!--            <groupId>org.hibernate.javax.persistence</groupId>-->
+<!--            <artifactId>hibernate-jpa-2.1-api</artifactId>-->
+<!--            <version>1.0.0.Final</version>-->
+<!--        </dependency>-->
         <dependency>
             <groupId>org.nanohttpd</groupId>
             <artifactId>nanohttpd</artifactId>
             <version>2.3.1</version>
         </dependency>
-        <dependency>
-            <groupId>com.baqend</groupId>
-            <artifactId>bloom-filter</artifactId>
-            <version>2.2.4</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.google.code.gson</groupId>
-                    <artifactId>gson</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>redis.clients</groupId>
-                    <artifactId>jedis</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.msgpack</groupId>
-                    <artifactId>msgpack</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>com.baqend</groupId>-->
+<!--            <artifactId>bloom-filter</artifactId>-->
+<!--            <version>2.2.4</version>-->
+<!--            <exclusions>-->
+<!--                <exclusion>-->
+<!--                    <groupId>com.google.code.gson</groupId>-->
+<!--                    <artifactId>gson</artifactId>-->
+<!--                </exclusion>-->
+<!--                <exclusion>-->
+<!--                    <groupId>redis.clients</groupId>-->
+<!--                    <artifactId>jedis</artifactId>-->
+<!--                </exclusion>-->
+<!--                <exclusion>-->
+<!--                    <groupId>org.msgpack</groupId>-->
+<!--                    <artifactId>msgpack</artifactId>-->
+<!--                </exclusion>-->
+<!--            </exclusions>-->
+<!--        </dependency>-->
         <dependency>
             <groupId>org.ow2.asm</groupId>
             <artifactId>asm</artifactId>
@@ -389,7 +430,7 @@
         <dependency>
             <groupId>video.bug</groupId>
             <artifactId>common</artifactId>
-            <version>1.4.4</version>
+            <version>1.4.8</version>
             <exclusions>
                 <exclusion>
                     <groupId>redis.clients</groupId>
@@ -403,6 +444,11 @@
                     <groupId>com.google.code.gson</groupId>
                     <artifactId>gson</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>org.jetbrains</groupId>
+                    <artifactId>annotations</artifactId>
+                </exclusion>
+
             </exclusions>
         </dependency>
         <dependency>
@@ -413,8 +459,7 @@
         <dependency>
             <groupId>io.projectreactor</groupId>
             <artifactId>reactor-core</artifactId>
-            <version>3.4.17</version>
-            <scope>compile</scope>
+            <version>3.5.4</version>
         </dependency>
         <dependency>
             <groupId>de.ruedigermoeller</groupId>

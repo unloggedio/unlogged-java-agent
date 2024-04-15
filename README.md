@@ -1,5 +1,6 @@
-#videobug common pkg registry
-https://gitlab.com/insidious1/videobug-common/-/packages
+
+Backported unlogged-sdk as java-agent implementation
+
 
 # SELogger
 
@@ -37,7 +38,7 @@ Execute your program with the Java Agent.
 
 The agent accepts options.  Each option is specified by `option=value` style with commas (","). For example:
 
-        java -javaagent:path/to/selogger-0.3.2.jar=output=dirname,format=freq [Application Options]
+        java -javaagent:path/to/selogger-0.3.2.jar=output=dirname
 
 
 ### Output Options
